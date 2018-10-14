@@ -28,8 +28,18 @@ def searchfiles(dirpath, partfileinfo, recursive=False):
 if __name__ == '__main__':
     start_time = time.clock()
     filepath = searchfiles(r"F:\xml", "*E113.2_N33.9*.xml")
-    print(len(filepath))
-    print(filepath)
+    # 获取路径中的路径名称
+    dirpath = os.path.dirname(filepath[0])
+    # 获取路径中的文件名
+    basename = os.path.basename(filepath[0])
+    # 获取不带后缀的文件名
+    basenamewithoutext = os.path.splitext(basename)[0]
+    # 获取截至到任意位置的文件名
+    basename_arb = basename[:basename.index("-PAN1.xml")]
+    print("路径：", dirpath)
+    print("文件名:", basename)
+    print("没有后缀的文件名:", basenamewithoutext)
+    print("任意位置的文件名:", basename_arb)
 
     end_time = time.clock()
 
