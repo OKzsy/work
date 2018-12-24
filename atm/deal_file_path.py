@@ -7,7 +7,7 @@ import fnmatch
 import time
 
 
-def searchfiles(dirpath, partfileinfo, recursive=False):
+def searchfiles(dirpath, partfileinfo='*', recursive=False):
     """列出符合条件的文件（包含路径），默认不进行递归查询，当recursive为True时同时查询子文件夹"""
     # 定义结果输出列表
     filelist = []
@@ -15,19 +15,30 @@ def searchfiles(dirpath, partfileinfo, recursive=False):
     pathlist = glob.glob(os.path.join(os.path.sep, dirpath, "*"))
     # 逐文件进行判断
     for mpath in pathlist:
-        if fnmatch.fnmatch(mpath, partfileinfo):
-            filelist.append(mpath)
-        # 如果mpath为子文件夹，则进行递归调用，判断子文件夹下的文件
-        elif os.path.isdir(mpath):
+        if os.path.isdir(mpath):
             # 默认不判断子文件夹
             if recursive:
                 filelist += searchfiles(mpath, partfileinfo, recursive)
+        elif fnmatch.fnmatch(mpath, partfileinfo):
+            filelist.append(mpath)
+        # 如果mpath为子文件夹，则进行递归调用，判断子文件夹下的文件
+
     return filelist
+
+
+def file_basename(path, RemoveSuffix=''):
+    if not os.path.isfile(path):
+        raise Exception("The path is not a file!")
+    if not RemoveSuffix:
+        return os.path.basename(path)
+    else:
+        basename = os.path.basename(path)
+        return basename[:basename.index(RemoveSuffix)]
 
 
 if __name__ == '__main__':
     start_time = time.clock()
-    filepath = searchfiles(r"F:\xml", "*E113.2_N33.9*.xml")
+    filepath = searchfiles(r"F:\cailanzi\planet_order_283054")
     # 获取路径中的路径名称
     dirpath = os.path.dirname(filepath[0])
     # 获取路径中的文件名
@@ -35,7 +46,8 @@ if __name__ == '__main__':
     # 获取不带后缀的文件名
     basenamewithoutext = os.path.splitext(basename)[0]
     # 获取截至到任意位置的文件名
-    basename_arb = basename[:basename.index("-PAN1.xml")]
+    # basename_arb = basename[:basename.index(".tif")]
+    basename_arb = file_basename(filepath[0], '.txt')
     print("路径：", dirpath)
     print("文件名:", basename)
     print("没有后缀的文件名:", basenamewithoutext)
