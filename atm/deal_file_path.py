@@ -27,6 +27,7 @@ def searchfiles(dirpath, partfileinfo='*', recursive=False):
 
 
 def file_basename(path, RemoveSuffix=''):
+    """去除文件名后部去除任意指定的字符串。"""
     if not os.path.isfile(path):
         raise Exception("The path is not a file!")
     if not RemoveSuffix:
