@@ -159,25 +159,29 @@ def main(in_file, shp_file, nodata, out_file):
     print('all done')
 
 if __name__ == '__main__':
+    # 注册所有gdal的驱动
+    gdal.AllRegister()
+    gdal.SetConfigOption("gdal_FILENAME_IS_UTF8", "YES")
+
     start_time = time.time()
 
-    if len(sys.argv[1:]) < 4:
-        sys.exit('Problem reading input')
-
-    in_file = sys.argv[1]
-    shp_file = sys.argv[2]
-    nodata = float(sys.argv[3])
-    out_file = sys.argv[4]
+    # if len(sys.argv[1:]) < 4:
+    #     sys.exit('Problem reading input')
+    #
+    # in_file = sys.argv[1]
+    # shp_file = sys.argv[2]
+    # nodata = float(sys.argv[3])
+    # out_file = sys.argv[4]
 
     #
     # in_file = r"D:\Data\Test_data\clip_20181218\test2\GF2_20180327_sha_test.tif"
     # shp_file = r"D:\Data\Test_data\clip_20181218\test2\0120_test.shp"
     # out_file = r"D:\Data\Test_data\clip_20181218\test2\GF2_20180327_sha_test_mask2.tif"
     #
-    # in_file = r"\\192.168.0.234\nydsj\project\1.class_zhongmu\4.data\5.GF2_zhongmu\GF2_20180327_zhongmu_reg.tif"
-    # shp_file = r"\\192.168.0.234\nydsj\project\1.class_zhongmu\1.vector\1.dlgq_zhongmu\land_zhongmu\land_zhongmu.shp"
-    # out_file = r"D:\Data\Test_data\clip_20181218\test2\GF2_20180327_zhongmu_reg_mask.tif"
-    # nodata = 0
+    in_file = r"\\192.168.0.234\nydsj\user\ZSS\巩义结果修改\planet_8band_gongyi_class3.tif"
+    shp_file = r"\\192.168.0.234\nydsj\user\ZSS\巩义结果修改\4.dlgq\gongyi_0120.shp"
+    out_file = r"\\192.168.0.234\nydsj\user\ZSS\巩义结果修改\planet_8band_gongyi_clip.tif"
+    nodata = 200
     main(in_file, shp_file, nodata, out_file)
     end_time = time.time()
     print("time: %.2f min." % ((end_time - start_time) / 60))
