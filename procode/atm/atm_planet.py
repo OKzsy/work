@@ -380,16 +380,17 @@ def main(py_path, file_path, partfileinfo='*AnalyticMS.tif', AOD=0.1696):
 
 if __name__ == '__main__':
     start_time = time.clock()
-    # file_path = r'\\192.168.0.234\nydsj\user\ZSS\test\planet_order_298137-巩义\planet_order_298137-2'
-    # partfileinfo = '*AnalyticMS.tif'
-    # # 浮点型的气溶胶光学厚度值
-    # tao = 0.5
+    fun_path = sys.path[0]
+    file_path = r'F:\cailanzi\planet_order_283054'
+    partfileinfo = '*AnalyticMS.tif'
+    # 浮点型的气溶胶光学厚度值
+    tao = 0.5
 
     print('The program starts running!')
-    fun_path = os.path.dirname(sys.argv[0])
-    file_path = sys.argv[1]
-    partfileinfo = sys.argv[2]
-    tao = float(sys.argv[3])
+    # fun_path = os.path.dirname(sys.argv[0])
+    # file_path = sys.argv[1]
+    # partfileinfo = sys.argv[2]
+    # tao = float(sys.argv[3])
 
     main(fun_path, file_path, partfileinfo, tao)
 

@@ -16,6 +16,7 @@ Parameters
 """
 import os
 import sys
+import subprocess
 import glob
 import fnmatch
 import math
@@ -342,6 +343,8 @@ def main(py_path, file_path, partfileinfo='*.tif', AOD=0.1696):
     # 需要大气校正影像路径
     original_dir_path = file_path
     original_imgs = searchfiles(original_dir_path, partfileinfo, recursive=True)
+    print('original_imgs:')
+    print(original_imgs)
     # 定义卫星通道参数，单位微米
     w = [[0.45, 0.890], [0.45, 0.52], [0.52, 0.59], [0.63, 0.69], [0.77, 0.89]]
     for num_file in range(len(original_imgs)):
@@ -427,6 +430,7 @@ def main(py_path, file_path, partfileinfo='*.tif', AOD=0.1696):
         # 打开辐射校正系数文件用于写入辐射校正系数
         lun_coe = open(outcoe, 'w', newline=None)
         coearr = np.full((5, 3), -999.0, dtype='float16')
+        print(os.getcwd())
         for a in range(5):  # 循环处理各个波段
             band = ['pan', 'Blue', 'Green', 'Red', 'Ninf']
             txtname = 'in.txt'
@@ -454,7 +458,7 @@ def main(py_path, file_path, partfileinfo='*.tif', AOD=0.1696):
             lun.write('{:<5.1f} {} {}'.format(radiance, 'reflectance (negative value)', '\n'))
             # 关闭参数输入文件
             lun.close()
-            os.system('6sv1-run.exe<in.txt>out.txt')
+            subprocess.call('sixsV1.1<in.txt>out.txt', shell=True)
             txtname = 'out.txt'
             with open(txtname, 'rt') as out_6sv:
                 temp = out_6sv.readlines()
