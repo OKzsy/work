@@ -99,7 +99,7 @@ def main(infile1, infile2):
     print(infile1)
     print(infile2)
 
-    return 1
+    return None
 
 
 if __name__ == '__main__':
