@@ -1,185 +1,141 @@
-from osgeo import gdal, gdalnumeric, ogr, osr
-import Image, ImageDraw
-import os, sys
-gdal.UseExceptions()
+#!/usr/bin/env python
+# -*- coding:utf-8 -*-
+"""
+Author:zhaoss
+Email:zhaoshaoshuai@hnnydsj.com
+Create date:  
+File: .py
+Description:
 
 
-# This function will convert the rasterized clipper shapefile
-# to a mask for use within GDAL.
-def imageToArray(i):
-    """
-    Converts a Python Imaging Library array to a
-    gdalnumeric image.
-    """
-    a=gdalnumeric.fromstring(i.tostring(),'b')
-    a.shape=i.im.size[1], i.im.size[0]
-    return a
+Parameters
 
-def arrayToImage(a):
-    """
-    Converts a gdalnumeric array to a
-    Python Imaging Library Image.
-    """
-    i=Image.fromstring('L',(a.shape[1],a.shape[0]),
-            (a.astype('b')).tostring())
-    return i
 
-def world2Pixel(geoMatrix, x, y):
-  """
-  Uses a gdal geomatrix (gdal.GetGeoTransform()) to calculate
-  the pixel location of a geospatial coordinate
-  """
-  ulX = geoMatrix[0]
-  ulY = geoMatrix[3]
-  xDist = geoMatrix[1]
-  yDist = geoMatrix[5]
-  rtnX = geoMatrix[2]
-  rtnY = geoMatrix[4]
-  pixel = int((x - ulX) / xDist)
-  line = int((ulY - y) / xDist)
-  return (pixel, line)
+"""
+import os
+import glob
+import time
+import sys
+import math
+import numpy as np
 
-#
-#  EDIT: this is basically an overloaded
-#  version of the gdal_array.OpenArray passing in xoff, yoff explicitly
-#  so we can pass these params off to CopyDatasetInfo
-#
-def OpenArray( array, prototype_ds = None, xoff=0, yoff=0 ):
-    ds = gdal.Open( gdalnumeric.GetArrayFilename(array) )
+from osgeo import gdal, ogr, gdalconst
 
-    if ds is not None and prototype_ds is not None:
-        if type(prototype_ds).__name__ == 'str':
-            prototype_ds = gdal.Open( prototype_ds )
-        if prototype_ds is not None:
-            gdalnumeric.CopyDatasetInfo( prototype_ds, ds, xoff=xoff, yoff=yoff )
-    return ds
+try:
+    progress = gdal.TermProgress_nocb
+except:
+    progress = gdal.TermProgress
 
-def histogram(a, bins=range(0,256)):
-  """
-  Histogram function for multi-dimensional array.
-  a = array
-  bins = range of numbers to match
-  """
-  fa = a.flat
-  n = gdalnumeric.searchsorted(gdalnumeric.sort(fa), bins)
-  n = gdalnumeric.concatenate([n, [len(fa)]])
-  hist = n[1:]-n[:-1]
-  return hist
 
-def stretch(a):
-  """
-  Performs a histogram stretch on a gdalnumeric array image.
-  """
-  hist = histogram(a)
-  im = arrayToImage(a)
-  lut = []
-  for b in range(0, len(hist), 256):
-    # step size
-    step = reduce(operator.add, hist[b:b+256]) / 255
-    # create equalization lookup table
-    n = 0
-    for i in range(256):
-      lut.append(n / step)
-      n = n + hist[i+b]
-  im = im.point(lut)
-  return imageToArray(im)
+def shp2raster(raster_ds, shp_layer, ext):
+    # 将行列整数浮点化
+    ext = np.array(ext) * 1.0
+    # 获取栅格数据的基本信息
+    raster_prj = raster_ds.GetProjection()
+    raster_geo = raster_ds.GetGeoTransform()
+    # 根据最小重叠矩形的范围进行矢量栅格化
+    ulx, uly = gdal.ApplyGeoTransform(raster_geo, ext[0], ext[1])
+    x_size = ext[2] - ext[0]
+    y_size = ext[3] - ext[1]
+    # 创建mask
+    # out = r"F:\test_data\clipraster\gdal_mask2\test3.tif"
+    # mask_ds = gdal.GetDriverByName('GTiff').Create(out, int(x_size), int(y_size), 1, gdal.GDT_Byte)
+    mask_ds = gdal.GetDriverByName('MEM').Create('', int(x_size), int(y_size), 1, gdal.GDT_Byte)
+    mask_ds.SetProjection(raster_prj)
+    mask_geo = [ulx, raster_geo[1], 0, uly, 0, raster_geo[5]]
+    mask_ds.SetGeoTransform(mask_geo)
+    # 矢量栅格化
+    print('Begin shape to mask')
+    gdal.RasterizeLayer(mask_ds, [1], shp_layer, burn_values=[1], callback=progress)
 
-def main( shapefile_path, raster_path ):
-    # Load the source data as a gdalnumeric array
-    srcArray = gdalnumeric.LoadFile(raster_path)
+    return mask_ds
 
-    # Also load as a gdal image to get geotransform
-    # (world file) info
-    srcImage = gdal.Open(raster_path)
-    geoTrans = srcImage.GetGeoTransform()
 
-    # Create an OGR layer from a boundary shapefile
-    shapef = ogr.Open(shapefile_path)
-    lyr = shapef.GetLayer( os.path.split( os.path.splitext( shapefile_path )[0] )[1] )
-    poly = lyr.GetNextFeature()
+def min_rect(raster_ds, shp_layer):
+    # 获取栅格的大小
+    x_size = raster_ds.RasterXSize
+    y_size = raster_ds.RasterYSize
+    # 获取是矢量的范围
+    extent = shp_layer.GetExtent()
+    # 获取栅格的放射变换参数
+    raster_geo = raster_ds.GetGeoTransform()
+    # 计算逆放射变换系数
+    raster_inv_geo = gdal.InvGeoTransform(raster_geo)
+    # 计算在raster上的行列号
+    # 左上
+    off_ulx, off_uly = map(round, gdal.ApplyGeoTransform(raster_inv_geo, extent[0], extent[3]))
+    # 右下
+    off_drx, off_dry = map(round, gdal.ApplyGeoTransform(raster_inv_geo, extent[1], extent[2]))
+    # 判断是否有重叠区域
+    if off_ulx >= x_size or off_uly >= y_size or off_drx <= 0 or off_dry <= 0:
+        sys.exit("Have no overlap")
+    # 限定重叠范围在栅格影像上
+    # 列
+    offset_column = np.array([off_ulx, off_drx])
+    offset_column = np.maximum((np.minimum(offset_column, x_size - 1)), 0)
+    # 行
+    offset_line = np.array([off_uly, off_dry])
+    offset_line = np.maximum((np.minimum(offset_line, y_size - 1)), 0)
 
-    # Convert the layer extent to image pixel coordinates
-    minX, maxX, minY, maxY = lyr.GetExtent()
-    ulX, ulY = world2Pixel(geoTrans, minX, maxY)
-    lrX, lrY = world2Pixel(geoTrans, maxX, minY)
+    return [offset_column[0], offset_line[0], offset_column[1], offset_line[1]]
 
-    # Calculate the pixel size of the new image
-    pxWidth = int(lrX - ulX)
-    pxHeight = int(lrY - ulY)
 
-    clip = srcArray[:, ulY:lrY, ulX:lrX]
+def mask_raster(raster_ds, mask_ds, outfile, ext):
+    # 将行列整数浮点化
+    ext = np.array(ext) * 1.0
+    # 获取栅格数据的基本信息
+    raster_prj = raster_ds.GetProjection()
+    raster_geo = raster_ds.GetGeoTransform()
+    bandCount = raster_ds.RasterCount
+    dataType = raster_ds.GetRasterBand(1).DataType
+    # 根据最小重叠矩形的范围进行矢量栅格化
+    ulx, uly = gdal.ApplyGeoTransform(raster_geo, ext[0], ext[1])
+    x_size = ext[2] - ext[0]
+    y_size = ext[3] - ext[1]
+    # 创建输出影像
+    result_ds = gdal.GetDriverByName('GTiff').Create(outfile, int(x_size), int(y_size), bandCount, dataType)
+    result_ds.SetProjection(raster_prj)
+    result_geo = [ulx, raster_geo[1], 0, uly, 0, raster_geo[5]]
+    result_ds.SetGeoTransform(result_geo)
+    # 获取掩模
+    mask = mask_ds.GetRasterBand(1).ReadAsArray()
+    mask = 1 - mask
+    # 对原始影像进行掩模并输出
+    print('Begin mask')
+    for band in range(bandCount):
+        banddata = raster_ds.GetRasterBand(band + 1).ReadAsArray(int(ext[0]), int(ext[1]), int(x_size), int(y_size))
+        banddata = np.choose(mask, (banddata, 0))
+        result_ds.GetRasterBand(band + 1).WriteArray(banddata)
+        progress((1+band) / bandCount)
+    return 1
 
-    #
-    # EDIT: create pixel offset to pass to new image Projection info
-    #
-    xoffset =  ulX
-    yoffset =  ulY
-    print "Xoffset, Yoffset = ( %f, %f )" % ( xoffset, yoffset )
 
-    # Create a new geomatrix for the image
-    geoTrans = list(geoTrans)
-    geoTrans[0] = minX
-    geoTrans[3] = maxY
+def main(raster, shp, out):
+    # 打开栅格和矢量影像
+    raster_ds = gdal.Open(raster)
+    shp_ds = ogr.Open(shp)
+    shp_l = shp_ds.GetLayer()
+    # 计算矢量和栅格的最小重叠矩形
+    offset = min_rect(raster_ds, shp_l)
+    # 矢量栅格化
+    mask_ds = shp2raster(raster_ds, shp_l, offset)
+    # 进行裁剪
+    res = mask_raster(raster_ds, mask_ds, out, offset)
 
-    # Map points to pixels for drawing the
-    # boundary on a blank 8-bit,
-    # black and white, mask image.
-    points = []
-    pixels = []
-    geom = poly.GetGeometryRef()
-    pts = geom.GetGeometryRef(0)
-    for p in range(pts.GetPointCount()):
-      points.append((pts.GetX(p), pts.GetY(p)))
-    for p in points:
-      pixels.append(world2Pixel(geoTrans, p[0], p[1]))
-    rasterPoly = Image.new("L", (pxWidth, pxHeight), 1)
-    rasterize = ImageDraw.Draw(rasterPoly)
-    rasterize.polygon(pixels, 0)
-    mask = imageToArray(rasterPoly)
-
-    # Clip the image using the mask
-    clip = gdalnumeric.choose(mask, \
-        (clip, 0)).astype(gdalnumeric.uint8)
-
-    # This image has 3 bands so we stretch each one to make them
-    # visually brighter
-    for i in range(3):
-      clip[i,:,:] = stretch(clip[i,:,:])
-
-    # Save new tiff
-    #
-    #  EDIT: instead of SaveArray, let's break all the
-    #  SaveArray steps out more explicity so
-    #  we can overwrite the offset of the destination
-    #  raster
-    #
-    ### the old way using SaveArray
-    #
-    # gdalnumeric.SaveArray(clip, "OUTPUT.tif", format="GTiff", prototype=raster_path)
-    #
-    ###
-    #
-    gtiffDriver = gdal.GetDriverByName( 'GTiff' )
-    if gtiffDriver is None:
-        raise ValueError("Can't find GeoTiff Driver")
-    gtiffDriver.CreateCopy( "OUTPUT.tif",
-        OpenArray( clip, prototype_ds=raster_path, xoff=xoffset, yoff=yoffset )
-    )
-
-    # Save as an 8-bit jpeg for an easy, quick preview
-    clip = clip.astype(gdalnumeric.uint8)
-    gdalnumeric.SaveArray(clip, "OUTPUT.jpg", format="JPEG")
-
-    gdal.ErrorReset()
+    return None
 
 
 if __name__ == '__main__':
+    # 注册所有gdal的驱动
+    gdal.AllRegister()
+    gdal.SetConfigOption("gdal_FILENAME_IS_UTF8", "YES")
+    start_time = time.clock()
+    in_file = r"\\192.168.0.234\nydsj\user\ZSS\gongyi20180416\planet_20180416_gongyi2.tif"
+    shpfile = r"\\192.168.0.234\nydsj\user\ZSS\巩义结果修改\4.dlgq\gongyi_0120.shp"
+    outfile = r"F:\test_data\clipraster\out\gongyi.tif"
 
-    #
-    # example run : $ python clip.py /<full-path>/<shapefile-name>.shp /<full-path>/<raster-name>.tif
-    #
-    if len( sys.argv ) < 2:
-        print "[ ERROR ] you must two args. 1) the full shapefile path and 2) the full raster path"
-        sys.exit( 1 )
+    main(in_file, shpfile, outfile)
 
-    main( sys.argv[1], sys.argv[2] )
+    end_time = time.clock()
+
+    print("time: %.4f secs." % (end_time - start_time))
