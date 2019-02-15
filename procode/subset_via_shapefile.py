@@ -88,7 +88,7 @@ def min_rect(raster_ds, shp_layer):
     off_drx, off_dry = map(round, gdal.ApplyGeoTransform(raster_inv_geo, extent[1], extent[2]))
     # 判断是否有重叠区域
     if off_ulx >= x_size or off_uly >= y_size or off_drx <= 0 or off_dry <= 0:
-        sys.exit("Have no overlap")
+        return 0
     # 限定重叠范围在栅格影像上
     # 列
     offset_column = np.array([off_ulx, off_drx])
@@ -149,6 +149,9 @@ def main(raster, shp, out):
         # 要素裁剪
         # 计算矢量和栅格的最小重叠矩形
         offset = min_rect(raster_ds, feat_lyr)
+        # 判断是否有重叠区域，如无（0），则跳过
+        if offset == 0:
+            continue
         # 矢量栅格化
         mask_ds = shp2raster(raster_ds, feat_lyr, offset)
         # 进行裁剪
