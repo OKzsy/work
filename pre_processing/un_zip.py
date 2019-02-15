@@ -103,10 +103,10 @@ def run_un_zip(in_file, out_dir):
         un_tar(tar_file, out_gz_dir)
     else:
 
-        out_zip_dir = os.path.join(out_dir, os.path.splitext(os.path.basename(in_file))[0])
-        if not os.path.isdir(out_zip_dir):
-            os.mkdir(out_zip_dir)
-        un_zipfile(in_file, out_zip_dir)
+        # out_zip_dir = os.path.join(out_dir, os.path.splitext(os.path.basename(in_file))[0])
+        # if not os.path.isdir(out_zip_dir):
+        #     os.mkdir(out_zip_dir)
+        un_zipfile(in_file, out_dir)
 
 
 def main(in_file, out_dir):
@@ -122,13 +122,13 @@ if __name__ == '__main__':
 
     start_time = time.time()
 
-    if len(sys.argv[1:]) < 2:
-        sys.exit('Problem reading input')
-    # in_dir = r"D:\Data\Test_data\un_zip\in_dir"
-    # out_dir = r"D:\Data\Test_data\un_zip\out_dir"
+    # if len(sys.argv[1:]) < 2:
+    #     sys.exit('Problem reading input')
+    in_file = r"F:\变化监测\工作.tar.gz"
+    out_dir = r"F:\变化监测\L1C_T49SGU_A016374_20180811T030542"
 
-    in_file = sys.argv[1]
-    out_dir = sys.argv[2]
+    # in_file = sys.argv[1]
+    # out_dir = sys.argv[2]
     main(in_file, out_dir)
 
     end_time = time.time()

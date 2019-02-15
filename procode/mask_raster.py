@@ -72,12 +72,12 @@ def main(in_file, shp_file, nodata, out_file):
         out_driver.Delete(mask_file)
 
     print('shape to mask raster start...')
-    # gdal.Rasterize(mask_file, shp_file, burnValues = 1,
-    #                xRes = abs(in_geo[1] / 2), yRes=abs(in_geo[5] / 2) ,
-    #                outputType = data_type, callback = progress)
-    gdal.Rasterize(mask_file, shp_file, burnValues=1,
-                   xRes=abs(in_geo[1] ), yRes=abs(in_geo[5]),
-                   outputType=data_type, callback=progress)
+    gdal.Rasterize(mask_file, shp_file, burnValues = 1,
+                   xRes = abs(in_geo[1] / 2), yRes=abs(in_geo[5] / 2) ,
+                   outputType = data_type, callback = progress)
+    # gdal.Rasterize(mask_file, shp_file, burnValues=1,
+    #                xRes=abs(in_geo[1]), yRes=abs(in_geo[5]),
+    #                outputType=data_type, callback=progress)
     print('shape to mask raster done.')
 
     print('mask raster start...')
@@ -157,7 +157,7 @@ def main(in_file, shp_file, nodata, out_file):
     source_dataset = None
     mask_sds = None
     print('mask raster done {}.'.format(temp_dir))
-    # shutil.rmtree(temp_dir)
+    shutil.rmtree(temp_dir)
     print()
     print('all done')
 
@@ -182,8 +182,8 @@ if __name__ == '__main__':
     # out_file = r"D:\Data\Test_data\clip_20181218\test2\GF2_20180327_sha_test_mask2.tif"
     #
     in_file = r"F:\test_data\clipraster\SatImage.tif"
-    shp_file = r"F:\test_data\clipraster\test3.shp"
-    out_file = r"F:\test_data\clipraster\out\SatImage_clip.tif"
+    shp_file = r"F:\test_data\clipraster\county.shp"
+    out_file = r"F:\test_data\clipraster\out\country_jg.tif"
     nodata = 0
     main(in_file, shp_file, nodata, out_file)
     end_time = time.time()

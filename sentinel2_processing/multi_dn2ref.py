@@ -17,7 +17,6 @@ Parameters
 
 """
 
-
 import os
 import time
 import sys
@@ -55,7 +54,6 @@ def un_zip(zip_file, out_dir):
 
 
 def get_10_jp2(in_list):
-
     # 10m排序
     jp2_10_list = ['B02_10', 'B03_10', 'B04_10', 'B08_10']
 
@@ -72,7 +70,6 @@ def get_10_jp2(in_list):
 
 
 def get_20_jp2(in_list):
-
     # 20m排序
     jp2_20_list = ['B02_20', 'B03_20', 'B04_20', 'B05_20', 'B06_20', 'B07_20', 'B8A_20', 'SCL_20m']
 
@@ -98,7 +95,6 @@ def search_file(folder_path, file_extension):
 
 
 def reproj_resample(in_file, match_file, out_file):
-
     source_dataset = gdal.Open(in_file)
     if source_dataset is None:
         sys.exit('Problem opening file %s !' % in_file)
@@ -136,8 +132,8 @@ def reproj_resample(in_file, match_file, out_file):
     source_dataset = None
     out_dataset = None
 
-def dn2ref(zip_file, out_dir):
 
+def dn2ref(zip_file, out_dir):
     # zip所在父目录
     zip_dir = os.path.dirname(zip_file)
     zip_name = os.path.splitext(os.path.basename(zip_file))[0]
@@ -152,14 +148,16 @@ def dn2ref(zip_file, out_dir):
     if zip_value == 0:
         shutil.rmtree(temp_dir)
         return
-
+    # 增加用于兼容不同网站下载的Sen2数据
+    tag = zip_name[0:3]
+    if tag == 'L1C':
+        zip_name = list(os.walk(temp_dir))[0][1][0][0:-5]
     # 使用Sen2Cor计算地表反射率
     safe_dir = os.path.join(temp_dir, '%s.SAFE' % zip_name)
 
     if not os.path.isdir(safe_dir):
         sys.exit('No %s.SAFE dir' % zip_name)
     subprocess.call('L2A_Process.bat --refresh %s' % safe_dir)
-
 
     L2_dir_list = list(zip_name.split('_'))
     L2_dir_list[1] = 'MSIL2A'
@@ -194,7 +192,7 @@ def dn2ref(zip_file, out_dir):
         # resam_nir_file = os.path.join(os.path.dirname(jp2_20_files[0]), '%s.jp2' % '_'.join(resam_nir_name_list))
         # reproj_resample(jp2_10_files[-1], jp2_20_files[0], resam_nir_file)
 
-        jp2_20_files.insert(-3, jp2_10_files[-1])
+        # jp2_20_files.insert(-3, jp2_10_files[-1])
 
         vrt_10_file = os.path.join(safe_dir, '%s_10m.vrt' % xml_name)
         vrt_20_file = os.path.join(safe_dir, '%s_20m.vrt' % xml_name)
@@ -238,7 +236,6 @@ def dn2ref(zip_file, out_dir):
 
 
 def main(in_dir, out_dir):
-
     if not os.path.isdir(out_dir):
         os.mkdir(out_dir)
 
@@ -249,15 +246,15 @@ def main(in_dir, out_dir):
         sys.exit('no zip file')
 
     # 建立多个进程
-    num_proc=4
+    num_proc = 4
     for zip in range(0, len(zip_files), num_proc):
 
-        sub_zip_list = zip_files[zip: num_proc+zip]
+        sub_zip_list = zip_files[zip: num_proc + zip]
 
         thread_list = []
         for izip in sub_zip_list:
-
-            thread = Thread(target=dn2ref, args=(izip, out_dir, ))
+            # dn2ref(izip, out_dir)
+            thread = Thread(target=dn2ref, args=(izip, out_dir,))
             thread.start()
             thread_list.append(thread)
 
@@ -267,19 +264,17 @@ def main(in_dir, out_dir):
         # progress((zip+4) / len(zip_files))
 
 
-
 if __name__ == '__main__':
-
     start_time = time.time()
 
-    if len(sys.argv[1:]) < 2:
-        sys.exit('Problem reading input')
-
-    in_dir = sys.argv[1]
-    out_dir = sys.argv[2]
+    # if len(sys.argv[1:]) < 2:
+    #     sys.exit('Problem reading input')
     #
-    # in_dir = r"D:\Work\RS_data\Sentinel-2"
-    # out_dir = r"D:\Work\test_data\output\test_thread"
+    # in_dir = sys.argv[1]
+    # out_dir = sys.argv[2]
+    #
+    in_dir = r"F:\ChangeMonitoring"
+    out_dir = r"F:\ChangeMonitoring\out"
     main(in_dir, out_dir)
 
     end_time = time.time()

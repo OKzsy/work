@@ -18,9 +18,11 @@ Parameters
 """
 
 import os
+import gc
 import sys
 import time
 import numpy as np
+from sys import getrefcount
 import matplotlib.pyplot as plt
 
 try:
@@ -111,7 +113,6 @@ def phi(X, Y):
 
 def GS(B):  # (M*N,4)
     GS = np.zeros(B.shape)
-
     for i in range(B.shape[1]):
         print(i)
         if i == 0:
@@ -245,21 +246,25 @@ def main(in_file1, in_file2, out_file):
     data1, in_band1, geotransform1, projection1 = Tif_read(in_file1)
     data2, in_band2, geotransform2, projection2 = resize_tif(in_file1, in_file2)
     img1 = data1  # 高分辨率全色影像
-    data1 = None
+    del data1
+    gc.collect()
     img2 = data2.transpose(1, 2, 0)  # 低分辨率多光谱影像
-    data2 = None
-    img3 = np.mean(img2, axis=2)  # img3为模拟的低分辨率全色影像#用多光谱各波段均值来模拟
+    del data2
+    gc.collect()
+    img3 = np.mean(img2, axis=2,dtype='float16')  # img3为模拟的低分辨率全色影像#用多光谱各波段均值来模拟
     #    cdf(img1)
     #    cdf(img3)
     #    img1=np.int32(img1)
     #    img3=np.int32(img3)
     B2 = img2.reshape(img2.shape[0] * img2.shape[1], img2.shape[2])
     B3 = img3.ravel()
-    B = np.c_[B3, B2]
+    B = np.c_[B3, B2].astype("float16")
+    del B3, B2
+    gc.collect()
     gs = GS(B)
     #    img4=modify_pan_hist(img1,img3)
     img4 = modify_pan_stat(img1, img3)
-    img3 = None
+    del img3
     gs[:, 0] = img4.ravel()
     B_t = GS_inverse(gs, B)
     new = B_t.reshape(img1.shape[0], img2.shape[1], B.shape[-1])[:, :, 1:]
@@ -279,8 +284,10 @@ if __name__ == '__main__':
 
     # if len(sys.argv[1:]) < 3:
     #     sys.exit('Problem reading input')
-    in_file1 = r"F:\GF\outimg\GF2_PMS2_E113.1_N34.9_20171020_L1A0002693345-PAN2-atm.tif"
-    in_file2 = r"F:\GF\outimg\GF2_PMS2_E113.1_N34.9_20171020_L1A0002693345-MSS2-atm.tif"
+    # in_file1 = r"F:\GF\GF2_PMS2_E113.1_N34.9_20171020_L1A0002693345-PAN2.tif"
+    # in_file2 = r"F:\GF\GF2_PMS2_E113.1_N34.9_20171020_L1A0002693345-MSS2.tif"
+    in_file1 = r"F:\GF\GF2_PAN.tif"
+    in_file2 = r"F:\GF\GF2_mss.tif"
     out_file = r"F:\GF\outimg\test.tiff"
 
     # in_file1 = sys.argv[1]

@@ -1,30 +1,52 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # -*- coding:utf-8 -*-
 """
-Author:zhaoss
-Email:zhaoshaoshuai@hnnydsj.com
-Create date:  
-File: .py
+# @Time    : 2019/2/15 16:16
+# @Author  : zhaoss
+# @FileName: subset_via_shapefile.py
+# @Email   : zhaoshaoshuai@hnnydsj.com
 Description:
-
-
+    对栅格分要素裁剪
 Parameters
-
-
+    参数1：输入影像
+    参数2：用于裁剪的矢量
+    参数3：裁剪结果输出路径
 """
-import os
-import glob
-import time
-import sys
-import math
-import numpy as np
 
+import os
+import sys
+import glob
+import numpy as np
+import time
 from osgeo import gdal, ogr, gdalconst
 
 try:
     progress = gdal.TermProgress_nocb
 except:
     progress = gdal.TermProgress
+
+
+def Feature_memory_shp(feat, sr):
+    """将指定的geometry导出为内存中单独的shpfile"""
+    fid = feat.GetFID()
+    # 在内存中创建临时的矢量文件，用以存储单独的要素
+    # 创建临时矢量文件
+    mem_dri = ogr.GetDriverByName('Memory')
+    mem_ds = mem_dri.CreateDataSource(' ')
+    outLayer = mem_ds.CreateLayer(' ', geom_type=ogr.wkbPolygon, srs=sr)
+    # 给图层中创建字段用以标识原来的FID
+    coor_fld = ogr.FieldDefn('ID_FID', ogr.OFTInteger)
+    outLayer.CreateField(coor_fld)
+    # 创建虚拟要素，用以填充原始要素
+    out_defn = outLayer.GetLayerDefn()
+    out_feat = ogr.Feature(out_defn)
+    # 对ID_FID字段填充值
+    fld_index = outLayer.GetLayerDefn().GetFieldIndex('ID_FID')
+    out_feat.SetField(fld_index, fid)
+    # 填充要素
+    out_feat.SetGeometry(feat.geometry())
+    outLayer.CreateFeature(out_feat)
+    return mem_ds, outLayer
 
 
 def shp2raster(raster_ds, shp_layer, ext):
@@ -45,9 +67,7 @@ def shp2raster(raster_ds, shp_layer, ext):
     mask_geo = [ulx, raster_geo[1], 0, uly, 0, raster_geo[5]]
     mask_ds.SetGeoTransform(mask_geo)
     # 矢量栅格化
-    print('Begin shape to mask')
-    gdal.RasterizeLayer(mask_ds, [1], shp_layer, burn_values=[1], callback=progress)
-
+    gdal.RasterizeLayer(mask_ds, [1], shp_layer, burn_values=[1])
     return mask_ds
 
 
@@ -101,12 +121,10 @@ def mask_raster(raster_ds, mask_ds, outfile, ext):
     mask = mask_ds.GetRasterBand(1).ReadAsArray()
     mask = 1 - mask
     # 对原始影像进行掩模并输出
-    print('Begin mask')
     for band in range(bandCount):
         banddata = raster_ds.GetRasterBand(band + 1).ReadAsArray(int(ext[0]), int(ext[1]), int(x_size), int(y_size))
         banddata = np.choose(mask, (banddata, 0))
         result_ds.GetRasterBand(band + 1).WriteArray(banddata)
-        progress((1+band) / bandCount)
     return 1
 
 
@@ -115,27 +133,46 @@ def main(raster, shp, out):
     raster_ds = gdal.Open(raster)
     shp_ds = ogr.Open(shp)
     shp_l = shp_ds.GetLayer()
-    # 计算矢量和栅格的最小重叠矩形
-    offset = min_rect(raster_ds, shp_l)
-    # 矢量栅格化
-    mask_ds = shp2raster(raster_ds, shp_l, offset)
-    # 进行裁剪
-    res = mask_raster(raster_ds, mask_ds, out, offset)
-
+    sr = shp_l.GetSpatialRef()
+    # 拆分矢量用以对单个要素进行裁剪
+    # 定义变量用以显示进度条
+    count = 0
+    num_feature = shp_l.GetFeatureCount()
+    for feat in shp_l:
+        # 获取要素的属性值用以确定输出tif影像的名字和路径
+        outdir = os.path.join(out, feat.Name.split('-')[1])
+        if not os.path.exists(outdir):
+            os.makedirs(outdir)
+        outpath = os.path.join(outdir, feat.Name + '.tiff')
+        # 要素提取为图层
+        feat_ds, feat_lyr = Feature_memory_shp(feat, sr)
+        # 要素裁剪
+        # 计算矢量和栅格的最小重叠矩形
+        offset = min_rect(raster_ds, feat_lyr)
+        # 矢量栅格化
+        mask_ds = shp2raster(raster_ds, feat_lyr, offset)
+        # 进行裁剪
+        res = mask_raster(raster_ds, mask_ds, outpath, offset)
+        progress(count + 1 / num_feature)
+        count += 1
     return None
 
 
 if __name__ == '__main__':
-    # 注册所有gdal的驱动
+    # 支持中文路径
+    gdal.SetConfigOption("GDAL_FILENAME_IS_UTF8", "NO")
+    # 支持中文属性字段
+    gdal.SetConfigOption("SHAPE_ENCODING", "")
+    # 注册所有ogr驱动
+    ogr.RegisterAll()
+    # 注册所有gdal驱动
     gdal.AllRegister()
-    gdal.SetConfigOption("gdal_FILENAME_IS_UTF8", "YES")
+
     start_time = time.clock()
-    in_file = r"\\192.168.0.234\nydsj\user\ZSS\gongyi20180416\planet_20180416_gongyi2.tif"
-    shpfile = r"\\192.168.0.234\nydsj\user\ZSS\巩义结果修改\4.dlgq\gongyi_0120.shp"
-    outfile = r"F:\test_data\clipraster\out\gongyi.tif"
-
+    in_file = r"F:\ChangeMonitoring\huijiqu\L2A_T49SGU_A018376_20181229T031726_ref_10m.tif"
+    shpfile = r"F:\ChangeMonitoring\UTM\sample_project.shp"
+    outfile = r"F:\ChangeMonitoring\sample\12"
     main(in_file, shpfile, outfile)
-
     end_time = time.clock()
 
     print("time: %.4f secs." % (end_time - start_time))
