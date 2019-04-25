@@ -19,12 +19,33 @@ import sys
 import math
 import numpy as np
 
-from osgeo import gdal, ogr, gdalconst
+from osgeo import gdal, ogr, osr, gdalconst
 
 try:
     progress = gdal.TermProgress_nocb
 except:
     progress = gdal.TermProgress
+
+
+def rpj_vec(lyr, srs):
+    """对矢量进行投影变换"""
+    # 创建临时矢量文件
+    mem_dri = ogr.GetDriverByName('Memory')
+    mem_ds = mem_dri.CreateDataSource(' ')
+    outLayer = mem_ds.CreateLayer(' ', geom_type=lyr.GetGeomType(), srs=srs)
+    # 附加字段
+    outLayer.CreateFields(lyr.schema)
+    # 逐要素进行投影转换
+    out_feat = ogr.Feature(outLayer.GetLayerDefn())
+    for in_feat in lyr:
+        geom = in_feat.geometry().Clone()
+        geom.TransformTo(srs)
+        out_feat.SetGeometry(geom)
+        # 写入属性信息
+        for i in range(in_feat.GetFieldCount()):
+            out_feat.SetField(i, in_feat.GetField(i))
+        outLayer.CreateFeature(out_feat)
+    return mem_ds, outLayer
 
 
 def shp2raster(raster_ds, shp_layer, ext):
@@ -79,7 +100,7 @@ def min_rect(raster_ds, shp_layer):
     return [offset_column[0], offset_line[0], offset_column[1], offset_line[1]]
 
 
-def mask_raster(raster_ds, mask_ds, outfile, ext):
+def mask_raster(raster_ds, mask_ds, outfile, ext, nodata):
     # 将行列整数浮点化
     ext = np.array(ext) * 1.0
     # 获取栅格数据的基本信息
@@ -101,37 +122,68 @@ def mask_raster(raster_ds, mask_ds, outfile, ext):
     mask = 1 - mask
     # 对原始影像进行掩模并输出
     print('Begin mask')
+    progress(0.0)
     for band in range(bandCount):
         banddata = raster_ds.GetRasterBand(band + 1).ReadAsArray(int(ext[0]), int(ext[1]), int(x_size), int(y_size))
-        banddata = np.choose(mask, (banddata, 0))
+        banddata = np.choose(mask, (banddata, nodata))
+        if nodata is not None:
+            result_ds.GetRasterBand(band + 1).SetNoDataValue(nodata)
         result_ds.GetRasterBand(band + 1).WriteArray(banddata)
         progress((1 + band) / bandCount)
     return 1
 
 
-def main(raster, shp, out):
+def main(raster, shp, out, nodata=None):
     # 打开栅格和矢量影像
     raster_ds = gdal.Open(raster)
     shp_ds = ogr.Open(shp)
-    shp_l = shp_ds.GetLayer()
+    shp_lyr = shp_ds.GetLayer()
+    shp_sr = shp_lyr.GetSpatialRef()
+    # 判断栅格和矢量的投影是否一致，不一致进行矢量投影变换
+    raster_srs_wkt = raster_ds.GetProjection()
+    raster_srs = osr.SpatialReference()
+    raster_srs.ImportFromWkt(raster_srs_wkt)
+    # 判断两个SRS的基准是否一致
+    if not shp_sr.IsSameGeogCS(raster_srs):
+        sys.exit("两个空间参考的基准面不一致，不能进行投影转换！！！")
+    # 判断两个SRS是否一致
+    elif shp_sr.IsSame(raster_srs):
+        re_shp_l = shp_lyr
+        shp_lyr = None
+    else:
+        re_shp_ds, re_shp_l = rpj_vec(shp_lyr, raster_srs)
     # 计算矢量和栅格的最小重叠矩形
-    offset = min_rect(raster_ds, shp_l)
+    offset = min_rect(raster_ds, re_shp_l)
     # 矢量栅格化
-    mask_ds = shp2raster(raster_ds, shp_l, offset)
+    mask_ds = shp2raster(raster_ds, re_shp_l, offset)
     # 进行裁剪
-    res = mask_raster(raster_ds, mask_ds, out, offset)
+    res = mask_raster(raster_ds, mask_ds, out, offset, nodata)
 
+    re_shp_ds = None
+    raster_ds = None
+    shp_ds = None
     return None
 
 
 if __name__ == '__main__':
-    # 注册所有gdal的驱动
+    # 支持中文路径
+    gdal.SetConfigOption("GDAL_FILENAME_IS_UTF8", "NO")
+    # 支持中文属性字段
+    gdal.SetConfigOption("SHAPE_ENCODING", "GBK")
+    # 注册所有ogr驱动
+    ogr.RegisterAll()
+    # 注册所有gdal驱动
     gdal.AllRegister()
-    gdal.SetConfigOption("gdal_FILENAME_IS_UTF8", "NO")
     start_time = time.clock()
-    in_file = r"F:\ChangeMonitoring\huijiqu\L2A_T49SGU_A016374_20180811T030542_ref_10m.tif"
-    shpfile = r"F:\ChangeMonitoring\huiji_shp\huijiqu2.shp"
-    outfile = r"F:\ChangeMonitoring\test\fid13.tif"
+    in_file = r"F:\beijing2\atm\gf2\GF2_PMS1_E114.3_N33.7_20180322_L1A0003077263-PAN1_atm.tif"
+    shpfile = r"F:\beijing2\overlap\overlap.shp"
+    outfile = r"F:\beijing2\atm\gf2\GF2_PMS1_E114.3_N33.7_20180322_L1A0003077263-PAN1_clip.tif"
+    # nodata = 200
+    print('The program starts running!')
+    # in_file = sys.argv[1]
+    # shpfile = sys.argv[2]
+    # outfile = sys.argv[3]
+    # nodata = sys.argv[4]
 
     main(in_file, shpfile, outfile)
 

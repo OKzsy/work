@@ -15,21 +15,50 @@ import os
 import os.path
 import shutil
 import sys
+from functools import partial
+import multiprocessing.dummy as mp
 
 try:
-    from StringIO import StringIO   # python2
+    from StringIO import StringIO  # python2
 except ImportError:
-    from io import StringIO         # python3
-
+    from io import StringIO  # python3
 
 ################################################################################
 
 
-USERAGENT = 'tis/download.py_1.0--' + sys.version.replace('\n','').replace('\r','')
+USERAGENT = 'tis/download.py_1.0--' + sys.version.replace('\n', '').replace('\r', '')
+
+
+def multi_down(sourc, ds, token, file):
+    # currently we use filesize of 0 to indicate directory
+    filesize = int(file['size'])
+    path = os.path.join(ds, file['name'])
+    url = sourc + '/' + file['name']
+    if filesize == 0:
+        try:
+            print('creating dir:', path)
+            os.mkdir(path)
+            sync(sourc + '/' + file['name'], path, token)
+        except IOError as e:
+            print("mkdir `%s': %s" % (e.filename, e.strerror), file=sys.stderr)
+            sys.exit(-1)
+    else:
+        try:
+            if not os.path.exists(path):
+                print('downloading: ', path)
+                with open(path, 'w+b') as fh:
+                    geturl(url, token, fh)
+            else:
+                print('skipping: ', path)
+        except IOError as e:
+            print("open `%s': %s" % (e.filename, e.strerror), file=sys.stderr)
+            sys.exit(-1)
+
+    return None
 
 
 def geturl(url, token=None, out=None):
-    headers = { 'user-agent' : USERAGENT }
+    headers = {'user-agent': USERAGENT}
     if not token is None:
         headers['Authorization'] = 'Bearer ' + token
     try:
@@ -70,7 +99,7 @@ def geturl(url, token=None, out=None):
         import subprocess
         try:
             args = ['curl', '--fail', '-sS', '-L', '--get', url]
-            for (k,v) in headers.items():
+            for (k, v) in headers.items():
                 args.extend(['-H', ': '.join([k, v])])
             if out is None:
                 # python3's subprocess.check_output returns stdout as a byte string
@@ -83,7 +112,6 @@ def geturl(url, token=None, out=None):
         return None
 
 
-
 ################################################################################
 
 
@@ -94,52 +122,42 @@ def sync(src, dest, tok):
     '''synchronize src url with dest directory'''
     try:
         import csv
-        files = [ f for f in csv.DictReader(StringIO(geturl('%s.csv' % src, tok)), skipinitialspace=True) ]
+        file = geturl(src, tok)
+        files = [f for f in csv.DictReader(StringIO(geturl('%s.csv' % src, tok)), skipinitialspace=True)]
     except ImportError:
         import json
         files = json.loads(geturl(src + '.json', tok))
 
     # use os.path since python 2/3 both support it while pathlib is 3.4+
-    for f in files:
-        # currently we use filesize of 0 to indicate directory
-        filesize = int(f['size'])
-        path = os.path.join(dest, f['name'])
-        url = src + '/' + f['name']
-        if filesize == 0:
-            try:
-                print('creating dir:', path)
-                os.mkdir(path)
-                sync(src + '/' + f['name'], path, tok)
-            except IOError as e:
-                print("mkdir `%s': %s" % (e.filename, e.strerror), file=sys.stderr)
-                sys.exit(-1)
-        else:
-            try:
-                if not os.path.exists(path):
-                    print('downloading: ' , path)
-                    with open(path, 'w+b') as fh:
-                        geturl(url, tok, fh)
-                else:
-                    print('skipping: ', path)
-            except IOError as e:
-                print("open `%s': %s" % (e.filename, e.strerror), file=sys.stderr)
-                sys.exit(-1)
+    pool = mp.Pool(processes=4)
+    func = partial(multi_down, src, dest, tok)
+    for ifile in files:
+        res = pool.apply_async(func, args=(ifile,))
+    pool.close()
+    pool.join()
     return 0
 
 
-def _main(argv):
-    parser = argparse.ArgumentParser(prog=argv[0], description=DESC)
-    parser.add_argument('-s', '--source', dest='source', metavar='URL', help='Recursively download files at URL', required=True)
-    parser.add_argument('-d', '--destination', dest='destination', metavar='DIR', help='Store directory structure in DIR', required=True)
-    parser.add_argument('-t', '--token', dest='token', metavar='TOK', help='Use app token TOK to authenticate', required=True)
-    args = parser.parse_args(argv[1:])
-    if not os.path.exists(args.destination):
-        os.makedirs(args.destination)
-    return sync(args.source, args.destination, args.token)
+# def _main(argv):
+def _main():
+    # parser = argparse.ArgumentParser(prog=argv[0], description=DESC)
+    # parser.add_argument('-s', '--source', dest='source', metavar='URL', help='Recursively download files at URL', required=True)
+    # parser.add_argument('-d', '--destination', dest='destination', metavar='DIR', help='Store directory structure in DIR', required=True)
+    # parser.add_argument('-t', '--token', dest='token', metavar='TOK', help='Use app token TOK to authenticate', required=True)
+    # args = parser.parse_args(argv[1:])
+    # if not os.path.exists(args.destination):
+    #     os.makedirs(args.destination)
+    # return sync(args.source, args.destination, args.token)
+    source = ' https://ladsweb.modaps.eosdis.nasa.gov/archive/allData/61/MOD04_L2/2018/108'
+    destination = r"F:\test_modis\661"
+    token = '38361F0C-3E1B-11E8-916F-FFF9569DBFBA'
+    if not os.path.exists(destination):
+        os.makedirs(destination)
+    return sync(source, destination, token)
 
 
 if __name__ == '__main__':
     try:
-        sys.exit(_main(sys.argv))
+        sys.exit(_main())
     except KeyboardInterrupt:
         sys.exit(-1)

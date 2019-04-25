@@ -1,0 +1,9 @@
+##1.样本处理
+*clip_raster.py--将样本shp转成tif
+*multi_sample2csv_v2.0.py--将样本tif转成csv
+*splitfile.py--将样本集进行拆分
+##2.模型训练
+*train.py--进行模型训练
+##3.影像分类
+*raster_img_classification_v6.1.py--对影像生成csv格式的分类结果
+*csv2raster.py--将csv格式的分类结果转成tif格式的分类结果

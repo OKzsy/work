@@ -210,10 +210,10 @@ if __name__ == '__main__':
     # if len(sys.argv[1:]) < 4:
     #     sys.exit('Problem reading input')
     # main(sys.argv[1], sys.argv[2], sys.argv[3], sys.argv[4])
-    in_img = r"F:\ChangeMonitoring\huijiqu\L2A_T49SGU_A016374_20180811T030542_ref_10m.tif"
-    in_shp = r"F:\ChangeMonitoring\UTM"
-    feat_id = 'Name'
-    out_dir = r"F:\ChangeMonitoring\test"
+    in_img = r"\\192.168.0.234\nydsj\user\ZSS\licheng\GF2_google_xiaomai_zhengyang.tif"
+    in_shp = r"\\192.168.0.234\nydsj\user\ZSS\testclip"
+    feat_id = 'XZQMC'
+    out_dir = r"\\192.168.0.234\nydsj\user\ZSS\testaera"
     main(in_img, in_shp, feat_id, out_dir)
     end_time = time.clock()
 

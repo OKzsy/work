@@ -23,6 +23,8 @@ import sys
 import shutil
 import zipfile
 import subprocess
+from functools import partial
+import multiprocessing.dummy as mp
 from threading import Thread
 
 try:
@@ -127,24 +129,23 @@ def reproj_resample(in_file, match_file, out_file):
         out_band.SetNoDataValue(no_data)
 
     gdal.ReprojectImage(source_dataset, out_dataset, in_proj, match_proj, gdal.GRA_Bilinear)
-    # gdal.ReprojectImage(source_dataset, out_dataset, in_proj, match_proj, gdal.GRA_NearestNeighbour)
 
     source_dataset = None
     out_dataset = None
 
 
-def dn2ref(zip_file, out_dir):
+def dn2ref(out_dir, zip_file):
     # zip所在父目录
     zip_dir = os.path.dirname(zip_file)
     zip_name = os.path.splitext(os.path.basename(zip_file))[0]
-
-    temp_dir = os.path.normpath(os.path.join(out_dir, zip_name))
+    zip_file_name = zip_name
+    temp_dir = os.path.normpath(os.path.join(out_dir, zip_name + '_un_zip'))
     if not os.path.isdir(temp_dir):
         os.mkdir(temp_dir)
 
     zip_value = un_zip(zip_file, temp_dir)
-
-    #
+    if zip_value is None:
+        return
     if zip_value == 0:
         shutil.rmtree(temp_dir)
         return
@@ -158,6 +159,7 @@ def dn2ref(zip_file, out_dir):
     if not os.path.isdir(safe_dir):
         sys.exit('No %s.SAFE dir' % zip_name)
     subprocess.call('L2A_Process.bat --refresh %s' % safe_dir)
+    # os.system('/home/zhaoshaoshuai/S2/Sen2Cor/bin/L2A_Process --refresh %s' % safe_dir)
 
     L2_dir_list = list(zip_name.split('_'))
     L2_dir_list[1] = 'MSIL2A'
@@ -178,7 +180,6 @@ def dn2ref(zip_file, out_dir):
         xml_name = os.path.basename(xml_dir)
 
         jp2_10_files = get_10_jp2(jp2_files)
-
         if jp2_10_files == []:
             continue
 
@@ -196,19 +197,16 @@ def dn2ref(zip_file, out_dir):
 
         vrt_10_file = os.path.join(safe_dir, '%s_10m.vrt' % xml_name)
         vrt_20_file = os.path.join(safe_dir, '%s_20m.vrt' % xml_name)
-        gdal.BuildVRT(vrt_10_file, jp2_10_files, separate=True)
-        gdal.BuildVRT(vrt_20_file, jp2_20_files[:-1], resolution='user', xRes=20, yRes=20, separate=True,
-                      options=['-r', 'bilinear'])
+        vrt_10_dataset = gdal.BuildVRT(vrt_10_file, jp2_10_files, separate=True)
+        vrt_20_dataset = gdal.BuildVRT(vrt_20_file, jp2_20_files[:-1], resolution='user', xRes=20, yRes=20,
+                                       separate=True,
+                                       options=['-r', 'bilinear'])
+        vrt_10_dataset.FlushCache()
+        vrt_20_dataset.FlushCache()
+        vrt_10_dataset = None
+        vrt_20_dataset = None
 
-        all_ref_dir = os.path.join(out_dir, 'All_ref')
-        if not os.path.isdir(all_ref_dir):
-            os.mkdir(all_ref_dir)
-
-        sub_ref_dir = os.path.join(out_dir, 'Sub_ref')
-        if not os.path.isdir(sub_ref_dir):
-            os.mkdir(sub_ref_dir)
-
-        isub_ref_dir = os.path.join(sub_ref_dir, L2_dir_name)
+        isub_ref_dir = os.path.join(out_dir, zip_file_name)
         if not os.path.isdir(isub_ref_dir):
             os.mkdir(isub_ref_dir)
 
@@ -216,21 +214,15 @@ def dn2ref(zip_file, out_dir):
         out_10_file = os.path.join(isub_ref_dir, '%s_ref_10m.tif' % xml_name)
         out_20_file = os.path.join(isub_ref_dir, '%s_ref_20m.tif' % xml_name)
         class_file = os.path.join(isub_ref_dir, '%s_SCL_20m.tif' % xml_name)
-
-        out_10_sds = out_driver.CreateCopy(out_10_file, gdal.Open(vrt_10_file))
-        out_20_sds = out_driver.CreateCopy(out_20_file, gdal.Open(vrt_20_file))
-        out_class_sds = out_driver.CreateCopy(class_file, gdal.Open(jp2_20_files[-1]))
+        print("Start exporting images at 10 meters resolution")
+        out_10_sds = out_driver.CreateCopy(out_10_file, gdal.Open(vrt_10_file), callback=progress)
+        print("Start exporting images at 20 meters resolution")
+        out_20_sds = out_driver.CreateCopy(out_20_file, gdal.Open(vrt_20_file), callback=progress)
+        out_class_sds = out_driver.CreateCopy(class_file, gdal.Open(jp2_20_files[-1]), callback=progress)
 
         out_10_sds = None
         out_20_sds = None
         out_class_sds = None
-
-        # os.rename(jp2_20_files[-1], class_file)
-
-        if os.path.isdir(os.path.join(all_ref_dir, '%s.SAFE' % L2_dir_name)):
-            shutil.rmtree(os.path.join(all_ref_dir, '%s.SAFE' % L2_dir_name))
-
-        shutil.move(L2_dir, all_ref_dir)
 
         shutil.rmtree(temp_dir)
 
@@ -244,7 +236,13 @@ def main(in_dir, out_dir):
 
     if zip_files == []:
         sys.exit('no zip file')
-
+    # 建立多个进程
+    # pool = mp.Pool(processes=4)
+    # func = partial(dn2ref, out_dir)
+    # for izip in zip_files:
+    #     res = pool.apply_async(func, args=(izip,))
+    # pool.close()
+    # pool.join()
     # 建立多个进程
     num_proc = 4
     for zip in range(0, len(zip_files), num_proc):
@@ -253,15 +251,13 @@ def main(in_dir, out_dir):
 
         thread_list = []
         for izip in sub_zip_list:
-            # dn2ref(izip, out_dir)
-            thread = Thread(target=dn2ref, args=(izip, out_dir,))
+            # dn2ref(out_dir, izip)
+            thread = Thread(target=dn2ref, args=(out_dir, izip,))
             thread.start()
             thread_list.append(thread)
 
         for it in thread_list:
             it.join()
-
-        # progress((zip+4) / len(zip_files))
 
 
 if __name__ == '__main__':
@@ -273,8 +269,8 @@ if __name__ == '__main__':
     # in_dir = sys.argv[1]
     # out_dir = sys.argv[2]
     #
-    in_dir = r"F:\ChangeMonitoring"
-    out_dir = r"F:\ChangeMonitoring\out"
+    in_dir = r"\\192.168.0.234\nydsj\user\ZSS\zhengzhou_s2\T49SFU"
+    out_dir = r"\\192.168.0.234\nydsj\user\ZSS\zhengzhou_s2\out_T49SKD"
     main(in_dir, out_dir)
 
     end_time = time.time()

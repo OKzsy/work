@@ -1,19 +1,54 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
   <component name="ChangeListManager">
-    <list default="true" id="53aece3f-cde7-43a3-b784-cc3a6278c73d" name="Default" comment="采用掩模的方法进行矢量裁剪">
+    <list default="true" id="53aece3f-cde7-43a3-b784-cc3a6278c73d" name="Default" comment="修改若单个矢量和栅格影像无重叠程序退出的bug">
+      <change afterPath="$PROJECT_DIR$/test_code/test_mkdir.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/mypycode.iml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/mypycode.iml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/atm/deal_file_path.py" beforeDir="false" afterPath="$PROJECT_DIR$/atm/deal_file_path.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/pre_processing/un_zip.py" beforeDir="false" afterPath="$PROJECT_DIR$/pre_processing/un_zip.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/pre_processing/rpc_orthorectification.py" beforeDir="false" afterPath="$PROJECT_DIR$/pre_processing/rpc_orthorectification.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/procode/atm/6SV/6SV-run.bat" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/procode/atm/6SV/in.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/procode/atm/6SV/outcoe/20180416_023603_1006_3B_AnalyticMS.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/procode/atm/6SV/outcoe/20180416_023604_1006_3B_AnalyticMS.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/procode/atm/6SV/outcoe/20180416_023605_1006_3B_AnalyticMS.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/procode/atm/6SV/outcoe/20180416_023716_1013_3B_AnalyticMS.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/procode/atm/6SV/outcoe/20180416_023717_1013_3B_AnalyticMS.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/procode/atm/6SV/outcoe/20180416_023718_1013_3B_AnalyticMS.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/procode/atm/6SV/outcoe/20180416_023719_1013_3B_AnalyticMS.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/procode/atm/6SV/outcoe/20180416_023720_1013_3B_AnalyticMS.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/procode/atm/6SV/outcoe/20180416_023721_1013_3B_AnalyticMS.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/procode/atm/6SV/outcoe/20180416_023722_1013_3B_AnalyticMS.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/procode/atm/6SV/outcoe/20180416_023828_1004_3B_AnalyticMS.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/procode/atm/6SV/outcoe/20180416_023829_1004_3B_AnalyticMS.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/procode/atm/6SV/outcoe/20180416_023830_1004_3B_AnalyticMS.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/procode/atm/6SV/outcoe/20180416_023831_1004_3B_AnalyticMS.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/procode/atm/6SV/outcoe/20180416_023833_1004_3B_AnalyticMS.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/procode/atm/6SV/outcoe/20180416_023834_1004_3B_AnalyticMS.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/procode/atm/6SV/outcoe/20181119_023935_103c_3B_AnalyticMS.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/procode/atm/6SV/outcoe/PMS2-2693345.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/procode/atm/6SV/spec/0c.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/procode/atm/6SV/spec/0d.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/procode/atm/6SV/spec/0e.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/procode/atm/6SV/spec/0f.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/procode/atm/6SV/spec/10.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/procode/atm/6SV/spec/GF1/PMS1.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/procode/atm/6SV/spec/GF1/PMS2.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/procode/atm/6SV/spec/GF2/PMS1.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/procode/atm/6SV/spec/GF2/PMS2.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/procode/atm/6s_lookup_table_linux.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/procode/atm/atm_GF2.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/procode/atm/atm_planet.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/procode/atm/reprojection_img.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/procode/atm/sun_position.py" beforeDir="false" />
       <change beforePath="$PROJECT_DIR$/procode/gs_fusion.py" beforeDir="false" afterPath="$PROJECT_DIR$/procode/gs_fusion.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/procode/mask_raster.py" beforeDir="false" afterPath="$PROJECT_DIR$/procode/mask_raster.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/procode/overlap.py" beforeDir="false" afterPath="$PROJECT_DIR$/procode/overlap.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/procode/shp_cut.py" beforeDir="false" afterPath="$PROJECT_DIR$/procode/shp_cut.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/procode/subset_via_shapefile.py" beforeDir="false" />
       <change beforePath="$PROJECT_DIR$/sentinel2_processing/multi_dn2ref.py" beforeDir="false" afterPath="$PROJECT_DIR$/sentinel2_processing/multi_dn2ref.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/test_code/julday.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/test_code/shpSplit.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/test_code/shp_cut.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/test_code/clip_raster.py" beforeDir="false" afterPath="$PROJECT_DIR$/test_code/clip_raster.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/test_code/laads-data-download.py" beforeDir="false" afterPath="$PROJECT_DIR$/test_code/laads-data-download.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/test_code/test.py" beforeDir="false" afterPath="$PROJECT_DIR$/test_code/test.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/test_code/test1.py" beforeDir="false" afterPath="$PROJECT_DIR$/test_code/test1.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/test_code/test_path.py" beforeDir="false" afterPath="$PROJECT_DIR$/test_code/test_path.py" afterDir="false" />
     </list>
     <option name="EXCLUDED_CONVERTED_TO_IGNORED" value="true" />
     <option name="SHOW_DIALOG" value="false" />
@@ -24,50 +59,72 @@
   <component name="CoverageDataManager">
     <SUITE FILE_PATH="coverage/mypycode$resize.coverage" NAME="resize Coverage Results" MODIFIED="1548050479492" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/procode" />
     <SUITE FILE_PATH="coverage/mypycode$test_shp.coverage" NAME="test_shp Coverage Results" MODIFIED="1548397569638" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/test_code" />
+    <SUITE FILE_PATH="coverage/mypycode$atm_sv.coverage" NAME="atm_sv Coverage Results" MODIFIED="1555488075156" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/atm/atm" />
+    <SUITE FILE_PATH="coverage/mypycode$test_bilinear.coverage" NAME="test_bilinear Coverage Results" MODIFIED="1543481792263" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/test_code" />
+    <SUITE FILE_PATH="coverage/mypycode$index.coverage" NAME="index Coverage Results" MODIFIED="1553160233264" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$USER_HOME$/Desktop" />
+    <SUITE FILE_PATH="coverage/mypycode$modis_download.coverage" NAME="modis_download Coverage Results" MODIFIED="1555040582121" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/procode" />
+    <SUITE FILE_PATH="coverage/mypycode$shp_cut.coverage" NAME="shp_cut Coverage Results" MODIFIED="1553684802247" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/procode" />
+    <SUITE FILE_PATH="coverage/mypycode$atm_GF2.coverage" NAME="atm_GF2 Coverage Results" MODIFIED="1555055617631" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/atm/atm" />
+    <SUITE FILE_PATH="coverage/mypycode$improveWheatClass.coverage" NAME="improveWheatClass Coverage Results" MODIFIED="1552876666731" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/test_code" />
+    <SUITE FILE_PATH="coverage/mypycode$shp2raster.coverage" NAME="shp2raster Coverage Results" MODIFIED="1548222213926" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/test_code" />
+    <SUITE FILE_PATH="coverage/mypycode$subset_via_shapefile.coverage" NAME="subset_via_shapefile Coverage Results" MODIFIED="1552903322256" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$USER_HOME$/Desktop" />
+    <SUITE FILE_PATH="coverage/mypycode$test__1_.coverage" NAME="test (1) Coverage Results" MODIFIED="1539598500685" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
+    <SUITE FILE_PATH="coverage/mypycode$gs_fusion.coverage" NAME="gs_fusion Coverage Results" MODIFIED="1548062830296" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/procode" />
+    <SUITE FILE_PATH="coverage/mypycode$deal_file_path.coverage" NAME="deal_file_path Coverage Results" MODIFIED="1545705958721" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/test_code" />
+    <SUITE FILE_PATH="coverage/mypycode$__1_.coverage" NAME="妹子图全栈 (1) Coverage Results" MODIFIED="1555212781368" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/spider" />
+    <SUITE FILE_PATH="coverage/mypycode$re_project.coverage" NAME="re_project Coverage Results" MODIFIED="1535012016937" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
+    <SUITE FILE_PATH="coverage/mypycode$rpc_orthorectification.coverage" NAME="rpc_orthorectification Coverage Results" MODIFIED="1555470864785" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/pre_processing" />
+    <SUITE FILE_PATH="coverage/mypycode$multi_dn2ref_v2_0.coverage" NAME="multi_dn2ref_v2.0 Coverage Results" MODIFIED="1541387773825" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/test_data" />
+    <SUITE FILE_PATH="coverage/mypycode$gdal_merge__1_.coverage" NAME="gdal_merge (1) Coverage Results" MODIFIED="1547448668390" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/test_code" />
+    <SUITE FILE_PATH="coverage/mypycode$atm_BJ.coverage" NAME="atm_BJ Coverage Results" MODIFIED="1553225908275" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/procode/atm" />
+    <SUITE FILE_PATH="coverage/mypycode$file_reader.coverage" NAME="file_reader Coverage Results" MODIFIED="1531712796603" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/python_code/chapter_10" />
+    <SUITE FILE_PATH="coverage/mypycode$skysat.coverage" NAME="skysat Coverage Results" MODIFIED="1540430338300" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
+    <SUITE FILE_PATH="coverage/mypycode$demo.coverage" NAME="demo Coverage Results" MODIFIED="1546933606491" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/test_data" />
+    <SUITE FILE_PATH="coverage/mypycode$reproject.coverage" NAME="reproject Coverage Results" MODIFIED="1555988647234" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/pre_processing" />
+    <SUITE FILE_PATH="coverage/mypycode$testspider.coverage" NAME="testspider Coverage Results" MODIFIED="1553743014293" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/spider" />
+    <SUITE FILE_PATH="coverage/mypycode$test2.coverage" NAME="test2 Coverage Results" MODIFIED="1532523133268" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/test_data" />
+    <SUITE FILE_PATH="coverage/mypycode$overlap.coverage" NAME="overlap Coverage Results" MODIFIED="1548221382457" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/procode" />
+    <SUITE FILE_PATH="coverage/mypycode$color_table.coverage" NAME="color_table Coverage Results" MODIFIED="1547182112573" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/procode" />
+    <SUITE FILE_PATH="coverage/mypycode$.coverage" NAME="妹子图全栈 Coverage Results" MODIFIED="1554020523445" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/test_code" />
+    <SUITE FILE_PATH="coverage/mypycode$mask_raster.coverage" NAME="mask_raster Coverage Results" MODIFIED="1548236045232" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/procode" />
+    <SUITE FILE_PATH="coverage/mypycode$clip_raster.coverage" NAME="clip_raster Coverage Results" MODIFIED="1552899246901" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/test_code" />
+    <SUITE FILE_PATH="coverage/mypycode$imgtobyte.coverage" NAME="imgtobyte Coverage Results" MODIFIED="1556097640650" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/pre_processing" />
+    <SUITE FILE_PATH="coverage/mypycode$atm_planet__1_.coverage" NAME="atm_planet (1) Coverage Results" MODIFIED="1547112024541" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/procode/atm" />
+    <SUITE FILE_PATH="coverage/mypycode$export_shp.coverage" NAME="export_shp Coverage Results" MODIFIED="1548401816894" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/test_code" />
+    <SUITE FILE_PATH="coverage/mypycode$test_gdal.coverage" NAME="test_gdal Coverage Results" MODIFIED="1540808147760" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/test_code" />
+    <SUITE FILE_PATH="coverage/mypycode$reprojectVector.coverage" NAME="reprojectVector Coverage Results" MODIFIED="1550827935479" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/procode" />
     <SUITE FILE_PATH="coverage/mypycode$julday.coverage" NAME="julday Coverage Results" MODIFIED="1539237812566" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
     <SUITE FILE_PATH="coverage/mypycode$test_noliner_constrained.coverage" NAME="test_noliner_constrained Coverage Results" MODIFIED="1546588176831" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/python_code" />
     <SUITE FILE_PATH="coverage/mypycode$test1.coverage" NAME="test1 Coverage Results" MODIFIED="1548141551579" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/test_code" />
     <SUITE FILE_PATH="coverage/mypycode$pi_string.coverage" NAME="pi_string Coverage Results" MODIFIED="1541387559048" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/test_data" />
-    <SUITE FILE_PATH="coverage/mypycode$test_bilinear.coverage" NAME="test_bilinear Coverage Results" MODIFIED="1543481792263" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/test_code" />
+    <SUITE FILE_PATH="coverage/mypycode$downloadAOD.coverage" NAME="downloadAOD Coverage Results" MODIFIED="1555040561826" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/procode" />
+    <SUITE FILE_PATH="coverage/mypycode$GF2_sha_clip.coverage" NAME="GF2_sha_clip Coverage Results" MODIFIED="1552532640655" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/test_code" />
     <SUITE FILE_PATH="coverage/mypycode$gdal_merge.coverage" NAME="gdal_merge Coverage Results" MODIFIED="1541386984785" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/test_code" />
-    <SUITE FILE_PATH="coverage/mypycode$shp_cut.coverage" NAME="shp_cut Coverage Results" MODIFIED="1550044274846" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/test_code" />
     <SUITE FILE_PATH="coverage/mypycode$test_resize.coverage" NAME="test_resize Coverage Results" MODIFIED="1543547307224" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/test_code" />
     <SUITE FILE_PATH="coverage/mypycode$vi_classifi.coverage" NAME="vi_classifi Coverage Results" MODIFIED="1536736362558" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
     <SUITE FILE_PATH="coverage/mypycode$un_zip.coverage" NAME="un_zip Coverage Results" MODIFIED="1549942376696" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/pre_processing" />
-    <SUITE FILE_PATH="coverage/mypycode$atm_GF2.coverage" NAME="atm_GF2 Coverage Results" MODIFIED="1547450511095" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/procode/atm" />
     <SUITE FILE_PATH="coverage/mypycode$test.coverage" NAME="test Coverage Results" MODIFIED="1539059031150" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
     <SUITE FILE_PATH="coverage/mypycode$sun_position.coverage" NAME="sun_position Coverage Results" MODIFIED="1547287186982" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/procode/atm" />
-    <SUITE FILE_PATH="coverage/mypycode$shp2raster.coverage" NAME="shp2raster Coverage Results" MODIFIED="1548222213926" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/test_code" />
-    <SUITE FILE_PATH="coverage/mypycode$subset_via_shapefile.coverage" NAME="subset_via_shapefile Coverage Results" MODIFIED="1550222351894" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/test_code" />
+    <SUITE FILE_PATH="coverage/mypycode$get_aod.coverage" NAME="get_aod Coverage Results" MODIFIED="1554889827876" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/procode/atm" />
+    <SUITE FILE_PATH="coverage/mypycode$laads_data_download.coverage" NAME="laads-data-download Coverage Results" MODIFIED="1555213865867" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/test_code" />
     <SUITE FILE_PATH="coverage/mypycode$test_liner_constraint.coverage" NAME="test_liner_constraint Coverage Results" MODIFIED="1546593560800" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/test_code" />
-    <SUITE FILE_PATH="coverage/mypycode$test__1_.coverage" NAME="test (1) Coverage Results" MODIFIED="1539598500685" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
-    <SUITE FILE_PATH="coverage/mypycode$gs_fusion.coverage" NAME="gs_fusion Coverage Results" MODIFIED="1548062830296" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/procode" />
-    <SUITE FILE_PATH="coverage/mypycode$deal_file_path.coverage" NAME="deal_file_path Coverage Results" MODIFIED="1545705958721" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/test_code" />
+    <SUITE FILE_PATH="coverage/mypycode$get_movie_top250.coverage" NAME="get_movie_top250 Coverage Results" MODIFIED="1553688594092" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/spider" />
     <SUITE FILE_PATH="coverage/mypycode$mask_raster__1_.coverage" NAME="mask_raster (1) Coverage Results" MODIFIED="1547177273251" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/procode" />
-    <SUITE FILE_PATH="coverage/mypycode$test_path.coverage" NAME="test_path Coverage Results" MODIFIED="1537321413756" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/test_code" />
-    <SUITE FILE_PATH="coverage/mypycode$re_project.coverage" NAME="re_project Coverage Results" MODIFIED="1535012016937" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
-    <SUITE FILE_PATH="coverage/mypycode$multi_dn2ref_v2_0.coverage" NAME="multi_dn2ref_v2.0 Coverage Results" MODIFIED="1541387773825" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/test_data" />
-    <SUITE FILE_PATH="coverage/mypycode$gdal_merge__1_.coverage" NAME="gdal_merge (1) Coverage Results" MODIFIED="1547448668390" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/test_code" />
-    <SUITE FILE_PATH="coverage/mypycode$file_reader.coverage" NAME="file_reader Coverage Results" MODIFIED="1531712796603" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/python_code/chapter_10" />
-    <SUITE FILE_PATH="coverage/mypycode$skysat.coverage" NAME="skysat Coverage Results" MODIFIED="1540430338300" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
+    <SUITE FILE_PATH="coverage/mypycode$laads_data_ori.coverage" NAME="laads-data-ori Coverage Results" MODIFIED="1555214288966" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/spider" />
+    <SUITE FILE_PATH="coverage/mypycode$test_path.coverage" NAME="test_path Coverage Results" MODIFIED="1550816409272" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/test_code" />
+    <SUITE FILE_PATH="coverage/mypycode$subset_via_shapefile__1_.coverage" NAME="subset_via_shapefile (1) Coverage Results" MODIFIED="1550557943872" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/procode" />
     <SUITE FILE_PATH="coverage/mypycode$new_test.coverage" NAME="new_test Coverage Results" MODIFIED="1531487183888" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
-    <SUITE FILE_PATH="coverage/mypycode$demo.coverage" NAME="demo Coverage Results" MODIFIED="1546933606491" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/test_data" />
-    <SUITE FILE_PATH="coverage/mypycode$test2.coverage" NAME="test2 Coverage Results" MODIFIED="1532523133268" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/test_data" />
-    <SUITE FILE_PATH="coverage/mypycode$overlap.coverage" NAME="overlap Coverage Results" MODIFIED="1548221382457" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/procode" />
-    <SUITE FILE_PATH="coverage/mypycode$color_table.coverage" NAME="color_table Coverage Results" MODIFIED="1547182112573" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/procode" />
+    <SUITE FILE_PATH="coverage/mypycode$subset_sample_shapefile.coverage" NAME="subset_sample_shapefile Coverage Results" MODIFIED="1556021901927" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/procode" />
     <SUITE FILE_PATH="coverage/mypycode$sieve_filter.coverage" NAME="sieve_filter Coverage Results" MODIFIED="1536388686775" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
+    <SUITE FILE_PATH="coverage/mypycode$supplementary_attribute.coverage" NAME="supplementary_attribute Coverage Results" MODIFIED="1553142553202" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/test_code" />
     <SUITE FILE_PATH="coverage/mypycode$GDALPythonTest.coverage" NAME="GDALPythonTest Coverage Results" MODIFIED="1539735419181" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/GDAL" />
     <SUITE FILE_PATH="coverage/mypycode$julday__1_.coverage" NAME="julday (1) Coverage Results" MODIFIED="1547282425722" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/test_code" />
     <SUITE FILE_PATH="coverage/mypycode$shpSplit.coverage" NAME="shpSplit Coverage Results" MODIFIED="1550217677566" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/test_code" />
-    <SUITE FILE_PATH="coverage/mypycode$mask_raster.coverage" NAME="mask_raster Coverage Results" MODIFIED="1548236045232" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/procode" />
-    <SUITE FILE_PATH="coverage/mypycode$test__2_.coverage" NAME="test (2) Coverage Results" MODIFIED="1550213243909" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/test_code" />
-    <SUITE FILE_PATH="coverage/mypycode$clip_raster.coverage" NAME="clip_raster Coverage Results" MODIFIED="1550222051282" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/test_code" />
+    <SUITE FILE_PATH="coverage/mypycode$Distinguish_species.coverage" NAME="Distinguish_species Coverage Results" MODIFIED="1550558432442" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/test_code" />
+    <SUITE FILE_PATH="coverage/mypycode$test__2_.coverage" NAME="test (2) Coverage Results" MODIFIED="1556011154827" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/test_code" />
     <SUITE FILE_PATH="coverage/mypycode$sieve_filter_1_.coverage" NAME="sieve_filter(1) Coverage Results" MODIFIED="1535711770182" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$USER_HOME$/Documents/WeChat Files/shuai0-305/Files" />
-    <SUITE FILE_PATH="coverage/mypycode$multi_dn2ref.coverage" NAME="multi_dn2ref Coverage Results" MODIFIED="1549965352386" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/sentinel2_processing" />
-    <SUITE FILE_PATH="coverage/mypycode$atm_planet.coverage" NAME="atm_planet Coverage Results" MODIFIED="1547456116544" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/procode/atm" />
-    <SUITE FILE_PATH="coverage/mypycode$atm_planet__1_.coverage" NAME="atm_planet (1) Coverage Results" MODIFIED="1547112024541" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/procode/atm" />
-    <SUITE FILE_PATH="coverage/mypycode$export_shp.coverage" NAME="export_shp Coverage Results" MODIFIED="1548401816894" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/test_code" />
-    <SUITE FILE_PATH="coverage/mypycode$test_gdal.coverage" NAME="test_gdal Coverage Results" MODIFIED="1540808147760" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/test_code" />
+    <SUITE FILE_PATH="coverage/mypycode$multi_dn2ref.coverage" NAME="multi_dn2ref Coverage Results" MODIFIED="1555299159930" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/sentinel2_processing" />
+    <SUITE FILE_PATH="coverage/mypycode$atm_planet.coverage" NAME="atm_planet Coverage Results" MODIFIED="1550800951701" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/procode/atm" />
   </component>
   <component name="DatabaseView">
     <option name="SHOW_INTERMEDIATE" value="true" />
@@ -87,40 +144,44 @@
     <session id="385635407">
       <usages-collector id="statistics.lifecycle.project">
         <counts>
-          <entry key="project.closed" value="56" />
+          <entry key="project.closed" value="107" />
           <entry key="project.open.time.0" value="6" />
-          <entry key="project.open.time.3" value="2" />
-          <entry key="project.open.time.4" value="23" />
-          <entry key="project.open.time.5" value="30" />
-          <entry key="project.open.time.6" value="2" />
-          <entry key="project.opened" value="63" />
+          <entry key="project.open.time.13" value="1" />
+          <entry key="project.open.time.3" value="3" />
+          <entry key="project.open.time.4" value="49" />
+          <entry key="project.open.time.5" value="63" />
+          <entry key="project.open.time.6" value="6" />
+          <entry key="project.opened" value="128" />
         </counts>
       </usages-collector>
       <usages-collector id="statistics.file.extensions.open">
         <counts>
-          <entry key="py" value="281" />
-          <entry key="txt" value="4" />
+          <entry key="md" value="1" />
+          <entry key="py" value="509" />
+          <entry key="txt" value="7" />
         </counts>
       </usages-collector>
       <usages-collector id="statistics.file.types.open">
         <counts>
-          <entry key="PLAIN_TEXT" value="4" />
-          <entry key="Python" value="281" />
+          <entry key="Markdown" value="1" />
+          <entry key="PLAIN_TEXT" value="7" />
+          <entry key="Python" value="509" />
         </counts>
       </usages-collector>
       <usages-collector id="statistics.file.extensions.edit">
         <counts>
-          <entry key="Python Console" value="4170" />
+          <entry key="Python Console" value="8298" />
           <entry key="deal_file_path" value="16" />
+          <entry key="index" value="118" />
           <entry key="julday" value="8" />
-          <entry key="py" value="27667" />
-          <entry key="txt" value="281" />
+          <entry key="py" value="46424" />
+          <entry key="txt" value="331" />
         </counts>
       </usages-collector>
       <usages-collector id="statistics.file.types.edit">
         <counts>
-          <entry key="PLAIN_TEXT" value="281" />
-          <entry key="Python" value="31861" />
+          <entry key="PLAIN_TEXT" value="331" />
+          <entry key="Python" value="54864" />
         </counts>
       </usages-collector>
     </session>
@@ -130,23 +191,44 @@
   </component>
   <component name="FileEditorManager">
     <leaf SIDE_TABS_SIZE_LIMIT_KEY="300">
-      <file pinned="false" current-in-tab="true">
-        <entry file="file://$PROJECT_DIR$/procode/shp_cut.py">
+      <file pinned="false" current-in-tab="false">
+        <entry file="file://$PROJECT_DIR$/test_code/Distinguish_species.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="90">
-              <caret line="5" column="22" selection-start-line="5" selection-start-column="22" selection-end-line="5" selection-end-column="22" />
+            <state relative-caret-position="1134">
+              <caret line="68" column="46" selection-start-line="68" selection-start-column="4" selection-end-line="68" selection-end-column="46" />
               <folding>
-                <element signature="e#152#161#0" expanded="true" />
+                <element signature="e#206#215#0" expanded="true" />
+              </folding>
+            </state>
+          </provider>
+        </entry>
+      </file>
+      <file pinned="false" current-in-tab="true">
+        <entry file="file://$PROJECT_DIR$/pre_processing/imgtobyte.py">
+          <provider selected="true" editor-type-id="text-editor">
+            <state relative-caret-position="-406">
+              <caret line="9" column="14" selection-start-line="9" selection-start-column="14" selection-end-line="9" selection-end-column="14" />
+              <folding>
+                <element signature="e#197#206#0" expanded="true" />
               </folding>
             </state>
           </provider>
         </entry>
       </file>
       <file pinned="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/procode/shpSplit.py">
+        <entry file="file://$PROJECT_DIR$/procode/subset_sample_shapefile.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="54">
-              <caret line="3" column="28" lean-forward="true" selection-start-line="3" selection-start-column="13" selection-end-line="3" selection-end-column="28" />
+            <state relative-caret-position="288">
+              <caret line="147" column="58" selection-start-line="147" selection-start-column="58" selection-end-line="147" selection-end-column="58" />
+            </state>
+          </provider>
+        </entry>
+      </file>
+      <file pinned="false" current-in-tab="false">
+        <entry file="file://$PROJECT_DIR$/test_code/test.py">
+          <provider selected="true" editor-type-id="text-editor">
+            <state relative-caret-position="198">
+              <caret line="11" selection-start-line="11" selection-end-line="11" />
             </state>
           </provider>
         </entry>
@@ -180,20 +262,33 @@
       <find>row</find>
       <find>progress</find>
       <find>Rasterize</find>
+      <find>where</find>
+      <find>\# currently we use filesize of 0 to indicate directory\n    filesize \= int\(file\[\'size\'\]\)\n    path \= os\.path\.join\(dest\, f\[\'name\'\]\)\n    url \= src \+ \'\/\' \+ f\[\'name\'\]\n    if filesize \=\= 0\:\n        try\:\n            print\(\'creating dir\:\'\, path\)\n            os\.mkdir\(path\)\n            sync\(src \+ \'\/\' \+ f\[\'name\'\]\, path\, tok\)\n        except IOError as e\:\n            print\(\&quot;mkdir \`\%s\'\: \%s\&quot; \% \(e\.filename\, e\.strerror\)\, file\=sys\.stderr\)\n            sys\.exit\(\-1\)\n    else\:\n        try\:\n            if not os\.path\.exists\(path\)\:\n                print\(\'downloading\: \'\, path\)\n                with open\(path\, \'w\+b\'\) as fh\:\n                    geturl\(url\, tok\, fh\)\n            else\:\n                print\(\'skipping\: \'\, path\)\n        except IOError as e\:\n            print\(\&quot;open \`\%s\'\: \%s\&quot; \% \(e\.filename\, e\.strerror\)\, file\=sys\.stderr\)\n            sys\.exit\(\-1\)</find>
+      <find>f</find>
+      <find>print</find>
+      <find>np</find>
+      <find>ne</find>
+      <find>result</find>
+      <find>result.txt</find>
+      <find>sub</find>
     </findStrings>
     <replaceStrings>
       <replace>,</replace>
-      <replace />
       <replace>Green</replace>
-      <replace>Red</replace>
       <replace>Inf</replace>
       <replace>pan</replace>
       <replace>rad_coe</replace>
       <replace>mss</replace>
       <replace>column</replace>
+      <replace>Red</replace>
+      <replace>file</replace>
+      <replace>ne</replace>
+      <replace>np</replace>
+      <replace />
     </replaceStrings>
     <dirStrings>
       <dir>E:\mypycode</dir>
+      <dir>E:\mypycode\test_code</dir>
     </dirStrings>
   </component>
   <component name="Git.Settings">
@@ -203,56 +298,57 @@
   <component name="IdeDocumentHistory">
     <option name="CHANGED_PATHS">
       <list>
-        <option value="$PROJECT_DIR$/new_test.py" />
-        <option value="$PROJECT_DIR$/test" />
-        <option value="$PROJECT_DIR$/test_data/test2.py" />
-        <option value="$PROJECT_DIR$/GS_fusion.py" />
-        <option value="$USER_HOME$/Documents/WeChat Files/shuai0-305/Files/sieve_filter(1).py" />
-        <option value="$PROJECT_DIR$/re_project.py" />
-        <option value="E:/s2/multi_dn2ref_v2.0.py" />
-        <option value="$PROJECT_DIR$/merge.py" />
-        <option value="$PROJECT_DIR$/sieve_filter.py" />
-        <option value="$PROJECT_DIR$/vi_classifi.py" />
-        <option value="$PROJECT_DIR$/test_code/test_path.py" />
-        <option value="$PROJECT_DIR$/julday.py" />
-        <option value="$PROJECT_DIR$/test.py" />
-        <option value="$PROJECT_DIR$/re_projection2.py" />
-        <option value="$PROJECT_DIR$/GDAL/GDALPythonTest.py" />
-        <option value="$PROJECT_DIR$/test_data/skysat.py" />
-        <option value="$PROJECT_DIR$/test_code/test_gdal.py" />
-        <option value="$PROJECT_DIR$/test_code/clip_v1.2.py" />
-        <option value="$PROJECT_DIR$/test_data/clip_v2.0.py" />
-        <option value="$PROJECT_DIR$/test_code/test_bilinear.py" />
-        <option value="$PROJECT_DIR$/test_code/test_resize.py" />
-        <option value="$PROJECT_DIR$/python_code/test_noliner_constrained.py" />
-        <option value="$PROJECT_DIR$/test_code/test_liner_constraint.py" />
-        <option value="$PROJECT_DIR$/procode/atm_planet.py" />
-        <option value="$PROJECT_DIR$/test_data/demo.py" />
-        <option value="$PROJECT_DIR$/test_code/clip_v2.0.py" />
-        <option value="$PROJECT_DIR$/procode/color_table.py" />
-        <option value="$PROJECT_DIR$/test_code/julday.py" />
-        <option value="$PROJECT_DIR$/test_code/gdal_merge.py" />
-        <option value="$PROJECT_DIR$/procode/atm/sun_position.py" />
-        <option value="$PROJECT_DIR$/procode/atm/atm_planet.py" />
-        <option value="$PROJECT_DIR$/procode/atm/atm_GF2.py" />
-        <option value="$PROJECT_DIR$/procode/resize.py" />
-        <option value="$PROJECT_DIR$/procode/gs_fusion.py" />
-        <option value="$PROJECT_DIR$/test_code/shp2raster.py" />
-        <option value="$PROJECT_DIR$/procode/overlap.py" />
-        <option value="$PROJECT_DIR$/procode/mask_raster.py" />
         <option value="$PROJECT_DIR$/test_code/test_shp.py" />
         <option value="$PROJECT_DIR$/test_code/export_shp.py" />
         <option value="$PROJECT_DIR$/pre_processing/un_zip.py" />
         <option value="$PROJECT_DIR$/atm/deal_file_path.py" />
-        <option value="$PROJECT_DIR$/sentinel2_processing/multi_dn2ref.py" />
         <option value="$PROJECT_DIR$/test_code/shp_cut.py" />
-        <option value="$PROJECT_DIR$/test_code/test1.py" />
         <option value="$PROJECT_DIR$/test_code/Feature2shp.py" />
         <option value="$PROJECT_DIR$/test_code/shpSplit.py" />
-        <option value="$PROJECT_DIR$/test_code/test.py" />
-        <option value="$PROJECT_DIR$/test_code/clip_raster.py" />
         <option value="$PROJECT_DIR$/test_code/subset_via_shapefile.py" />
+        <option value="$PROJECT_DIR$/waqip-master/waqip.py" />
+        <option value="$PROJECT_DIR$/waqip-master/get_waqip_all.py" />
+        <option value="$PROJECT_DIR$/test_code/Distinguish_species.py" />
+        <option value="$PROJECT_DIR$/test_code/multi_process_dn2ref.py" />
+        <option value="$PROJECT_DIR$/procode/atm/atm_planet.py" />
+        <option value="$PROJECT_DIR$/test_code/test_path.py" />
+        <option value="$PROJECT_DIR$/procode/reprojectVector.py" />
+        <option value="$PROJECT_DIR$/test_code/test_mkdir.py" />
+        <option value="$USER_HOME$/Desktop/class/multi_raster2csv_v2.0.py" />
+        <option value="$PROJECT_DIR$/test_code/test1.py" />
+        <option value="$USER_HOME$/Desktop/merge_v2.0.py" />
+        <option value="$PROJECT_DIR$/test_code/GF2_sha_clip.py" />
+        <option value="$PROJECT_DIR$/test_code/improveWheatClass.py" />
+        <option value="$PROJECT_DIR$/test_code/clip_raster.py" />
+        <option value="$USER_HOME$/Desktop/subset_via_shapefile.py" />
+        <option value="$PROJECT_DIR$/procode/subset_via_shapefile.py" />
+        <option value="$PROJECT_DIR$/test_code/supplementary_attribute.py" />
+        <option value="$USER_HOME$/Desktop/index.py" />
+        <option value="$PROJECT_DIR$/procode/atm/atm_BJ.py" />
         <option value="$PROJECT_DIR$/procode/shp_cut.py" />
+        <option value="$PROJECT_DIR$/test_code/妹子图全栈.py" />
+        <option value="$PROJECT_DIR$/spider/get_movie_top250.py" />
+        <option value="$PROJECT_DIR$/spider/testspider.py" />
+        <option value="$PROJECT_DIR$/spider/test.py" />
+        <option value="$PROJECT_DIR$/procode/gs_fusion.py" />
+        <option value="$PROJECT_DIR$/procode/atm/get_aod.py" />
+        <option value="$USER_HOME$/Desktop/class/multi_dn2ref.py" />
+        <option value="$PROJECT_DIR$/procode/atm/atm_GF2.py" />
+        <option value="$PROJECT_DIR$/atm/atm_sv.py" />
+        <option value="$PROJECT_DIR$/procode/downloadAOD.py" />
+        <option value="$PROJECT_DIR$/procode/modis_download.py" />
+        <option value="$PROJECT_DIR$/atm/atm/atm_GF2.py" />
+        <option value="$PROJECT_DIR$/spider/妹子图全栈.py" />
+        <option value="$PROJECT_DIR$/spider/laads-data-ori.py" />
+        <option value="$PROJECT_DIR$/test_code/laads-data-download.py" />
+        <option value="$PROJECT_DIR$/sentinel2_processing/multi_dn2ref.py" />
+        <option value="$PROJECT_DIR$/pre_processing/rpc_orthorectification.py" />
+        <option value="$PROJECT_DIR$/atm/atm/atm_sv.py" />
+        <option value="$PROJECT_DIR$/pre_processing/reproject.py" />
+        <option value="$PROJECT_DIR$/test_code/test.py" />
+        <option value="$USER_HOME$/Desktop/class/clip_raster.py" />
+        <option value="$PROJECT_DIR$/procode/subset_sample_shapefile.py" />
+        <option value="$PROJECT_DIR$/pre_processing/imgtobyte.py" />
       </list>
     </option>
   </component>
@@ -263,9 +359,10 @@
     <sorting>DEFINITION_ORDER</sorting>
   </component>
   <component name="ProjectFrameBounds" extendedState="6">
-    <option name="x" value="-7" />
-    <option name="width" value="974" />
-    <option name="height" value="1047" />
+    <option name="x" value="-8" />
+    <option name="y" value="-8" />
+    <option name="width" value="1932" />
+    <option name="height" value="555" />
   </component>
   <component name="ProjectInspectionProfilesVisibleTreeState">
     <entry key="Project Default">
@@ -291,22 +388,6 @@
       <foldersAlwaysOnTop value="true" />
     </navigator>
     <panes>
-      <pane id="Scope">
-        <subPane subId="Scope 'Project Files'; set:Project Files; class com.intellij.psi.search.scope.ProjectFilesScope">
-          <expand>
-            <path>
-              <item name="mypycode" type="3d21c010:ScopeViewTreeModel$ProjectNode" />
-              <item name="" type="442cc68d:ScopeViewTreeModel$RootNode" />
-            </path>
-            <path>
-              <item name="mypycode" type="3d21c010:ScopeViewTreeModel$ProjectNode" />
-              <item name="" type="442cc68d:ScopeViewTreeModel$RootNode" />
-              <item name="procode" type="9f88c78c:ScopeViewTreeModel$FileNode" />
-            </path>
-          </expand>
-          <select />
-        </subPane>
-      </pane>
       <pane id="ProjectPane">
         <subPane>
           <expand>
@@ -339,6 +420,22 @@
           <select />
         </subPane>
       </pane>
+      <pane id="Scope">
+        <subPane subId="Scope 'Project Files'; set:Project Files; class com.intellij.psi.search.scope.ProjectFilesScope">
+          <expand>
+            <path>
+              <item name="mypycode" type="3d21c010:ScopeViewTreeModel$ProjectNode" />
+              <item name="" type="442cc68d:ScopeViewTreeModel$RootNode" />
+            </path>
+            <path>
+              <item name="mypycode" type="3d21c010:ScopeViewTreeModel$ProjectNode" />
+              <item name="" type="442cc68d:ScopeViewTreeModel$RootNode" />
+              <item name="procode" type="9f88c78c:ScopeViewTreeModel$FileNode" />
+            </path>
+          </expand>
+          <select />
+        </subPane>
+      </pane>
     </panes>
   </component>
   <component name="PropertiesComponent">
@@ -349,7 +446,7 @@
     <property name="nodejs.jest.jest_package" value="" />
     <property name="nodejs_interpreter_path.stuck_in_default_project" value="undefined stuck path" />
     <property name="nodejs_npm_path_reset_for_default_project" value="true" />
-    <property name="settings.editor.selected.configurable" value="fileTemplates" />
+    <property name="settings.editor.selected.configurable" value="settings.github" />
   </component>
   <component name="PyConsoleOptionsProvider">
     <option name="myPythonConsoleState">
@@ -361,6 +458,14 @@
   </component>
   <component name="ReadonlyStatusHandler">
     <option name="SHOW_DIALOG" value="false" />
+  </component>
+  <component name="RecentsManager">
+    <key name="MoveFile.RECENT_KEYS">
+      <recent name="E:\mypycode\spider" />
+    </key>
+    <key name="CopyFile.RECENT_KEYS">
+      <recent name="E:\mypycode\atm\atm\6SV\tif_aod" />
+    </key>
   </component>
   <component name="RunDashboard">
     <option name="ruleStates">
@@ -374,7 +479,29 @@
       </list>
     </option>
   </component>
-  <component name="RunManager" selected="Python.subset_via_shapefile">
+  <component name="RunManager" selected="Python.imgtobyte">
+    <configuration name="妹子图全栈" type="PythonConfigurationType" factoryName="Python">
+      <module name="mypycode" />
+      <option name="INTERPRETER_OPTIONS" value="" />
+      <option name="PARENT_ENVS" value="true" />
+      <envs>
+        <env name="PYTHONUNBUFFERED" value="1" />
+      </envs>
+      <option name="SDK_HOME" value="D:\Python36\python.exe" />
+      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$/test_code" />
+      <option name="IS_MODULE_SDK" value="true" />
+      <option name="ADD_CONTENT_ROOTS" value="true" />
+      <option name="ADD_SOURCE_ROOTS" value="true" />
+      <EXTENSION ID="PythonCoverageRunConfigurationExtension" runner="coverage.py" />
+      <option name="SCRIPT_NAME" value="E:\mypycode\spider\妹子图全栈.py" />
+      <option name="PARAMETERS" value="" />
+      <option name="SHOW_COMMAND_LINE" value="false" />
+      <option name="EMULATE_TERMINAL" value="false" />
+      <option name="MODULE_MODE" value="false" />
+      <option name="REDIRECT_INPUT" value="false" />
+      <option name="INPUT_FILE" value="" />
+      <method v="2" />
+    </configuration>
     <configuration name="GDALPythonTest" type="PythonConfigurationType" factoryName="Python">
       <module name="mypycode" />
       <option name="INTERPRETER_OPTIONS" value="" />
@@ -397,20 +524,42 @@
       <option name="INPUT_FILE" value="" />
       <method v="2" />
     </configuration>
-    <configuration name="clip_raster" type="PythonConfigurationType" factoryName="Python" temporary="true">
+    <configuration default="true" type="PythonConfigurationType" factoryName="Python">
       <module name="mypycode" />
       <option name="INTERPRETER_OPTIONS" value="" />
       <option name="PARENT_ENVS" value="true" />
       <envs>
         <env name="PYTHONUNBUFFERED" value="1" />
       </envs>
-      <option name="SDK_HOME" value="" />
-      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$/test_code" />
+      <option name="SDK_HOME" value="D:\Python36\python.exe" />
+      <option name="WORKING_DIRECTORY" value="" />
+      <option name="IS_MODULE_SDK" value="false" />
+      <option name="ADD_CONTENT_ROOTS" value="true" />
+      <option name="ADD_SOURCE_ROOTS" value="true" />
+      <EXTENSION ID="PythonCoverageRunConfigurationExtension" runner="coverage.py" />
+      <option name="SCRIPT_NAME" value="" />
+      <option name="PARAMETERS" value="" />
+      <option name="SHOW_COMMAND_LINE" value="false" />
+      <option name="EMULATE_TERMINAL" value="false" />
+      <option name="MODULE_MODE" value="false" />
+      <option name="REDIRECT_INPUT" value="false" />
+      <option name="INPUT_FILE" value="" />
+      <method v="2" />
+    </configuration>
+    <configuration name="atm_sv" type="PythonConfigurationType" factoryName="Python" temporary="true">
+      <module name="mypycode" />
+      <option name="INTERPRETER_OPTIONS" value="" />
+      <option name="PARENT_ENVS" value="true" />
+      <envs>
+        <env name="PYTHONUNBUFFERED" value="1" />
+      </envs>
+      <option name="SDK_HOME" value="D:\Python36\python.exe" />
+      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$/atm/atm" />
       <option name="IS_MODULE_SDK" value="true" />
       <option name="ADD_CONTENT_ROOTS" value="true" />
       <option name="ADD_SOURCE_ROOTS" value="true" />
       <EXTENSION ID="PythonCoverageRunConfigurationExtension" runner="coverage.py" />
-      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/test_code/clip_raster.py" />
+      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/atm/atm/atm_sv.py" />
       <option name="PARAMETERS" value="" />
       <option name="SHOW_COMMAND_LINE" value="false" />
       <option name="EMULATE_TERMINAL" value="false" />
@@ -500,6 +649,28 @@
       <EXTENSION ID="PythonCoverageRunConfigurationExtension" runner="coverage.py" />
       <option name="SCRIPT_NAME" value="$PROJECT_DIR$/test_code/clip_v2.0.py" />
       <option name="PARAMETERS" value="F:\test_class\erqi\planet_20181015_erqiqu.tif F:\test_class\erqi\erqiqu_0120.shp F:\test_class\erqi\erqiqu.tif" />
+      <option name="SHOW_COMMAND_LINE" value="false" />
+      <option name="EMULATE_TERMINAL" value="false" />
+      <option name="MODULE_MODE" value="false" />
+      <option name="REDIRECT_INPUT" value="false" />
+      <option name="INPUT_FILE" value="" />
+      <method v="2" />
+    </configuration>
+    <configuration name="imgtobyte" type="PythonConfigurationType" factoryName="Python" temporary="true">
+      <module name="mypycode" />
+      <option name="INTERPRETER_OPTIONS" value="" />
+      <option name="PARENT_ENVS" value="true" />
+      <envs>
+        <env name="PYTHONUNBUFFERED" value="1" />
+      </envs>
+      <option name="SDK_HOME" value="D:\Python36\python.exe" />
+      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$/pre_processing" />
+      <option name="IS_MODULE_SDK" value="true" />
+      <option name="ADD_CONTENT_ROOTS" value="true" />
+      <option name="ADD_SOURCE_ROOTS" value="true" />
+      <EXTENSION ID="PythonCoverageRunConfigurationExtension" runner="coverage.py" />
+      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/pre_processing/imgtobyte.py" />
+      <option name="PARAMETERS" value="" />
       <option name="SHOW_COMMAND_LINE" value="false" />
       <option name="EMULATE_TERMINAL" value="false" />
       <option name="MODULE_MODE" value="false" />
@@ -617,42 +788,20 @@
       <option name="INPUT_FILE" value="" />
       <method v="2" />
     </configuration>
-    <configuration name="shpSplit" type="PythonConfigurationType" factoryName="Python" temporary="true">
+    <configuration name="reproject" type="PythonConfigurationType" factoryName="Python" temporary="true">
       <module name="mypycode" />
       <option name="INTERPRETER_OPTIONS" value="" />
       <option name="PARENT_ENVS" value="true" />
       <envs>
         <env name="PYTHONUNBUFFERED" value="1" />
       </envs>
-      <option name="SDK_HOME" value="" />
-      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$/test_code" />
+      <option name="SDK_HOME" value="D:\Python36\python.exe" />
+      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$/pre_processing" />
       <option name="IS_MODULE_SDK" value="true" />
       <option name="ADD_CONTENT_ROOTS" value="true" />
       <option name="ADD_SOURCE_ROOTS" value="true" />
       <EXTENSION ID="PythonCoverageRunConfigurationExtension" runner="coverage.py" />
-      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/test_code/shpSplit.py" />
-      <option name="PARAMETERS" value="" />
-      <option name="SHOW_COMMAND_LINE" value="false" />
-      <option name="EMULATE_TERMINAL" value="false" />
-      <option name="MODULE_MODE" value="false" />
-      <option name="REDIRECT_INPUT" value="false" />
-      <option name="INPUT_FILE" value="" />
-      <method v="2" />
-    </configuration>
-    <configuration name="shp_cut" type="PythonConfigurationType" factoryName="Python" temporary="true">
-      <module name="mypycode" />
-      <option name="INTERPRETER_OPTIONS" value="" />
-      <option name="PARENT_ENVS" value="true" />
-      <envs>
-        <env name="PYTHONUNBUFFERED" value="1" />
-      </envs>
-      <option name="SDK_HOME" value="" />
-      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$/test_code" />
-      <option name="IS_MODULE_SDK" value="true" />
-      <option name="ADD_CONTENT_ROOTS" value="true" />
-      <option name="ADD_SOURCE_ROOTS" value="true" />
-      <EXTENSION ID="PythonCoverageRunConfigurationExtension" runner="coverage.py" />
-      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/test_code/shp_cut.py" />
+      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/pre_processing/reproject.py" />
       <option name="PARAMETERS" value="" />
       <option name="SHOW_COMMAND_LINE" value="false" />
       <option name="EMULATE_TERMINAL" value="false" />
@@ -727,20 +876,20 @@
       <option name="INPUT_FILE" value="" />
       <method v="2" />
     </configuration>
-    <configuration name="subset_via_shapefile" type="PythonConfigurationType" factoryName="Python" temporary="true">
+    <configuration name="subset_sample_shapefile" type="PythonConfigurationType" factoryName="Python" temporary="true">
       <module name="mypycode" />
       <option name="INTERPRETER_OPTIONS" value="" />
       <option name="PARENT_ENVS" value="true" />
       <envs>
         <env name="PYTHONUNBUFFERED" value="1" />
       </envs>
-      <option name="SDK_HOME" value="" />
-      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$/test_code" />
+      <option name="SDK_HOME" value="D:\Python36\python.exe" />
+      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$/procode" />
       <option name="IS_MODULE_SDK" value="true" />
       <option name="ADD_CONTENT_ROOTS" value="true" />
       <option name="ADD_SOURCE_ROOTS" value="true" />
       <EXTENSION ID="PythonCoverageRunConfigurationExtension" runner="coverage.py" />
-      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/test_code/subset_via_shapefile.py" />
+      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/procode/subset_sample_shapefile.py" />
       <option name="PARAMETERS" value="" />
       <option name="SHOW_COMMAND_LINE" value="false" />
       <option name="EMULATE_TERMINAL" value="false" />
@@ -778,7 +927,7 @@
       <envs>
         <env name="PYTHONUNBUFFERED" value="1" />
       </envs>
-      <option name="SDK_HOME" value="" />
+      <option name="SDK_HOME" value="D:\Python36\python.exe" />
       <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$/test_code" />
       <option name="IS_MODULE_SDK" value="true" />
       <option name="ADD_CONTENT_ROOTS" value="true" />
@@ -918,6 +1067,7 @@
       <method v="2" />
     </configuration>
     <list>
+      <item itemvalue="Python.妹子图全栈" />
       <item itemvalue="Python.multi_dn2ref_v2.0" />
       <item itemvalue="Python.test2" />
       <item itemvalue="Python.julday" />
@@ -937,24 +1087,24 @@
       <item itemvalue="Python.GDALPythonTest" />
       <item itemvalue="Python.gdal_merge" />
       <item itemvalue="Python.test_gdal" />
+      <item itemvalue="Python.atm_sv" />
+      <item itemvalue="Python.reproject" />
       <item itemvalue="Python.test (2)" />
-      <item itemvalue="Python.shp_cut" />
-      <item itemvalue="Python.shpSplit" />
-      <item itemvalue="Python.subset_via_shapefile" />
-      <item itemvalue="Python.clip_raster" />
+      <item itemvalue="Python.imgtobyte" />
+      <item itemvalue="Python.subset_sample_shapefile" />
     </list>
     <recent_temporary>
       <list>
-        <item itemvalue="Python.subset_via_shapefile" />
-        <item itemvalue="Python.clip_raster" />
-        <item itemvalue="Python.shpSplit" />
+        <item itemvalue="Python.imgtobyte" />
+        <item itemvalue="Python.subset_sample_shapefile" />
         <item itemvalue="Python.test (2)" />
-        <item itemvalue="Python.shp_cut" />
+        <item itemvalue="Python.reproject" />
+        <item itemvalue="Python.atm_sv" />
       </list>
     </recent_temporary>
   </component>
   <component name="StructureViewFactory">
-    <option name="ACTIVE_ACTIONS" value=",SHOW_FIELDS,SHOW_INHERITED" />
+    <option name="ACTIVE_ACTIONS" value=",SHOW_FIELDS" />
   </component>
   <component name="SvnConfiguration">
     <configuration>C:\Users\01\AppData\Roaming\Subversion</configuration>
@@ -1081,7 +1231,21 @@
       <option name="project" value="LOCAL" />
       <updated>1550217759319</updated>
     </task>
-    <option name="localTasksCounter" value="17" />
+    <task id="LOCAL-00017" summary="修改若单个矢量和栅格影像无重叠程序退出的bug">
+      <created>1550224965451</created>
+      <option name="number" value="00017" />
+      <option name="presentableId" value="LOCAL-00017" />
+      <option name="project" value="LOCAL" />
+      <updated>1550224965451</updated>
+    </task>
+    <task id="LOCAL-00018" summary="用以处理高景卫星系列的大气校正">
+      <created>1555481044372</created>
+      <option name="number" value="00018" />
+      <option name="presentableId" value="LOCAL-00018" />
+      <option name="project" value="LOCAL" />
+      <updated>1555481044372</updated>
+    </task>
+    <option name="localTasksCounter" value="19" />
     <servers />
   </component>
   <component name="TodoView">
@@ -1096,27 +1260,28 @@
   <component name="ToolWindowManager">
     <frame x="-8" y="-8" width="1936" height="1056" extended-state="6" />
     <layout>
-      <window_info active="true" content_ui="combo" id="Project" order="0" sideWeight="0.7001115" visible="true" weight="0.15618336" />
-      <window_info id="Structure" order="1" sideWeight="0.29988852" side_tool="true" visible="true" weight="0.15618336" />
+      <window_info content_ui="combo" id="Project" order="0" sideWeight="0.6390532" visible="true" weight="0.21641791" />
+      <window_info x="1123" y="172" width="403" height="182" id="Structure" order="1" sideWeight="0.36094674" side_tool="true" type="FLOATING" weight="0.21481876" />
       <window_info id="Favorites" order="2" sideWeight="0.29304636" side_tool="true" weight="0.086886995" />
       <window_info anchor="bottom" id="Message" order="0" />
-      <window_info anchor="bottom" id="Find" order="1" />
+      <window_info anchor="bottom" id="Find" order="1" weight="0.32998884" />
       <window_info anchor="bottom" id="Version Control" order="2" sideWeight="0.49840087" weight="0.32998884" />
       <window_info anchor="bottom" id="TODO" order="3" weight="0.3277592" />
-      <window_info anchor="bottom" id="Terminal" order="4" sideWeight="0.49946696" weight="0.32664436" />
+      <window_info anchor="bottom" id="Terminal" order="4" sideWeight="0.49946696" weight="0.32552955" />
       <window_info anchor="bottom" id="Cvs" order="5" weight="0.25" />
       <window_info anchor="bottom" id="Inspection" order="6" weight="0.4" />
       <window_info anchor="bottom" id="Docker" order="7" show_stripe_button="false" />
       <window_info anchor="bottom" id="Database Changes" order="8" show_stripe_button="false" />
       <window_info anchor="bottom" id="Event Log" order="9" sideWeight="0.5026652" side_tool="true" weight="0.2575251" />
-      <window_info anchor="bottom" x="22" y="396" width="1876" height="247" id="Python Console" order="10" sideWeight="0.49733475" weight="0.25641027" />
-      <window_info anchor="bottom" id="Debug" order="11" sideWeight="0.4978678" weight="0.393534" />
+      <window_info anchor="bottom" x="22" y="396" width="1876" height="247" id="Python Console" order="10" sideWeight="0.49733475" weight="0.2541806" />
+      <window_info anchor="bottom" id="Debug" order="11" sideWeight="0.4978678" weight="0.4347826" />
       <window_info anchor="bottom" id="Run" order="12" sideWeight="0.4989339" weight="0.33333334" />
       <window_info anchor="right" id="Commander" internal_type="SLIDING" order="0" type="SLIDING" weight="0.4" />
       <window_info anchor="right" id="Ant Build" order="1" weight="0.25" />
       <window_info anchor="right" content_ui="combo" id="Hierarchy" order="2" weight="0.25" />
-      <window_info anchor="right" id="SciView" order="3" weight="0.31183368" />
+      <window_info anchor="right" id="SciView" order="3" sideWeight="0.49925038" weight="0.32089552" />
       <window_info anchor="right" id="Database" order="4" weight="0.32995737" />
+      <window_info anchor="right" x="0" y="0" width="434" height="856" id="Documentation" order="5" sideWeight="0.50074965" side_tool="true" weight="0.31183368" />
     </layout>
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -1168,7 +1333,9 @@
     <MESSAGE value="采用掩模的方法进行矢量裁剪" />
     <MESSAGE value="用于测试矢量数据的写入" />
     <MESSAGE value="将指定要素编号的矢量单独导出为shp文件" />
-    <option name="LAST_COMMIT_MESSAGE" value="将指定要素编号的矢量单独导出为shp文件" />
+    <MESSAGE value="修改若单个矢量和栅格影像无重叠程序退出的bug" />
+    <MESSAGE value="用以处理高景卫星系列的大气校正" />
+    <option name="LAST_COMMIT_MESSAGE" value="用以处理高景卫星系列的大气校正" />
   </component>
   <component name="XDebuggerManager">
     <breakpoint-manager>
@@ -1233,90 +1400,155 @@
           <line>12</line>
           <option name="timeStamp" value="93" />
         </line-breakpoint>
-        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
+        <line-breakpoint suspend="THREAD" type="python-line">
           <url>file://$PROJECT_DIR$/test_code/gdal_merge.py</url>
           <line>290</line>
           <option name="timeStamp" value="145" />
         </line-breakpoint>
-        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
+        <line-breakpoint suspend="THREAD" type="python-line">
           <url>file://$PROJECT_DIR$/test_code/merge.py</url>
           <line>18</line>
           <option name="timeStamp" value="146" />
         </line-breakpoint>
-        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
-          <url>file://$PROJECT_DIR$/procode/atm/atm_planet.py</url>
-          <line>382</line>
-          <option name="timeStamp" value="147" />
-        </line-breakpoint>
-        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
+        <line-breakpoint suspend="THREAD" type="python-line">
           <url>file://$PROJECT_DIR$/procode/atm/6s_lookup_table_linux.py</url>
           <line>16</line>
           <option name="timeStamp" value="148" />
         </line-breakpoint>
-        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
-          <url>file://$PROJECT_DIR$/procode/atm/atm_GF2.py</url>
-          <line>16</line>
-          <option name="timeStamp" value="149" />
-        </line-breakpoint>
-        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
+        <line-breakpoint suspend="THREAD" type="python-line">
           <url>file://$PROJECT_DIR$/procode/gs_fusion.py</url>
           <line>115</line>
           <option name="timeStamp" value="164" />
         </line-breakpoint>
-        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
+        <line-breakpoint suspend="THREAD" type="python-line">
           <url>file://$PROJECT_DIR$/procode/gs_fusion.py</url>
           <line>261</line>
           <option name="timeStamp" value="167" />
         </line-breakpoint>
-        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
+        <line-breakpoint suspend="THREAD" type="python-line">
           <url>file://$PROJECT_DIR$/procode/overlap.py</url>
           <line>165</line>
           <option name="timeStamp" value="178" />
         </line-breakpoint>
-        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
+        <line-breakpoint suspend="THREAD" type="python-line">
           <url>file://$PROJECT_DIR$/procode/overlap.py</url>
           <line>94</line>
           <option name="timeStamp" value="180" />
         </line-breakpoint>
-        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
-          <url>file://$PROJECT_DIR$/procode/overlap.py</url>
-          <line>50</line>
-          <option name="timeStamp" value="183" />
-        </line-breakpoint>
-        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
+        <line-breakpoint suspend="THREAD" type="python-line">
           <url>file://$PROJECT_DIR$/test_code/shp2raster.py</url>
           <line>32</line>
           <option name="timeStamp" value="184" />
         </line-breakpoint>
-        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
+        <line-breakpoint suspend="THREAD" type="python-line">
           <url>file://$PROJECT_DIR$/procode/overlap.py</url>
           <line>33</line>
           <option name="timeStamp" value="185" />
         </line-breakpoint>
-        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
+        <line-breakpoint suspend="THREAD" type="python-line">
           <url>file://$PROJECT_DIR$/procode/mask_raster.py</url>
           <line>100</line>
           <option name="timeStamp" value="189" />
         </line-breakpoint>
-        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
+        <line-breakpoint suspend="THREAD" type="python-line">
           <url>file://$PROJECT_DIR$/test_code/test_shp.py</url>
           <line>25</line>
           <option name="timeStamp" value="191" />
         </line-breakpoint>
-        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
+        <line-breakpoint suspend="THREAD" type="python-line">
           <url>file://$PROJECT_DIR$/test_code/export_shp.py</url>
           <line>4</line>
           <option name="timeStamp" value="192" />
         </line-breakpoint>
-        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
+        <line-breakpoint suspend="THREAD" type="python-line">
           <url>file://$PROJECT_DIR$/pre_processing/un_zip.py</url>
           <line>131</line>
           <option name="timeStamp" value="193" />
         </line-breakpoint>
-        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
+        <line-breakpoint suspend="THREAD" type="python-line">
           <url>file://$PROJECT_DIR$/classification/sample_img2csv.py</url>
           <line>21</line>
           <option name="timeStamp" value="205" />
+        </line-breakpoint>
+        <line-breakpoint suspend="THREAD" type="python-line">
+          <url>file://$PROJECT_DIR$/atm/deal_file_path.py</url>
+          <line>3</line>
+          <option name="timeStamp" value="206" />
+        </line-breakpoint>
+        <line-breakpoint suspend="THREAD" type="python-line">
+          <url>file://$PROJECT_DIR$/test_code/GF2_sha_clip.py</url>
+          <line>226</line>
+          <option name="timeStamp" value="239" />
+        </line-breakpoint>
+        <line-breakpoint suspend="THREAD" type="python-line">
+          <url>file://$PROJECT_DIR$/test_code/improveWheatClass.py</url>
+          <line>161</line>
+          <option name="timeStamp" value="272" />
+        </line-breakpoint>
+        <line-breakpoint suspend="THREAD" type="python-line">
+          <url>file://$PROJECT_DIR$/test_code/improveWheatClass.py</url>
+          <line>137</line>
+          <option name="timeStamp" value="273" />
+        </line-breakpoint>
+        <line-breakpoint suspend="THREAD" type="python-line">
+          <url>file://$PROJECT_DIR$/test_code/supplementary_attribute.py</url>
+          <line>56</line>
+          <option name="timeStamp" value="289" />
+        </line-breakpoint>
+        <line-breakpoint suspend="THREAD" type="python-line">
+          <url>file://$PROJECT_DIR$/spider/testspider.py</url>
+          <line>47</line>
+          <option name="timeStamp" value="299" />
+        </line-breakpoint>
+        <line-breakpoint suspend="THREAD" type="python-line">
+          <url>file://$PROJECT_DIR$/spider/get_movie_top250.py</url>
+          <line>50</line>
+          <option name="timeStamp" value="301" />
+        </line-breakpoint>
+        <line-breakpoint suspend="THREAD" type="python-line">
+          <url>file://$PROJECT_DIR$/spider/testspider.py</url>
+          <line>45</line>
+          <option name="timeStamp" value="305" />
+        </line-breakpoint>
+        <line-breakpoint suspend="THREAD" type="python-line">
+          <url>file://$PROJECT_DIR$/spider/testspider.py</url>
+          <line>42</line>
+          <option name="timeStamp" value="306" />
+        </line-breakpoint>
+        <line-breakpoint suspend="THREAD" type="python-line">
+          <url>file://$USER_HOME$/Desktop/class/multi_dn2ref.py</url>
+          <line>186</line>
+          <option name="timeStamp" value="317" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
+          <url>file://$PROJECT_DIR$/atm/atm/atm_GF2.py</url>
+          <line>531</line>
+          <option name="timeStamp" value="327" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
+          <url>file://$PROJECT_DIR$/sentinel2_processing/thread_dn2ref.py</url>
+          <line>20</line>
+          <option name="timeStamp" value="328" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
+          <url>file://$PROJECT_DIR$/atm/atm/atm_sv.py</url>
+          <line>524</line>
+          <option name="timeStamp" value="334" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
+          <url>file://$PROJECT_DIR$/pre_processing/reproject.py</url>
+          <line>171</line>
+          <option name="timeStamp" value="338" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
+          <url>file://$PROJECT_DIR$/test_code/test.py</url>
+          <line>10</line>
+          <option name="timeStamp" value="344" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
+          <url>file://$PROJECT_DIR$/test_code/test.py</url>
+          <line>9</line>
+          <option name="timeStamp" value="346" />
         </line-breakpoint>
       </breakpoints>
       <breakpoints-dialog>
@@ -1332,8 +1564,8 @@
     </breakpoint-manager>
     <watches-manager>
       <configuration name="PythonConfigurationType">
-        <watch expression="xml_files" />
         <watch expression="xml_dir" />
+        <watch expression="xml_files" />
       </configuration>
     </watches-manager>
   </component>
@@ -1352,383 +1584,344 @@
     </expressions>
   </component>
   <component name="editorHistoryManager">
-    <entry file="file://$PROJECT_DIR$/test_code/test_liner_constraint.py">
+    <entry file="file://$PROJECT_DIR$/spider/get_movie_top250.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="378">
-          <caret line="26" column="13" lean-forward="true" selection-start-line="26" selection-start-column="13" selection-end-line="26" selection-end-column="13" />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/test_code/test_gdal.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state>
-          <caret selection-end-line="1" />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/test_code/new_test.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state>
-          <caret selection-end-line="1" />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/test_code/re_project.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state>
-          <caret selection-end-line="1" />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/pre_processing/resampling.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state>
-          <caret selection-end-line="1" />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$USER_HOME$/.PyCharm2018.2/system/python_stubs/1072250519/numpy/core/umath.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="-935">
-          <caret line="3496" column="4" selection-start-line="3496" selection-start-column="4" selection-end-line="3496" selection-end-column="4" />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/test_code/test_resize.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="324">
-          <caret line="42" column="32" lean-forward="true" selection-start-line="42" selection-start-column="32" selection-end-line="42" selection-end-column="32" />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/test_code/test_bilinear.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="88">
-          <caret line="6" column="11" lean-forward="true" selection-start-line="6" selection-start-column="11" selection-end-line="6" selection-end-column="11" />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/test_code/shp2raster.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="253">
-          <caret line="31" column="11" selection-start-line="31" selection-start-column="11" selection-end-line="31" selection-end-column="14" />
+        <state relative-caret-position="774">
+          <caret line="49" column="27" selection-start-line="49" selection-start-column="27" selection-end-line="49" selection-end-column="27" />
           <folding>
-            <element signature="e#152#161#0" expanded="true" />
-            <marker date="1548222213647" expanded="true" signature="328:1139" ph="..." />
+            <element signature="e#204#213#0" expanded="true" />
           </folding>
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/test_code/gdal_merge.py">
+    <entry file="file://$PROJECT_DIR$/spider/testspider.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="1445">
-          <caret line="500" column="32" lean-forward="true" selection-start-line="500" selection-start-column="32" selection-end-line="500" selection-end-column="32" />
-          <folding>
-            <element signature="e#1429#1440#0" expanded="true" />
-          </folding>
+        <state relative-caret-position="811">
+          <caret line="65" column="43" selection-start-line="65" selection-start-column="43" selection-end-line="65" selection-end-column="43" />
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/procode/resize.py">
+    <entry file="file://$PROJECT_DIR$/procode/gs_fusion.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="432">
-          <caret line="24" column="32" selection-start-line="21" selection-end-line="24" selection-end-column="32" />
+        <state relative-caret-position="523">
+          <caret line="233" column="67" selection-start-line="233" selection-start-column="67" selection-end-line="233" selection-end-column="67" />
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/test_code/export_shp.py">
+    <entry file="file://$USER_HOME$/Desktop/class/multi_raster2csv_v2.0.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="414">
-          <caret line="23" column="32" lean-forward="true" selection-start-line="23" selection-start-column="32" selection-end-line="23" selection-end-column="32" />
-          <folding>
-            <element signature="e#0#10#0" expanded="true" />
-          </folding>
+        <state relative-caret-position="236">
+          <caret line="223" column="26" selection-start-line="223" selection-start-column="26" selection-end-line="223" selection-end-column="26" />
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/pre_processing/un_zip.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="466">
-          <caret line="134" column="31" lean-forward="true" selection-start-line="134" selection-start-column="31" selection-end-line="134" selection-end-column="31" />
-          <folding>
-            <element signature="e#224#233#0" expanded="true" />
-          </folding>
-        </state>
-      </provider>
+    <entry file="file://$PROJECT_DIR$/test_code/cal_AOD.py">
+      <provider selected="true" editor-type-id="text-editor" />
     </entry>
-    <entry file="file://D:/Python36/Lib/ntpath.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="163">
-          <caret line="478" column="22" lean-forward="true" selection-start-line="478" selection-start-column="22" selection-end-line="478" selection-end-column="22" />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://D:/Python36/Lib/fnmatch.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="298">
-          <caret line="63" column="15" selection-start-line="63" selection-start-column="4" selection-end-line="63" selection-end-column="15" />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/atm/deal_file_path.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="180">
-          <caret line="13" column="24" lean-forward="true" selection-start-line="13" selection-start-column="24" selection-end-line="13" selection-end-column="24" />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/sentinel2_processing/multi_dn2ref_v2.0.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="-3672">
-          <caret line="18" lean-forward="true" selection-start-line="18" selection-end-line="18" />
-        </state>
-      </provider>
-    </entry>
+    <entry file="file://$PROJECT_DIR$/procode/atm/get_aod.py" />
     <entry file="file://D:/Python36/Lib/threading.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="199">
+        <state relative-caret-position="388">
           <caret line="863" selection-start-line="863" selection-end-line="863" />
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/sentinel2_processing/multi_dn2ref.py">
+    <entry file="file://$USER_HOME$/Desktop/class/multi_dn2ref.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="624">
-          <caret line="274" column="5" lean-forward="true" selection-start-line="274" selection-start-column="5" selection-end-line="274" selection-end-column="5" />
+        <state relative-caret-position="494">
+          <caret line="219" selection-start-line="219" selection-end-line="220" />
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/classification/multi_raster2csv.py">
+    <entry file="file://D:/Python36/Lib/multiprocessing/pool.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="-484">
+          <caret line="353" selection-start-line="353" selection-end-line="353" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/procode/atm/atm_GF2.py" />
+    <entry file="file://$PROJECT_DIR$/atm/atm_sv.py" />
+    <entry file="file://$PROJECT_DIR$/atm/atm/atm_planet.py">
       <provider selected="true" editor-type-id="text-editor">
         <state>
           <caret selection-end-line="1" />
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/classification/calc_spectral_probability.py">
+    <entry file="file://D:/Python36/Lib/site-packages/numba/dispatcher.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state>
-          <caret selection-end-line="1" />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/classification/csv2raster.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="-54">
-          <caret selection-end-line="1" />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/classification/img_classification.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="-2584">
-          <caret selection-end-line="1" />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/classification/raster_block.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="-2764">
-          <caret selection-end-line="1" />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/classification/sample_img2csv.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="250">
-          <caret line="17" column="18" selection-start-line="17" selection-start-column="18" selection-end-line="17" selection-end-column="18" />
-          <folding>
-            <element signature="e#309#318#0" expanded="true" />
-          </folding>
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/classification/raster2csv_thread.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="-4510">
-          <caret selection-end-line="1" />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/classification/raster2csv.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state>
-          <caret selection-end-line="1" />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/classification/multi_sample_img2csv.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="108">
-          <caret line="15" selection-start-line="15" selection-end-line="16" />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/classification/multi_raster2csv_v2.0.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="18">
-          <caret line="189" selection-start-line="189" selection-end-line="190" />
+        <state relative-caret-position="226">
+          <caret line="491" selection-start-line="491" selection-end-line="491" />
         </state>
       </provider>
     </entry>
     <entry file="file://D:/Python36/Lib/codecs.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="266">
+        <state relative-caret-position="164">
           <caret line="308" selection-start-line="308" selection-end-line="308" />
         </state>
       </provider>
     </entry>
-    <entry file="file://D:/Python36/Lib/site-packages/matplotlib/cbook/deprecation.py">
+    <entry file="file://$PROJECT_DIR$/procode/downloadAOD.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="640">
-          <caret line="113" selection-start-line="113" selection-end-line="113" />
+        <state relative-caret-position="810">
+          <caret line="47" column="4" selection-start-line="47" selection-start-column="4" selection-end-line="47" selection-end-column="12" />
         </state>
       </provider>
     </entry>
-    <entry file="file://D:/Python36/Lib/site-packages/ospybook/vectorplotter.py">
+    <entry file="file://$PROJECT_DIR$/sentinel2_processing/multi_dn2ref_v2.0.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="-1654">
+          <caret line="101" column="26" lean-forward="true" selection-start-line="101" selection-start-column="26" selection-end-line="101" selection-end-column="26" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/procode/modis_download.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="-2404">
+          <caret line="18" selection-start-line="18" selection-end-line="18" selection-end-column="29" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/sentinel2_processing/thread_dn2ref.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="307">
+          <caret line="26" selection-start-line="26" selection-end-line="26" selection-end-column="28" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/atm/atm/6SV/in.txt">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="18">
+          <caret line="59" selection-start-line="59" selection-end-line="59" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/atm/atm/6SV/out.txt" />
+    <entry file="file://$PROJECT_DIR$/spider/妹子图全栈.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="512">
+          <caret line="72" column="27" selection-start-line="72" selection-start-column="27" selection-end-line="72" selection-end-column="27" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/test_code/laads-data-download.py">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="450">
-          <caret line="25" column="8" selection-start-line="25" selection-start-column="8" selection-end-line="25" selection-end-column="8" />
+          <caret line="33" column="32" selection-start-line="33" selection-start-column="32" selection-end-line="33" selection-end-column="32" />
         </state>
       </provider>
     </entry>
-    <entry file="file://D:/Python36/Lib/site-packages/ospybook/simplevectorplotter.py">
+    <entry file="file://$PROJECT_DIR$/spider/laads-data-ori.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="272">
-          <caret line="267" column="21" lean-forward="true" selection-start-line="267" selection-start-column="21" selection-end-line="267" selection-end-column="21" />
+        <state relative-caret-position="2430">
+          <caret line="141" column="43" selection-start-line="141" selection-start-column="43" selection-end-line="141" selection-end-column="43" />
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/test_code/clip_v2.0.py">
+    <entry file="file://$PROJECT_DIR$/sentinel2_processing/multi_dn2ref.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state>
-          <caret selection-end-line="1" />
+        <state relative-caret-position="296">
+          <caret line="251" column="24" selection-start-line="251" selection-start-column="24" selection-end-line="251" selection-end-column="24" />
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/test_code/clip_v1.2.py">
+    <entry file="file://$PROJECT_DIR$/atm/atm/reprojection_img.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state>
-          <caret selection-end-line="1" />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/classification/multi_sample2csv_v2.0.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="378">
-          <caret line="33" selection-start-line="33" selection-end-line="33" />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://D:/Python36/Lib/site-packages/osgeo/gdal.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="182">
-          <caret line="1512" column="8" selection-start-line="1512" selection-start-column="8" selection-end-line="1512" selection-end-column="8" />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/procode/atm/atm_planet.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="4320">
-          <caret line="248" column="39" selection-start-line="248" selection-start-column="39" selection-end-line="248" selection-end-column="39" />
-          <folding>
-            <element signature="e#357#366#0" expanded="true" />
-          </folding>
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/test_code/test1.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="450">
-          <caret line="40" column="15" selection-start-line="40" selection-start-column="15" selection-end-line="40" selection-end-column="15" />
+        <state relative-caret-position="-881">
+          <caret line="14" column="35" lean-forward="true" selection-start-line="14" selection-start-column="35" selection-end-line="14" selection-end-column="35" />
         </state>
       </provider>
     </entry>
     <entry file="file://D:/Python36/Lib/site-packages/osgeo/ogr.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="360">
-          <caret line="410" column="70" lean-forward="true" selection-start-line="410" selection-start-column="70" selection-end-line="410" selection-end-column="70" />
+        <state relative-caret-position="136530">
+          <caret line="7585" column="42" selection-start-line="7585" selection-start-column="42" selection-end-line="7585" selection-end-column="42" />
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/test_code/Feature2shp.py" />
-    <entry file="file://$PROJECT_DIR$/test_code/test.py">
-      <provider selected="true" editor-type-id="text-editor" />
-    </entry>
-    <entry file="file://$PROJECT_DIR$/procode/mask_raster.py">
+    <entry file="file://D:/Python36/Lib/site-packages/ospybook/vectorplotter.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="-1908">
-          <caret line="14" column="19" lean-forward="true" selection-start-line="14" selection-start-column="19" selection-end-line="14" selection-end-column="19" />
+        <state relative-caret-position="270">
+          <caret line="15" column="8" selection-start-line="15" selection-start-column="8" selection-end-line="15" selection-end-column="8" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/python_code/chapter_03/bicycles.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state>
+          <caret selection-end-line="1" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/osgeopy-code/Chapter3/chapter3.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="468">
+          <caret line="114" selection-start-line="114" selection-end-line="114" selection-end-column="9" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/atm/atm/atm_GF2.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="512">
+          <caret line="547" selection-start-line="547" selection-end-line="547" />
           <folding>
-            <element signature="e#267#276#0" expanded="true" />
+            <element signature="e#347#356#0" expanded="true" />
           </folding>
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/test_code/clip_raster.py">
+    <entry file="file://$PROJECT_DIR$/pre_processing/rpc_orthorectification.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="-846">
-          <caret line="10" column="12" lean-forward="true" selection-start-line="10" selection-start-column="4" selection-end-line="10" selection-end-column="12" />
+        <state relative-caret-position="512">
+          <caret line="93" column="17" selection-start-line="93" selection-start-column="17" selection-end-line="93" selection-end-column="49" />
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/test_code/shpSplit.py">
+    <entry file="file://$PROJECT_DIR$/atm/atm/atm_sv.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="306">
-          <caret line="62" column="41" lean-forward="true" selection-start-line="62" selection-start-column="41" selection-end-line="62" selection-end-column="41" />
+        <state relative-caret-position="386">
+          <caret line="524" selection-start-line="524" selection-end-line="524" />
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/test_code/test_shp.py">
+    <entry file="file://$PROJECT_DIR$/pre_processing/mask_raster.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="-1566">
+          <caret selection-end-line="1" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/procode/color_table.py">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="324">
-          <caret line="31" column="26" lean-forward="true" selection-start-line="31" selection-start-column="26" selection-end-line="31" selection-end-column="26" />
-          <folding>
-            <element signature="e#152#162#0" expanded="true" />
-          </folding>
+          <caret line="31" column="20" lean-forward="true" selection-start-line="31" selection-start-column="20" selection-end-line="31" selection-end-column="20" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/test_code/vi_classifi.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state>
+          <caret selection-end-line="1" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$USER_HOME$/Desktop/subset_via_shapefile.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="-2376" />
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/test_code/sieve_filter.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state>
+          <caret selection-end-line="1" />
         </state>
       </provider>
     </entry>
     <entry file="file://$PROJECT_DIR$/procode/overlap.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="1746">
-          <caret line="97" column="46" lean-forward="true" selection-start-line="97" selection-start-column="46" selection-end-line="97" selection-end-column="46" />
-          <folding>
-            <element signature="e#46#84#0" expanded="true" />
-          </folding>
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/test_code/shp_cut.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="18">
-          <caret line="99" column="49" selection-start-line="99" selection-start-column="49" selection-end-line="99" selection-end-column="49" />
-          <folding>
-            <element signature="e#152#161#0" expanded="true" />
-          </folding>
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/test_code/subset_via_shapefile.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="306">
-          <caret line="17" column="11" selection-start-line="17" selection-start-column="11" selection-end-line="17" selection-end-column="11" />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/procode/shpSplit.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="54">
-          <caret line="3" column="28" lean-forward="true" selection-start-line="3" selection-start-column="13" selection-end-line="3" selection-end-column="28" />
+        <state relative-caret-position="-3053">
+          <caret selection-end-line="1" />
         </state>
       </provider>
     </entry>
     <entry file="file://$PROJECT_DIR$/procode/shp_cut.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="90">
-          <caret line="5" column="22" selection-start-line="5" selection-start-column="22" selection-end-line="5" selection-end-column="22" />
+        <state relative-caret-position="139">
+          <caret line="156" column="11" lean-forward="true" selection-start-line="156" selection-start-column="11" selection-end-line="156" selection-end-column="11" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/pre_processing/reproject.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="1717">
+          <caret line="170" column="28" selection-start-line="170" selection-start-column="21" selection-end-line="170" selection-end-column="28" />
           <folding>
-            <element signature="e#152#161#0" expanded="true" />
+            <element signature="e#315#324#0" expanded="true" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://D:/Python36/Lib/site-packages/numpy/lib/function_base.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="304">
+          <caret line="472" column="37" selection-start-line="471" selection-start-column="12" selection-end-line="472" selection-end-column="37" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$USER_HOME$/.PyCharm2018.2/system/python_stubs/1072250519/numpy/core/multiarray.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="152">
+          <caret line="53" column="4" selection-start-line="53" selection-start-column="4" selection-end-line="53" selection-end-column="4" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$USER_HOME$/.PyCharm2018.2/system/python_stubs/1072250519/builtins.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="244">
+          <caret line="526" column="4" selection-start-line="526" selection-start-column="4" selection-end-line="526" selection-end-column="4" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/test_code/Distinguish_species.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="1134">
+          <caret line="68" column="46" selection-start-line="68" selection-start-column="4" selection-end-line="68" selection-end-column="46" />
+          <folding>
+            <element signature="e#206#215#0" expanded="true" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/test_code/test.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="198">
+          <caret line="11" selection-start-line="11" selection-end-line="11" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/procode/subset_via_shapefile.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="415">
+          <caret line="176" column="59" lean-forward="true" selection-start-line="176" selection-start-column="59" selection-end-line="176" selection-end-column="59" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$USER_HOME$/Desktop/class/clip_raster.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="-856">
+          <caret line="79" column="73" lean-forward="true" selection-start-line="79" selection-start-column="73" selection-end-line="79" selection-end-column="73" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/test_code/improveWheatClass.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="-864">
+          <caret selection-end-line="1" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/procode/subset_sample_shapefile.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="288">
+          <caret line="147" column="58" selection-start-line="147" selection-start-column="58" selection-end-line="147" selection-end-column="58" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://D:/Python36/Lib/site-packages/osgeo/gdal.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="116">
+          <caret line="1507" column="8" selection-start-line="1507" selection-start-column="8" selection-end-line="1507" selection-end-column="8" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/pre_processing/imgtobyte.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="-406">
+          <caret line="9" column="14" selection-start-line="9" selection-start-column="14" selection-end-line="9" selection-end-column="14" />
+          <folding>
+            <element signature="e#197#206#0" expanded="true" />
           </folding>
         </state>
       </provider>

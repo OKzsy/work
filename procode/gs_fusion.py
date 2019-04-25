@@ -145,7 +145,7 @@ def GS_inverse(GS, B):
                     phi_GS = phi(B[:, i], GS[:, 0]) * GS[:, 0]
                     # print(j,i-1)
 
-                #                print(phi(B[:,i],GS[:,j]),j,i-1)
+                # print(phi(B[:,i],GS[:,j]),j,i-1)
                 else:
                     phi_GS += phi(B[:, i], GS[:, j]) * GS[:, j]
                     print(phi(B[:, i], GS[:, j]))
