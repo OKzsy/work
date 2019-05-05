@@ -1,34 +1,26 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
+# -*- coding:utf-8 -*-
+"""
+# @Time    : 2019/5/5 15:47
+# @Author  : zhaoss
+# @FileName: Modis_download.py
+# @Email   : zhaoshaoshuai@hnnydsj.com
+Description:
 
-# script supports either python2 or python3
-#
-# Attempts to do HTTP Gets with urllib2(py2) urllib.requets(py3) or subprocess
-# if tlsv1.1+ isn't supported by the python ssl module
-#
-# Will download csv or json depending on which python module is available
-#
 
-from __future__ import (division, print_function, absolute_import, unicode_literals)
+Parameters
 
-import argparse
-import os
-import os.path
+
+"""
+
+from bs4 import BeautifulSoup
+import requests
 import datetime
 import shutil
+import time
+import json
+import os
 import sys
-import requests
-from functools import partial
-import multiprocessing.dummy as mp
-
-try:
-    from StringIO import StringIO  # python2
-except ImportError:
-    from io import StringIO  # python3
-
-################################################################################
-
-
-USERAGENT = 'tis/download.py_1.0--' + sys.version.replace('\n', '').replace('\r', '')
 
 
 class RequestError(Exception):
@@ -75,35 +67,6 @@ class Nasa:
         source = "https://ladsweb.modaps.eosdis.nasa.gov/" \
                  "archive/allData/{}/{}/{}/{:0>3}".format(self.collection, self.product, year, self.cal_julday())
         return source, json_data
-
-
-def multi_down(sourc, ds, token, file):
-    # currently we use filesize of 0 to indicate directory
-    filesize = int(file['size'])
-    path = os.path.join(ds, file['name'])
-    url = sourc + '/' + file['name']
-    if filesize == 0:
-        try:
-            print('creating dir:', path)
-            os.mkdir(path)
-            sync(sourc + '/' + file['name'], path, token)
-        except IOError as e:
-            print("mkdir `%s': %s" % (e.filename, e.strerror), file=sys.stderr)
-            sys.exit(-1)
-    else:
-        try:
-            if not os.path.exists(path):
-                print('downloading: ', path)
-                print('downloading: ', url)
-                with open(path, 'w+b') as fh:
-                    geturl(url, token, fh)
-            else:
-                print('skipping: ', path)
-        except IOError as e:
-            print("open `%s': %s" % (e.filename, e.strerror), file=sys.stderr)
-            sys.exit(-1)
-
-    return None
 
 
 def geturl(url, token=None, out=None):
@@ -167,31 +130,48 @@ def geturl(url, token=None, out=None):
         return None
 
 
-def sync(src, dest, tok, files):
+def sync(source, dest, tok):
     '''synchronize src url with dest directory'''
-    pool = mp.Pool(processes=4)
-    func = partial(multi_down, src, dest, tok)
-    for k, ifile in files.items():
-        res = pool.apply_async(func, args=(ifile,))
-    pool.close()
-    pool.join()
+    src = source[0]
+    files = source[1]
+    # use os.path since python 2/3 both support it while pathlib is 3.4+
+    for k, f in files.items():
+        # currently we use filesize of 0 to indicate directory
+        filesize = int(f['size'])
+        path = os.path.join(dest, f['name'])
+        url = src + '/' + f['name']
+        if filesize == 0:
+            print("error")
+            sys.exit(-1)
+        else:
+            try:
+                if not os.path.exists(path):
+                    print('downloading: ', path)
+                    with open(path, 'w+b') as fh:
+                        geturl(url, tok, fh)
+                else:
+                    print('skipping: ', path)
+            except IOError as e:
+                print("open `%s': %s" % (e.filename, e.strerror), file=sys.stderr)
+                sys.exit(-1)
     return 0
 
 
-def _main():
-    day = '2019-03-13'
-    latlng = 'x110.3692y36.354952,x116.650994y31.400914'
-    destination = r"F:\henanxiaomai\new\20190313"
-    instance = Nasa(date=day, latlng=latlng, save_path=destination)
-    source, name_json = instance.spider()
-    token = '38361F0C-3E1B-11E8-916F-FFF9569DBFBA'
-    if not os.path.exists(destination):
-        os.makedirs(destination)
-    return sync(source, destination, token, name_json)
+def main(date, latlng, save_path):
+    instance = Nasa(date=date, latlng=latlng, save_path=save_path)
+    # 爬取符合要求的modis产品名称和数据路径
+    modis_product = instance.spider()
+    # 下载数据
+    sync(source=modis_product, dest=save_path, tok=instance.token)
+    return None
 
 
 if __name__ == '__main__':
-    try:
-        sys.exit(_main())
-    except KeyboardInterrupt:
-        sys.exit(-1)
+    start_time = time.clock()
+    day = '2019-03-12'
+    latlng = 'x110.3692y36.354952,x116.650994y31.400914'
+    save_path = r"F:\henanxiaomai\new\20190312"
+    main(date=day, latlng=latlng, save_path=save_path)
+    end_time = time.clock()
+
+    print("time: %.4f secs." % (end_time - start_time))

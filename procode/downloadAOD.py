@@ -35,15 +35,15 @@ class Nasa:
             file_url = "https://ladsweb.modaps.eosdis.nasa.gov/" \
                        "archive/allData/{}/MOD04_L2/{}/{}/{}".format(loc, year, code, name)
             print(file_url)
-            resp = requests.get(url=file_url, headers=self.headers)
-            path = os.path.join(self.save_path, name)
-            with open(path, "wb") as f:
-                f.write(resp.content)
+            # resp = requests.get(url=file_url, headers=self.headers)
+            # path = os.path.join(self.save_path, name)
+            # with open(path, "wb") as f:
+            #     f.write(resp.content)
 
 
 if __name__ == '__main__':
-    day = '2018-03-09'
+    day = '2019-03-12'
     latlng = 'x110.3692y36.354952,x116.650994y31.400914'
-    save_path = r"F:\henanxiaomai\new\20190223"
+    save_path = r"F:\henanxiaomai\new\20190312"
     instance = Nasa(day=day, latlng=latlng, save_path=save_path)
     instance.spider()

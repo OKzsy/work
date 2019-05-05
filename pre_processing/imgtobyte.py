@@ -131,9 +131,9 @@ if __name__ == '__main__':
     # 注册所有gdal驱动
     gdal.AllRegister()
     start_time = time.clock()
-    in_path = r"\\192.168.0.234\nydsj\user\ZSS\testaera"
-    out_path = r"\\192.168.0.234\nydsj\user\ZSS\testaera"
-    partfileinfo = "*L1A0002985953_sha.tif"
+    in_path = r"C:\Users\01\Desktop\henan"
+    out_path = r"C:\Users\01\Desktop\henan"
+    partfileinfo = "*L1A0002693207-shpCut.tiff"
     main(in_path, out_path, partfileinfo=partfileinfo)
     end_time = time.clock()
 
