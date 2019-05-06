@@ -6,7 +6,7 @@
 # @FileName: GF2_sha_clip.py
 # @Email   : zhaoshaoshuai@hnnydsj.com
 Description:
-
+    用以批量的对融合结果的nodata区域进行裁剪
 
 Parameters
 
