@@ -30,7 +30,9 @@ from scipy import interpolate
 try:
     from osgeo import gdal, ogr, osr
 except ImportError:
-    import gdal, ogr, osr
+    import gdal
+    import ogr
+    import osr
 
 try:
     progress = gdal.TermProgress_nocb
@@ -131,8 +133,10 @@ def SECTRUM(wlinf, wlsup, band, fun_path, senID, satID):
     wlsup = wlsup * 1000
     step = 2.5
     num = math.ceil((wlsup - wlinf) * 1. / step) + 1
-    xout = np.arange(num, dtype='float64') * step + wlinf  # 类似于idl中的make_array中使用/index和INCREMENT=step功能
-    ori_spec = fun_path + os.sep + '6SV' + os.sep + 'spec' + os.sep + satID + os.sep + senID + '.txt'
+    # 类似于idl中的make_array中使用/index和INCREMENT=step功能
+    xout = np.arange(num, dtype='float64') * step + wlinf
+    ori_spec = fun_path + os.sep + '6SV' + os.sep + \
+        'spec' + os.sep + satID + os.sep + senID + '.txt'
     # 将光谱度如矩阵用于插值
     spec_lib = np.loadtxt(ori_spec)
     wave = spec_lib[:, 0]
@@ -202,7 +206,7 @@ def reproject_dataset(src_ds, new_x_size, new_y_size):
     # 创建重投影后新影像的存储位置
     mem_drv = gdal.GetDriverByName('MEM')
     # 根据计算的参数创建存储空间
-    dest = mem_drv.Create('', int((lrx - ulx) / new_x_size), \
+    dest = mem_drv.Create('', int((lrx - ulx) / new_x_size),
                           int((uly - lry) / new_y_size), bandCount, dataType)
     # 计算新的放射变换参数
     new_geo = (ulx, new_x_size, geo_t[2], uly, geo_t[4], -new_y_size)
@@ -212,8 +216,8 @@ def reproject_dataset(src_ds, new_x_size, new_y_size):
 
     # 执行重投影和重采样
     print('Begin to reprojection and resample!')
-    res = gdal.ReprojectImage(src_ds, dest, \
-                              src_prj, oSRS.ExportToWkt(), \
+    res = gdal.ReprojectImage(src_ds, dest,
+                              src_prj, oSRS.ExportToWkt(),
                               gdal.GRA_Bilinear, callback=progress)
     return dest
 
@@ -231,18 +235,18 @@ def ATM_CORRECT(img_in_path, img_out_path, atm_coe, senID, satID, year):
     if not int(year) == 2016:
         year = 'other'
     # GF定标系数
-    rad_coe_dict = {'GF1': \
-                        {'2016': \
-                             {'PMS1': [0.1982, 0.232, 0.187, 0.1795, 0.196], \
-                              'PMS2': [0.1979, 0.224, 0.1851, 0.1793, 0.1863]}, \
-                         'other': \
-                             {'PMS1': [0.1428, 0.153, 0.1356, 0.1366, 0.1272], \
-                              'PMS2': [0.149, 0.1523, 0.1382, 0.1403, 0.1334]}}, \
-                    'GF2': {'2016': \
-                                {'PMS1': [0.1501, 0.1322, 0.1550, 0.1477, 0.1613], \
-                                 'PMS2': [0.1863, 0.1762, 0.1856, 0.1754, 0.1980]}, \
-                            'other': \
-                                {'PMS1': [0.1725, 0.1356, 0.1736, 0.1644, 0.1788], \
+    rad_coe_dict = {'GF1':
+                    {'2016':
+                     {'PMS1': [0.1982, 0.232, 0.187, 0.1795, 0.196],
+                      'PMS2': [0.1979, 0.224, 0.1851, 0.1793, 0.1863]},
+                     'other':
+                     {'PMS1': [0.1428, 0.153, 0.1356, 0.1366, 0.1272],
+                      'PMS2': [0.149, 0.1523, 0.1382, 0.1403, 0.1334]}},
+                    'GF2': {'2016':
+                            {'PMS1': [0.1501, 0.1322, 0.1550, 0.1477, 0.1613],
+                             'PMS2': [0.1863, 0.1762, 0.1856, 0.1754, 0.1980]},
+                            'other':
+                                {'PMS1': [0.1725, 0.1356, 0.1736, 0.1644, 0.1788],
                                  'PMS2': [0.2136, 0.1859, 0.2072, 0.1934, 0.2180]}}}
     rad_coe = rad_coe_dict[satID][year][senID]
 
@@ -274,26 +278,20 @@ def ATM_CORRECT(img_in_path, img_out_path, atm_coe, senID, satID, year):
         y = atm_coe[0, 0] * pan_ref - atm_coe[0, 1]
         pan_ref = None
         pan_suf_ref = y / (1.0 + atm_coe[0, 2] * y)
-        pan_suf_ref = np.where(pan_suf_ref == pan_suf_ref.min(), 0.0, pan_suf_ref)
+        pan_suf_ref = np.where(
+            pan_suf_ref == pan_suf_ref.min(), 0.0, pan_suf_ref)
         pan_suf_ref = (pan_suf_ref * 10000).round()
         # 创建临时数据集用于存放大气校正结果
         tmp_driver = gdal.GetDriverByName('MEM')
         atm_ds = tmp_driver.CreateCopy(" ", source_ds)
         atm_ds.GetRasterBand(1).WriteArray(pan_suf_ref)
         pan_suf_ref = None
-        # 进行重投影和重采样
-        if satID == 'GF1':
-            new_xs = 0.00002
-            new_ys = 0.00002
-        else:
-            new_xs = 0.00001
-            new_ys = 0.00001
-        dest = reproject_dataset(atm_ds, new_xs, new_ys)
-        # del atm_ds
         # 存储经大气校正的结果
         print('Store atmospheric correction results!')
         driver = gdal.GetDriverByName("GTiff")
-        dst_ds = driver.CreateCopy(img_out_path, dest, callback=progress)
+        dst_ds = driver.CreateCopy(img_out_path, atm_ds, callback=progress)
+        # 释放资源
+        dst_ds = None
     else:
         # 获取数据
         Blue_band = source_ds.GetRasterBand(1).ReadAsArray()
@@ -317,22 +315,26 @@ def ATM_CORRECT(img_in_path, img_out_path, atm_coe, senID, satID, year):
         # Blue
         y = atm_coe[1, 0] * Blue_ref - atm_coe[1, 1]
         Blue_suf_ref = y / (1.0 + atm_coe[1, 2] * y)
-        Blue_suf_ref = np.where(Blue_suf_ref == Blue_suf_ref.min(), 0.0, Blue_suf_ref)
+        Blue_suf_ref = np.where(
+            Blue_suf_ref == Blue_suf_ref.min(), 0.0, Blue_suf_ref)
         Blue_suf_ref = (Blue_suf_ref * 10000).round()
         # Green
         y = atm_coe[2, 0] * Green_ref - atm_coe[2, 1]
         Green_suf_ref = y / (1.0 + atm_coe[2, 2] * y)
-        Green_suf_ref = np.where(Green_suf_ref == Green_suf_ref.min(), 0.0, Green_suf_ref)
+        Green_suf_ref = np.where(
+            Green_suf_ref == Green_suf_ref.min(), 0.0, Green_suf_ref)
         Green_suf_ref = (Green_suf_ref * 10000).round()
         # Red
         y = atm_coe[3, 0] * Red_ref - atm_coe[3, 1]
         Red_suf_ref = y / (1.0 + atm_coe[3, 2] * y)
-        Red_suf_ref = np.where(Red_suf_ref == Red_suf_ref.min(), 0.0, Red_suf_ref)
+        Red_suf_ref = np.where(
+            Red_suf_ref == Red_suf_ref.min(), 0.0, Red_suf_ref)
         Red_suf_ref = (Red_suf_ref * 10000).round()
         # Inf
         y = atm_coe[4, 0] * Inf_ref - atm_coe[4, 1]
         Inf_suf_ref = y / (1.0 + atm_coe[4, 2] * y)
-        Inf_suf_ref = np.where(Inf_suf_ref == Inf_suf_ref.min(), 0.0, Inf_suf_ref)
+        Inf_suf_ref = np.where(
+            Inf_suf_ref == Inf_suf_ref.min(), 0.0, Inf_suf_ref)
         Inf_suf_ref = (Inf_suf_ref * 10000).round()
         # 创建临时数据集用于存放大气校正结果
         tmp_driver = gdal.GetDriverByName('MEM')
@@ -341,18 +343,10 @@ def ATM_CORRECT(img_in_path, img_out_path, atm_coe, senID, satID, year):
         atm_ds.GetRasterBand(2).WriteArray(Green_suf_ref)
         atm_ds.GetRasterBand(3).WriteArray(Red_suf_ref)
         atm_ds.GetRasterBand(4).WriteArray(Inf_suf_ref)
-        # 进行重投影和重采样
-        if satID == 'GF1':
-            new_xs = 0.00008
-            new_ys = 0.00008
-        else:
-            new_xs = 0.00004
-            new_ys = 0.00004
-        dest = reproject_dataset(atm_ds, new_xs, new_ys)
         # 存储经大气校正的结果
         print('Store atmospheric correction results!')
         driver = gdal.GetDriverByName("GTiff")
-        dst_ds = driver.CreateCopy(img_out_path, dest, callback=progress)
+        dst_ds = driver.CreateCopy(img_out_path, atm_ds, callback=progress)
     # 释放资源
     atm_ds = None
     dst_ds = None
@@ -379,8 +373,10 @@ def get_aod(oDocument, aod_file):
     lry = float(GET_XMLELEMENTS(oDocument, ID))
     extent = [ulx, uly, lrx, lry]
     # 计算在aod影像上的行列号
-    off_ulx, off_uly = map(int, gdal.ApplyGeoTransform(aod_inv_geo, extent[0], extent[1]))
-    off_drx, off_dry = map(math.ceil, gdal.ApplyGeoTransform(aod_inv_geo, extent[2], extent[3]))
+    off_ulx, off_uly = map(int, gdal.ApplyGeoTransform(
+        aod_inv_geo, extent[0], extent[1]))
+    off_drx, off_dry = map(math.ceil, gdal.ApplyGeoTransform(
+        aod_inv_geo, extent[2], extent[3]))
     columns = off_drx - off_ulx
     rows = off_dry - off_uly
     aod = aod_ds.ReadAsArray(off_ulx, off_uly, columns, rows)
@@ -394,15 +390,13 @@ def get_aod(oDocument, aod_file):
     return mean_aod
 
 
-def main(file_path, out_path, partfileinfo='*.tif'):
-    # 注册所有gdal的驱动
-    gdal.AllRegister()
-    gdal.SetConfigOption("gdal_FILENAME_IS_UTF8", "YES")
+def run_6s(file_path, out_path, partfileinfo='*.tif'):
     # 获取当前工作路径
-    function_position = os.path.dirname(os.path.abspath(sys.argv[0]).argv[0])
+    function_position = os.path.dirname(os.path.abspath(sys.argv[0]))
     # 需要大气校正影像路径
     original_dir_path = file_path
-    original_imgs = searchfiles(original_dir_path, partfileinfo, recursive=True)
+    original_imgs = searchfiles(
+        original_dir_path, partfileinfo, recursive=True)
     # 定义卫星通道参数，单位微米
     w = [[0.45, 0.890], [0.45, 0.52], [0.52, 0.59], [0.63, 0.69], [0.77, 0.89]]
     for num_file in range(len(original_imgs)):
@@ -414,7 +408,7 @@ def main(file_path, out_path, partfileinfo='*.tif'):
         basename = os.path.splitext(os.path.basename(input))[0]
         # 获取影像元数据路径
         # xml路径
-        xmlpath = file_dir + os.sep + basename + '.xml'
+        xmlpath = os.path.join(file_dir, basename) + '.xml'
         if not os.path.exists(xmlpath):
             print('The file: {0} has no xml!'.format(input))
             continue
@@ -487,7 +481,8 @@ def main(file_path, out_path, partfileinfo='*.tif'):
         # 更改程序工作路径
         os.chdir(os.path.join(function_position, '6SV'))
         # 输出辐射校正系数
-        outcoe = os.path.join(function_position, '6SV', 'outcoe', SensorID) + '-' + ProductID + '.txt'
+        outcoe = os.path.join(function_position, '6SV',
+                              'outcoe', SensorID) + '-' + ProductID + '.txt'
         # 打开辐射校正系数文件用于写入辐射校正系数
         lun_coe = open(outcoe, 'w', newline=None)
         coearr = np.full((5, 3), -999.0, dtype='float16')
@@ -506,16 +501,23 @@ def main(file_path, out_path, partfileinfo='*.tif'):
             lun.write('{:<8.4f} {} {}'.format(tao, 'value', '\n'))
             lun.write('{:<3d} {} {}'.format(xps, '(target level)', '\n'))
             lun.write('{:<3d} {} {}'.format(xpp, '(sensor level)', '\n'))
-            lun.write('{:<3d} {} {}'.format(iwave, "User's defined filtered function", '\n'))
+            lun.write('{:<3d} {} {}'.format(
+                iwave, "User's defined filtered function", '\n'))
             lun.write('{:<7.3} {:<7.3} {}'.format(w[a][0], w[a][1], '\n'))
-            res = SECTRUM(w[a][0], w[a][1], a, function_position, SensorID, SatelliteID)
+            res = SECTRUM(w[a][0], w[a][1], a,
+                          function_position, SensorID, SatelliteID)
             for spec_value in res:
                 lun.write('{:<10.6f} {}'.format(spec_value, '\n'))
-            lun.write('{:<3d} {} {}'.format(inhomo, 'Homogeneous surface', '\n'))
-            lun.write('{:<3d} {} {}'.format(idirect, 'No directional effects', '\n'))
-            lun.write('{:<3d} {} {}'.format(igroun, '(mean spectral value)', '\n'))
-            lun.write('{:<3d} {} {}'.format(atm, 'Atm. correction Lambertian', '\n'))
-            lun.write('{:<5.1f} {} {}'.format(radiance, 'reflectance (negative value)', '\n'))
+            lun.write('{:<3d} {} {}'.format(
+                inhomo, 'Homogeneous surface', '\n'))
+            lun.write('{:<3d} {} {}'.format(
+                idirect, 'No directional effects', '\n'))
+            lun.write('{:<3d} {} {}'.format(
+                igroun, '(mean spectral value)', '\n'))
+            lun.write('{:<3d} {} {}'.format(
+                atm, 'Atm. correction Lambertian', '\n'))
+            lun.write('{:<5.1f} {} {}'.format(
+                radiance, 'reflectance (negative value)', '\n'))
             # 关闭参数输入文件
             lun.close()
             subprocess.call('6sv1-run<in.txt>out.txt', shell=True)
@@ -538,35 +540,34 @@ def main(file_path, out_path, partfileinfo='*.tif'):
         # out_path = file_dir + os.sep + 'outimg'
         # if not os.path.isdir(out_path):
         #     os.makedirs(out_path)
-        out_file = out_path + os.sep + out_file_name + '_atm.tif'
+        out_file = out_path + os.sep + out_file_name + '-atm.tif'
         ATM_CORRECT(input, out_file, coearr, SensorID, SatelliteID, year)
         # 输出大气校正影像的相关信息
         print(basename)
         print(coearr)
         dom = None
+    return 0
+
+
+def main(**Keywords):
+    # 注册所有gdal的驱动
+    gdal.AllRegister()
+    gdal.SetConfigOption("gdal_FILENAME_IS_UTF8", "YES")
+    # 获取参数
+    file_path = Keywords['file_path']
+    out_path = Keywords['out']
+    partfileinfo = Keywords['partfileinfo']
+    # 开始进行大气校正
+    result = run_6s(file_path, out_path, partfileinfo)
 
 
 if __name__ == '__main__':
     start_time = time.clock()
     file_path = r'\\192.168.0.234\nydsj\user\ZSS\GF1_test\20190411new'
-    # ID = ['5896', '5893', '5752']
     out = r"\\192.168.0.234\nydsj\user\ZSS\GF1_test\out"
-    #
-    # for num_id in ID:
-    #     partfileinfo = 'GF2*' + num_id + '*.img'
-    #     print('The program starts running!')
-    #     fun_path = os.path.dirname(sys.argv[0])
-    #     # file_path = sys.argv[1]
-    #     # partfileinfo = sys.argv[2]
-    #     # tao = float(sys.argv[3])
-    #     main(fun_path, file_path, out, partfileinfo)
-
     partfileinfo = 'GF2*.img'
     print('The program starts running!')
-    # file_path = sys.argv[1]
-    # partfileinfo = sys.argv[2]
-    # tao = float(sys.argv[3])
-    main(file_path, out, partfileinfo)
+    main(file_path=file_path, out=out, partfileinfo=partfileinfo)
 
     end_time = time.clock()
 
