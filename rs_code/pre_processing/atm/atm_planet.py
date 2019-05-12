@@ -90,7 +90,7 @@ def SECTRUM(wlinf, wlsup, band, fun_path, sat_id):
     xout = np.arange(num, dtype='float64') * step + wlinf
     xout = xout * 1. / 1000
     ori_spec = fun_path + os.sep + '6SV' + \
-        os.sep + 'spec' + os.sep + sat_id + '.txt'
+               os.sep + 'spec' + os.sep + sat_id + '.txt'
     # 将光谱度如矩阵用于插值
     spec_lib = np.loadtxt(ori_spec)
     wave = spec_lib[:, 0]
@@ -134,13 +134,13 @@ def ATM_CORRECT(img_in_path, img_out_path, atm_coe, oDocument):
     a_nodata = source_in_band.GetNoDataValue()
     # 获取数据
     Blue_band = source_ds.GetRasterBand(1).ReadAsArray()
-    Blue_band = np.where(Blue_band == a_nodata, 0, Blue_band)
+    Blue_band = np.where(Blue_band == abs(a_nodata), 0, Blue_band)
     Green_band = source_ds.GetRasterBand(2).ReadAsArray()
-    Green_band = np.where(Green_band == a_nodata, 0, Green_band)
+    Green_band = np.where(Green_band == abs(a_nodata), 0, Green_band)
     Red_band = source_ds.GetRasterBand(3).ReadAsArray()
-    Red_band = np.where(Red_band == a_nodata, 0, Red_band)
+    Red_band = np.where(Red_band == abs(a_nodata), 0, Red_band)
     Inf_band = source_ds.GetRasterBand(4).ReadAsArray()
-    Inf_band = np.where(Inf_band == a_nodata, 0, Inf_band)
+    Inf_band = np.where(Inf_band == abs(a_nodata), 0, Inf_band)
     # 判断是否缺少波段
     if Blue_band.max() == 0 or Green_band.max() == 0 or Red_band.max() == 0 or Inf_band.max() == 0:
         print('The {} file has no inf band'.format('basename'))
@@ -197,16 +197,16 @@ def get_aod(oDocument, aod_file):
     aod_geo = aod_ds.GetGeoTransform()
     aod_inv_geo = gdal.InvGeoTransform(aod_geo)
     # 左上经度
-    ID = 'longitude'
+    ID = 'ps:longitude'
     ulx = float(GET_XMLELEMENTS(oDocument, ID)[0])
     # 左上纬度
-    ID = 'latitude'
+    ID = 'ps:latitude'
     uly = float(GET_XMLELEMENTS(oDocument, ID)[0])
     # 右下经度
-    ID = 'longitude'
+    ID = 'ps:longitude'
     lrx = float(GET_XMLELEMENTS(oDocument, ID)[2])
     # 右下纬度
-    ID = 'latitude'
+    ID = 'ps:latitude'
     lry = float(GET_XMLELEMENTS(oDocument, ID)[2])
     extent = [ulx, uly, lrx, lry]
     # 计算在aod影像上的行列号
@@ -242,7 +242,7 @@ def run_6s(file_path, out_path, partfileinfo='*AnalyticMS.tif'):
         input = original_imgs[num_file]
         # 获取文件根目录
         file_dir = os.path.dirname(input)
-       # 文件名
+        # 文件名
         basename = os.path.splitext(os.path.basename(input))[0]
         # 获取影像元数据路径
         # xml路径
@@ -271,10 +271,10 @@ def run_6s(file_path, out_path, partfileinfo='*AnalyticMS.tif'):
         asat = float(GET_XMLELEMENTS(oDocument, ID))  # 卫星方位角
         ID = 'ps:acquisitionDateTime'
         acqtime = GET_XMLELEMENTS(oDocument, ID)
-        year = int(acqtime[0:4])   # 年份
-        month = int(acqtime[5:5 + 2])  # 月份
-        day = int(acqtime[8:8 + 2])  # 日期
-        if (month >= 4) and (month <= 9):
+        year = acqtime[0:4]  # 年份
+        month = acqtime[5:5 + 2]  # 月份
+        day = acqtime[8:8 + 2]  # 日期
+        if (int(month) >= 4) and (int(month) <= 9):
             idatm = 2  # 大气模式中纬度夏季
         else:
             idatm = 3  # 大气模式中纬度冬季
@@ -299,7 +299,7 @@ def run_6s(file_path, out_path, partfileinfo='*AnalyticMS.tif'):
         os.chdir(function_position + os.sep + '6SV')
         # 输出辐射校正系数
         outcoe = function_position + os.sep + '6SV' + \
-            os.sep + 'outcoe' + os.sep + imgID + '.txt'
+                 os.sep + 'outcoe' + os.sep + imgID + '.txt'
         # 打开辐射校正系数文件用于写入辐射校正系数
         lun_coe = open(outcoe, 'w', newline=None)
         coearr = np.full((4, 3), -999.0, dtype='float16')
@@ -309,7 +309,8 @@ def run_6s(file_path, out_path, partfileinfo='*AnalyticMS.tif'):
             lun = open(txtname, 'w', newline=None)
             lun.write('{:<3d} {} {}'.format(igeom, '(User defined)', '\n'))
             lun.write(
-                '{:<10.5f} {:<10.5f} {:<10.5f} {:<10.5f} {:<3d} {:<3d} {} {}'.format(zsun, asun, zsat, asat, month, day,
+                '{:<10.5f} {:<10.5f} {:<10.5f} {:<10.5f} {:<3d} {:<3d} {} {}'.format(zsun, asun, zsat, asat, int(month),
+                                                                                     int(day),
                                                                                      '(geometrical conditions)', '\n'))
             lun.write('{:<3d} {} {}'.format(idatm, 'Midlatitude Summer', '\n'))
             lun.write('{:<3d} {} {}'.format(iaer, 'Continental Model', '\n'))
@@ -375,8 +376,8 @@ def main(**Keywords):
 
 if __name__ == '__main__':
     start_time = time.clock()
-    file_path = r'\\192.168.0.234\nydsj\user\ZSS\GF1_test\20190411new'
-    out = r"\\192.168.0.234\nydsj\user\ZSS\GF1_test\out"
+    file_path = r'G:\sample_data\planet\planet_order_275915_queshan\20180614_023503_103e'
+    out = r"G:\sample_data\planet\planet_order_275915_queshan\out"
     partfileinfo = '*AnalyticMS.tif'
     print('The program starts running!')
     main(file_path=file_path, out=out, partfileinfo=partfileinfo)
