@@ -27,6 +27,9 @@ class RequestError(Exception):
     pass
 
 
+USERAGENT = 'tis/download.py_1.0--' + sys.version.replace('\n', '').replace('\r', '')
+
+
 class Nasa:
     def __init__(self, product="MOD04_L2", collection="61", date=None, latlng=None, save_path=None):
         self.product = product
@@ -70,13 +73,7 @@ class Nasa:
 
 
 def geturl(url, token=None, out=None):
-    headers = {
-        'Host': 'ladsweb.modaps.eosdis.nasa.gov',
-        'Referer': 'https://ladsweb.modaps.eosdis.nasa.gov/search',
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) ' \
-                      'Chrome/74.0.3729.131 Safari/537.36',
-        'X-Requested-With': 'XMLHttpRequest'
-    }
+    headers = headers = {'user-agent': USERAGENT}
     if not token is None:
         headers['Authorization'] = 'Bearer ' + token
     try:
@@ -147,6 +144,7 @@ def sync(source, dest, tok):
             try:
                 if not os.path.exists(path):
                     print('downloading: ', path)
+                    print('url: ', url)
                     with open(path, 'w+b') as fh:
                         geturl(url, tok, fh)
                 else:
@@ -168,9 +166,11 @@ def main(date, latlng, save_path):
 
 if __name__ == '__main__':
     start_time = time.clock()
-    day = '2019-03-12'
+    day = '2018-06-12'
     latlng = 'x110.3692y36.354952,x116.650994y31.400914'
-    save_path = r"F:\henanxiaomai\new\20190312"
+    save_path = r"E:\PythonCode\pic\20180614"
+    if not os.path.exists(save_path):
+        os.mkdir(save_path)
     main(date=day, latlng=latlng, save_path=save_path)
     end_time = time.clock()
 
