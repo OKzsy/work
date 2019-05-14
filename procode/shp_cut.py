@@ -176,7 +176,7 @@ if __name__ == '__main__':
     gdal.AllRegister()
     start_time = time.clock()
     in_file = r"F:\beijing2\atm\gf2\GF2_PMS1_E114.3_N33.7_20180322_L1A0003077263-PAN1_atm.tif"
-    shpfile = r"F:\beijing2\overlap\overlap.shp"
+    shpfile = r"\\192.168.0.234\nydsj\project\8.变化检测\7.object detection\2.label_arcgis\3.label\sample_2985952.shp"
     outfile = r"F:\beijing2\atm\gf2\GF2_PMS1_E114.3_N33.7_20180322_L1A0003077263-PAN1_clip.tif"
     # nodata = 200
     print('The program starts running!')

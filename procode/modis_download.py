@@ -179,9 +179,9 @@ def sync(src, dest, tok, files):
 
 
 def _main():
-    day = '2019-03-13'
+    day = '2018-06-15'
     latlng = 'x110.3692y36.354952,x116.650994y31.400914'
-    destination = r"F:\henanxiaomai\new\20190313"
+    destination = r"F:\henanxiaomai\new\20180615"
     instance = Nasa(date=day, latlng=latlng, save_path=destination)
     source, name_json = instance.spider()
     token = '38361F0C-3E1B-11E8-916F-FFF9569DBFBA'

@@ -1,27 +1,23 @@
 #!/usr/bin/env python3
 # -*- coding:utf-8 -*-
 """
-# @Time    : 2019/3/6 15:10
+# @Time    : 2019/2/15 16:16
 # @Author  : zhaoss
-# @FileName: GF2_sha_clip.py
+# @FileName: subset_sample_shapefile.py
 # @Email   : zhaoshaoshuai@hnnydsj.com
 Description:
-    用以批量的对融合结果的nodata区域进行裁剪
-
+    对栅格分要素裁剪
 Parameters
-
-
+    参数1：输入影像
+    参数2：用于裁剪的矢量
+    参数3：裁剪结果输出路径
 """
+
 import os
 import sys
 import glob
-import fnmatch
 import numpy as np
 import time
-import datetime
-import numba as nb
-import multiprocessing.dummy as mp
-from functools import partial
 from osgeo import gdal, ogr, osr, gdalconst
 
 try:
@@ -85,6 +81,8 @@ def shp2raster(raster_ds, shp_layer, ext):
     x_size = ext[2] - ext[0]
     y_size = ext[3] - ext[1]
     # 创建mask
+    # out = r"F:\test_data\clipraster\gdal_mask2\test3.tif"
+    # mask_ds = gdal.GetDriverByName('GTiff').Create(out, int(x_size), int(y_size), 1, gdal.GDT_Byte)
     mask_ds = gdal.GetDriverByName('MEM').Create('', int(x_size), int(y_size), 1, gdal.GDT_Byte)
     mask_ds.SetProjection(raster_prj)
     mask_geo = [ulx, raster_geo[1], 0, uly, 0, raster_geo[5]]
@@ -123,7 +121,6 @@ def min_rect(raster_ds, shp_layer):
     return [offset_column[0], offset_line[0], offset_column[1], offset_line[1]]
 
 
-@nb.jit
 def mask_raster(raster_ds, mask_ds, outfile, ext):
     # 将行列整数浮点化
     ext = np.array(ext) * 1.0
@@ -144,7 +141,6 @@ def mask_raster(raster_ds, mask_ds, outfile, ext):
     # 获取掩模
     mask = mask_ds.GetRasterBand(1).ReadAsArray()
     mask = 1 - mask
-
     # 对原始影像进行掩模并输出
     for band in range(bandCount):
         banddata = raster_ds.GetRasterBand(band + 1).ReadAsArray(int(ext[0]), int(ext[1]), int(x_size), int(y_size))
@@ -153,52 +149,39 @@ def mask_raster(raster_ds, mask_ds, outfile, ext):
     return 1
 
 
-def searchfiles(dirpath, partfileinfo='*', recursive=False):
-    """列出符合条件的文件（包含路径），默认不进行递归查询，当recursive为True时同时查询子文件夹"""
-    # 定义结果输出列表
-    filelist = []
-    # 列出根目录下包含文件夹在内的所有文件目录
-    pathlist = glob.glob(os.path.join(os.path.sep, dirpath, "*"))
-    # 逐文件进行判断
-    for mpath in pathlist:
-        if os.path.isdir(mpath):
-            # 默认不判断子文件夹
-            if recursive:
-                filelist += searchfiles(mpath, partfileinfo, recursive)
-        elif fnmatch.fnmatch(os.path.basename(mpath), partfileinfo):
-            filelist.append(mpath)
-        # 如果mpath为子文件夹，则进行递归调用，判断子文件夹下的文件
-
-    return filelist
-
-
-def clip_file(shp_path, out, file):
-    # 打开栅格和矢量影像
-    shp_ds = ogr.Open(shp_path)
-    shp_ly = shp_ds.GetLayer()
-    # 获取影像名称
-    tifbasename = os.path.basename(file)
-    print("{0} is assigned to: {1}".format(file, os.getpid()))
-    print("The {0} start time is: {1}".format(os.getpid(), datetime.datetime.now()))
-    # 拆分矢量用以对单个要素进行裁剪
-    # 定义变量用以显示进度条
-    shp_ly.ResetReading()
-    for feat in shp_ly:
-        # 获取要素的属性值用以确定需要处理的融合影像名称
-        basenamewithoutext = os.path.splitext(feat.filename)[0]
-        basenamewithoutext = os.path.splitext(basenamewithoutext)[0]
-        basenames = basenamewithoutext.split('_')
-        sha_name = '_'.join([basenames[0], basenames[4], basenames[5], 'sha']) + '.tif'
-        # 判断要素是否对应
-        if not tifbasename == sha_name:
-            continue
+def main(rasters, shp, out, fieldName='Name'):
+    # 循环处理栅格影像
+    for raster in rasters:
+        # 打开栅格和矢量影像
+        raster_ds = gdal.Open(raster)
+        shp_ds = ogr.Open(shp)
+        shp_lyr = shp_ds.GetLayer()
+        shp_sr = shp_lyr.GetSpatialRef()
+        # 判断栅格和矢量的投影是否一致，不一致进行矢量投影变换
+        raster_srs_wkt = raster_ds.GetProjection()
+        raster_srs = osr.SpatialReference()
+        raster_srs.ImportFromWkt(raster_srs_wkt)
+        # 判断两个SRS的基准是否一致
+        if not shp_sr.IsSameGeogCS(raster_srs):
+            sys.exit("两个空间参考的基准面不一致，不能进行投影转换！！！")
+        # 判断两个SRS是否一致
+        elif shp_sr.IsSame(raster_srs):
+            re_shp_l = shp_lyr
+            shp_lyr = None
         else:
-            # 打开栅格
-            raster_ds = gdal.Open(file)
-            # 获取栅格投影
-            raster_srs_wkt = raster_ds.GetProjection()
-            raster_srs = osr.SpatialReference()
-            raster_srs.ImportFromWkt(raster_srs_wkt)
+            re_shp_ds, re_shp_l = rpj_vec(shp_lyr, raster_srs)
+        # 拆分矢量用以对单个要素进行裁剪
+        # 定义变量用以显示进度条
+        count = 0
+        num_feature = re_shp_l.GetFeatureCount()
+        for feat in re_shp_l:
+            # 获取要素的属性值用以确定输出tif影像的名字和路径
+            # outdir = os.path.join(out, feat.Name.split('-')[1])
+            # if not os.path.exists(outdir):
+            #     os.makedirs(outdir)
+            outdir = out
+            outpath = os.path.join(outdir, feat.GetField(fieldName) + '.tiff')
+            print(feat.GetField(fieldName))
             # 要素提取为图层
             feat_ds, feat_lyr = Feature_memory_shp(feat, raster_srs)
             # 要素裁剪
@@ -210,31 +193,18 @@ def clip_file(shp_path, out, file):
             # 矢量栅格化
             mask_ds = shp2raster(raster_ds, feat_lyr, offset)
             # 进行裁剪
-            outpath = os.path.join(out, sha_name)
             res = mask_raster(raster_ds, mask_ds, outpath, offset)
-            raster_ds = None
-    shp_ds = None
-    print("The {0} end time is: {1}".format(os.getpid(), datetime.datetime.now()))
-    return None
-
-
-def main(raster_path, shp, out):
-    # 寻找文件
-    file_lists = searchfiles(raster_path, '*sha.tif')
-
-    func = partial(clip_file, shp, out)
-    # pool = mp.Pool(processes=3)
-    for ifile in file_lists:
-        clip_file(shp, out, ifile)
-        # res = pool.apply_async(func, args=(ifile, ))
-    # pool.close()
-    # pool.join()
+            progress((count + 1) / num_feature)
+            count += 1
+        re_shp_ds = None
+        raster_ds = None
+        shp_ds = None
     return None
 
 
 if __name__ == '__main__':
     # 支持中文路径
-    gdal.SetConfigOption("GDAL_FILENAME_IS_UTF8", "YES")
+    gdal.SetConfigOption("GDAL_FILENAME_IS_UTF8", "NO")
     # 支持中文属性字段
     gdal.SetConfigOption("SHAPE_ENCODING", "GBK")
     # 注册所有ogr驱动
@@ -243,13 +213,13 @@ if __name__ == '__main__':
     gdal.AllRegister()
 
     start_time = time.clock()
-    # in_file = r"\\192.168.0.234\nydsj\user\GF2\sha\yucheng\new"
-    # shpfile = r"\\192.168.0.234\nydsj\project\11.邓州_正阳小麦\2.vector\2.数据情况\GF2\周口\GF_虞城.shp"
-    # outfile = r"\\192.168.0.234\nydsj\user\GF2\clip\yucheng"
-    in_file = sys.argv[1]
-    shpfile = sys.argv[2]
-    outfile = sys.argv[3]
-    main(in_file, shpfile, outfile)
+    # if len(sys.argv[1:]) < 3:
+    #     sys.exit('Problem reading input')
+    # main(sys.argv[1], sys.argv[2], sys.argv[3])
+    in_files = []
+    shpfile = r"/mnt/glusterfs/change_detection/sample_upload/shape/GF1_sample.shp"
+    outfile = r"/mnt/glusterfs/change_detection/sample_tif"
+    main(in_files, shpfile, outfile)
     end_time = time.clock()
 
     print("time: %.4f secs." % (end_time - start_time))

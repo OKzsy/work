@@ -3,6 +3,7 @@ import requests
 from bs4 import BeautifulSoup
 import os
 import re
+import numpy as np
 
 Hostreferer = {
     'User-Agent':'Mozilla/4.0 (compatible; MSIE 6.0; Windows NT 5.1)',
@@ -64,7 +65,7 @@ def get_atlas_list(url):
     # atlas = soup.find_all(attrs={'title':'日本妹子'})
     atlas_list = []
     for atla in atlas:
-        atlas_list.append(atla.parent['href'])
+        atlas_list.append(atla.parent.attrs['href'])
     return atlas_list
 
 def save_one_page(start_url):
@@ -75,7 +76,7 @@ def save_one_page(start_url):
 
 if __name__ == '__main__':
     start_url = "http://www.mzitu.com/"
-    for count in range(1, 3):
-        url = start_url + "page/" + str(count) +"/"
+    for count in np.random.randint(1, 200, 3):
+        url = start_url + "page/" + str(count) +"/" 
         save_one_page(url)
     print("爬取完成")

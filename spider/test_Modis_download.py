@@ -15,6 +15,7 @@ Parameters
 
 from bs4 import BeautifulSoup
 import requests
+from requests import exceptions
 import datetime
 import shutil
 import time
@@ -27,7 +28,8 @@ class RequestError(Exception):
     pass
 
 
-USERAGENT = 'tis/download.py_1.0--' + sys.version.replace('\n', '').replace('\r', '')
+# USERAGENT = 'tis/download.py_1.0--' + sys.version.replace('\n', '').replace('\r', '')
+USERAGENT = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/74.0.3729.131 Safari/537.36'
 
 
 class Nasa:
@@ -72,68 +74,18 @@ class Nasa:
         return source, json_data
 
 
-def geturl(url, token=None, out=None):
-    headers = headers = {'user-agent': USERAGENT}
-    if not token is None:
-        headers['Authorization'] = 'Bearer ' + token
-    try:
-        import ssl
-        CTX = ssl.SSLContext(ssl.PROTOCOL_TLSv1_2)
-        if sys.version_info.major == 2:
-            import urllib2
-            try:
-                fh = urllib2.urlopen(urllib2.Request(url, headers=headers), context=CTX)
-                if out is None:
-                    return fh.read()
-                else:
-                    shutil.copyfileobj(fh, out)
-            except urllib2.HTTPError as e:
-                print('HTTP GET error code: %d' % e.code(), file=sys.stderr)
-                print('HTTP GET error message: %s' % e.message, file=sys.stderr)
-            except urllib2.URLError as e:
-                print('Failed to make request: %s' % e.reason, file=sys.stderr)
-            return None
-
-        else:
-            from urllib.request import urlopen, Request, URLError, HTTPError
-            try:
-                fh = urlopen(Request(url, headers=headers), context=CTX)
-                if out is None:
-                    return fh.read().decode('utf-8')
-                else:
-                    shutil.copyfileobj(fh, out)
-            except HTTPError as e:
-                print('HTTP GET error code: %d' % e.code(), file=sys.stderr)
-                print('HTTP GET error message: %s' % e.message, file=sys.stderr)
-            except URLError as e:
-                print('Failed to make request: %s' % e.reason, file=sys.stderr)
-            return None
-
-    except AttributeError:
-        # OS X Python 2 and 3 don't support tlsv1.1+ therefore... curl
-        import subprocess
-        try:
-            args = ['curl', '--fail', '-sS', '-L', '--get', url]
-            for (k, v) in headers.items():
-                args.extend(['-H', ': '.join([k, v])])
-            if out is None:
-                # python3's subprocess.check_output returns stdout as a byte string
-                result = subprocess.check_output(args)
-                return result.decode('utf-8') if isinstance(result, bytes) else result
-            else:
-                subprocess.call(args, stdout=out)
-        except subprocess.CalledProcessError as e:
-            print('curl GET error message: %' + (e.message if hasattr(e, 'message') else e.output), file=sys.stderr)
-        return None
-
-
 def sync(source, dest, tok):
-    '''synchronize src url with dest directory'''
+    """synchronize src url with dest directory"""
+    headers = {'user-agent': USERAGENT,
+               "Referer": "https: // ladsweb.modaps.eosdis.nasa.gov / archive / allData",
+               "Host": "ladsweb.modaps.eosdis.nasa.gov"}
+    if not tok is None:
+        headers['Authorization'] = 'Bearer ' + tok
     src = source[0]
     files = source[1]
-    # use os.path since python 2/3 both support it while pathlib is 3.4+
+    if not os.path.exists(save_path):
+        os.mkdir(save_path)
     for k, f in files.items():
-        # currently we use filesize of 0 to indicate directory
         filesize = int(f['size'])
         path = os.path.join(dest, f['name'])
         url = src + '/' + f['name']
@@ -145,12 +97,22 @@ def sync(source, dest, tok):
                 if not os.path.exists(path):
                     print('downloading: ', path)
                     print('url: ', url)
+                    req = requests.get(url, headers=headers)
                     with open(path, 'w+b') as fh:
-                        geturl(url, tok, fh)
+                        fh.write(req.content)
                 else:
                     print('skipping: ', path)
+            except exceptions.Timeout as e:
+                print('请求超时：' + str(e.message))
+                sys.exit(-1)
+            except exceptions.HTTPError as e:
+                print('http请求错误: ' + str(e.message))
+                sys.exit(-1)
             except IOError as e:
                 print("open `%s': %s" % (e.filename, e.strerror), file=sys.stderr)
+                sys.exit(-1)
+            except TypeError as t:
+                print(t)
                 sys.exit(-1)
     return 0
 
@@ -166,11 +128,9 @@ def main(date, latlng, save_path):
 
 if __name__ == '__main__':
     start_time = time.clock()
-    day = '2018-06-12'
-    latlng = 'x110.3692y36.354952,x116.650994y31.400914'
-    save_path = r"E:\PythonCode\pic\20180614"
-    if not os.path.exists(save_path):
-        os.mkdir(save_path)
+    day = '2019-03-15'
+    latlng = 'x100.3692y46.354952,x126.650994y21.400914'
+    save_path = os.path.join(r"E:\PythonCode\pic", day.replace("-", ""))
     main(date=day, latlng=latlng, save_path=save_path)
     end_time = time.clock()
 

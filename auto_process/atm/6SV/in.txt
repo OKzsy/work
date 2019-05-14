@@ -1,9 +1,9 @@
 0   (User defined) 
-34.45      155.0      13.66      299.7      3   28  (geometrical conditions) 
-3   Midlatitude Summer 
+17.67      129.3      23.22      309.0      7   7   (geometrical conditions) 
+2   Midlatitude Summer 
 1   Continental Model 
 0   
-1.5760   value 
+0.9930   value 
 0   (target level) 
 -530 (sensor level) 
 1   User's defined filtered function 

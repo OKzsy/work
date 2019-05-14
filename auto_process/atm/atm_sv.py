@@ -506,8 +506,8 @@ def main(py_path, file_path, out_path, partfileinfo='*.tif'):
 
 if __name__ == '__main__':
     start_time = time.clock()
-    file_path = r'\\192.168.0.234\nydsj\user\ZSS\GJ20190507\ort'
-    out = r"\\192.168.0.234\nydsj\user\ZSS\GJ20190507\atm"
+    file_path = r'F:\test_sample\sv\1103190055\ort\02'
+    out = r"F:\test_sample\sv\gfout"
     # for num_id in ID:
     #     partfileinfo = 'GF2*' + num_id + '*.img'
     #     print('The program starts running!')

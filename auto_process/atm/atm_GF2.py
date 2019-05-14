@@ -1,18 +1,19 @@
-#!/usr/bin/env python3
+#!/usr/bin/env python
 # -*- coding:utf-8 -*-
 """
-# @Time    : 2019/4/11 15:01
-# @Author  : zhaoss
-# @FileName: atm_sv.py
-# @Email   : zhaoshaoshuai@hnnydsj.com
-Description:
+Author: zhaoss
+Email:zhaoshaoshuai@hnnydsj.com
+Create date: 2019/01/14
 
+Description:
+    Atmospheric correction of images
 
 Parameters
-
+    file_path: Image directory
+    partfileinfo: Use regular expressions to select images to process,The default is '*.tif'
+    tao: the aerosol optical depth
 
 """
-
 import os
 import sys
 import subprocess
@@ -124,14 +125,14 @@ def GET_XMLELEMENTS(oDocument, IDtxt):
         return strDT
 
 
-def SECTRUM(wlinf, wlsup, band, fun_path, satID):
+def SECTRUM(wlinf, wlsup, band, fun_path, senID, satID):
     # 对光谱进行插值
     wlinf = wlinf * 1000
     wlsup = wlsup * 1000
     step = 2.5
     num = math.ceil((wlsup - wlinf) * 1. / step) + 1
     xout = np.arange(num, dtype='float64') * step + wlinf  # 类似于idl中的make_array中使用/index和INCREMENT=step功能
-    ori_spec = os.path.join(fun_path, '6SV', 'spec', 'SV', satID) + '.txt'
+    ori_spec = fun_path + os.sep + '6SV' + os.sep + 'spec' + os.sep + satID + os.sep + senID + '.txt'
     # 将光谱度如矩阵用于插值
     spec_lib = np.loadtxt(ori_spec)
     wave = spec_lib[:, 0]
@@ -217,20 +218,34 @@ def reproject_dataset(src_ds, new_x_size, new_y_size):
     return dest
 
 
-# @nb.jit
-def ATM_CORRECT(img_in_path, img_out_path, atm_coe, oDocument):
+@nb.jit
+def ATM_CORRECT(img_in_path, img_out_path, atm_coe, senID, satID, year):
     # 对影像进行大气校正
     # 原影像路径
-
     file_inpath = img_in_path
     # 影像输出路径
     file_outpath = img_out_path
     basename = file_basename(file_inpath)
-    # 获取高景定标系数
+    # 高分定标系数
     # [PAN, Band1, Band2, Band3, Band4]
-    ID = 'Gain'
-    Gain_str = GET_XMLELEMENTS(oDocument, ID)
-    rad_coe = [float(x) for x in list(Gain_str.split(','))]
+    if not int(year) == 2016:
+        year = 'other'
+    # GF定标系数
+    rad_coe_dict = {'GF1': \
+                        {'2016': \
+                             {'PMS1': [0.1982, 0.232, 0.187, 0.1795, 0.196], \
+                              'PMS2': [0.1979, 0.224, 0.1851, 0.1793, 0.1863]}, \
+                         'other': \
+                             {'PMS1': [0.1428, 0.153, 0.1356, 0.1366, 0.1272], \
+                              'PMS2': [0.149, 0.1523, 0.1382, 0.1403, 0.1334]}}, \
+                    'GF2': {'2016': \
+                                {'PMS1': [0.1501, 0.1322, 0.1550, 0.1477, 0.1613], \
+                                 'PMS2': [0.1863, 0.1762, 0.1856, 0.1754, 0.1980]}, \
+                            'other': \
+                                {'PMS1': [0.1725, 0.1356, 0.1736, 0.1644, 0.1788], \
+                                 'PMS2': [0.2136, 0.1859, 0.2072, 0.1934, 0.2180]}}}
+    rad_coe = rad_coe_dict[satID][year][senID]
+
     # 大气校正系数
     # xa, xb, xc
     # y = xa * (measured radiance) - xb
@@ -267,8 +282,12 @@ def ATM_CORRECT(img_in_path, img_out_path, atm_coe, oDocument):
         atm_ds.GetRasterBand(1).WriteArray(pan_suf_ref)
         pan_suf_ref = None
         # 进行重投影和重采样
-        new_xs = 0.000005
-        new_ys = 0.000005
+        if satID == 'GF1':
+            new_xs = 0.00002
+            new_ys = 0.00002
+        else:
+            new_xs = 0.00001
+            new_ys = 0.00001
         dest = reproject_dataset(atm_ds, new_xs, new_ys)
         # del atm_ds
         # 存储经大气校正的结果
@@ -290,10 +309,10 @@ def ATM_CORRECT(img_in_path, img_out_path, atm_coe, oDocument):
             print('The {} file has no inf band'.format('basename'))
             return
         # 辐射定标至表观反射率
-        Blue_ref = Blue_band * rad_coe[0]
-        Green_ref = Green_band * rad_coe[1]
-        Red_ref = Red_band * rad_coe[2]
-        Inf_ref = Inf_band * rad_coe[3]
+        Blue_ref = Blue_band * rad_coe[1]
+        Green_ref = Green_band * rad_coe[2]
+        Red_ref = Red_band * rad_coe[3]
+        Inf_ref = Inf_band * rad_coe[4]
         # 大气校正
         # Blue
         y = atm_coe[1, 0] * Blue_ref - atm_coe[1, 1]
@@ -323,8 +342,12 @@ def ATM_CORRECT(img_in_path, img_out_path, atm_coe, oDocument):
         atm_ds.GetRasterBand(3).WriteArray(Red_suf_ref)
         atm_ds.GetRasterBand(4).WriteArray(Inf_suf_ref)
         # 进行重投影和重采样
-        new_xs = 0.00002
-        new_ys = 0.00002
+        if satID == 'GF1':
+            new_xs = 0.00008
+            new_ys = 0.00008
+        else:
+            new_xs = 0.00004
+            new_ys = 0.00004
         dest = reproject_dataset(atm_ds, new_xs, new_ys)
         # 存储经大气校正的结果
         print('Store atmospheric correction results!')
@@ -371,14 +394,12 @@ def get_aod(oDocument, aod_file):
     return mean_aod
 
 
-def main(py_path, file_path, out_path, partfileinfo='*.tif'):
+def main(file_path, out_path, partfileinfo='*.tif'):
     # 注册所有gdal的驱动
     gdal.AllRegister()
     gdal.SetConfigOption("gdal_FILENAME_IS_UTF8", "YES")
     # 获取当前工作路径
-    function_position = py_path
-    # 浮点型的气溶胶光学厚度值
-    # aod_path = os.path.join(function_position, '6SV', 'tif_aod')
+    function_position = os.path.dirname(os.path.abspath(sys.argv[0]))
     # 需要大气校正影像路径
     original_dir_path = file_path
     original_imgs = searchfiles(original_dir_path, partfileinfo, recursive=True)
@@ -393,7 +414,7 @@ def main(py_path, file_path, out_path, partfileinfo='*.tif'):
         basename = os.path.splitext(os.path.basename(input))[0]
         # 获取影像元数据路径
         # xml路径
-        xmlpath = os.path.join(file_dir, basename) + '.xml'
+        xmlpath = file_dir + os.sep + basename + '.xml'
         if not os.path.exists(xmlpath):
             print('The file: {0} has no xml!'.format(input))
             continue
@@ -406,17 +427,10 @@ def main(py_path, file_path, out_path, partfileinfo='*.tif'):
         ID = 'SensorID'  # 传感器号
         SensorID = GET_XMLELEMENTS(oDocument, ID)
         igeom = 0  # 自定义几何条件
-        ID = 'SolarZenith'  # 太阳天顶角
-        zsun = GET_XMLELEMENTS(oDocument, ID)
-        ID = 'SolarAzimuth'  # 太阳方位角
-        asun = GET_XMLELEMENTS(oDocument, ID)
-        ID = 'SatelliteZenith'  # 卫星天顶交
-        zsat = GET_XMLELEMENTS(oDocument, ID)
-        ID = 'SatelliteAzimuth'  # 卫星方位角
-        asat = GET_XMLELEMENTS(oDocument, ID)
+        # 计算太阳天顶角和方位角
         ID = 'ReceiveTime'  # 影像获取时间
         ReceiveTime = GET_XMLELEMENTS(oDocument, ID)
-        ReceiveTimes = ReceiveTime.split('T')
+        ReceiveTimes = ReceiveTime.split(' ')
         date = ReceiveTimes[0].split('-')
         time = ReceiveTimes[1].split(':')
         year = date[0]  # 年份
@@ -426,6 +440,34 @@ def main(py_path, file_path, out_path, partfileinfo='*.tif'):
         aod_path = os.path.join(function_position, '6SV', 'tif_aod')
         basename_aod = year + month + day + '.tif'
         aod_file = os.path.join(aod_path, basename_aod)
+        hour = time[0]  # 小时
+        minute = time[1]  # 分钟
+        second = time[2]  # 秒
+        GMTtime = hour + minute + '.' + second
+        # 获取四角坐标
+        ID = 'TopLeftLatitude'
+        TopLeftLatitude = float(GET_XMLELEMENTS(oDocument, ID))
+        ID = 'TopLeftLongitude'
+        TopLeftLongitude = float(GET_XMLELEMENTS(oDocument, ID))
+        ID = 'BottomRightLatitude'
+        BottomRightLatitude = float(GET_XMLELEMENTS(oDocument, ID))
+        ID = 'BottomRightLongitude'
+        BottomRightLongitude = float(GET_XMLELEMENTS(oDocument, ID))
+        # 中心经纬度
+        lat = (TopLeftLatitude + BottomRightLatitude) * 1.0 / 2
+        lon = (TopLeftLongitude + BottomRightLongitude) * 1.0 / 2
+        # 计算影像中心的太阳天顶角
+        otSunZA = sun_position(day, month, year, GMTtime, lat, lon)
+        zsun = otSunZA
+        # 获取太阳方位角
+        ID = 'SolarAzimuth'
+        asun = float(GET_XMLELEMENTS(oDocument, ID))  # 太阳方位角
+        ID = 'SatelliteZenith'
+        tmp_zsat = float(GET_XMLELEMENTS(oDocument, ID))
+        zsat = 90.0 - tmp_zsat  # 卫星天顶角
+        ID = 'SatelliteAzimuth'
+        asat = float(GET_XMLELEMENTS(oDocument, ID))  # 卫星方位角
+
         if (int(month) >= 4) and (int(month) <= 9):
             idatm = 2  # 大气模式中纬度夏季
         else:
@@ -435,7 +477,7 @@ def main(py_path, file_path, out_path, partfileinfo='*.tif'):
         tao = round(get_aod(oDocument, aod_file), 3)  # 550nm气溶胶光学厚度
         print('AOD:{}'.format(tao))
         xps = 0  # 目标物高度
-        xpp = -530  # 星测
+        xpp = -631  # 星测
         iwave = 1  # 自定义1输入波段范围和反射相函数
         inhomo = 0  # 地表反射率均一地表
         idirect = 0  # 无方向效应
@@ -443,7 +485,7 @@ def main(py_path, file_path, out_path, partfileinfo='*.tif'):
         atm = 0  # Atm.correction Lambertian
         radiance = -0.5  # radiance(positivevalue)
         # 更改程序工作路径
-        os.chdir(function_position + os.sep + '6SV')
+        os.chdir(os.path.join(function_position, '6SV'))
         # 输出辐射校正系数
         outcoe = os.path.join(function_position, '6SV', 'outcoe', SensorID) + '-' + ProductID + '.txt'
         # 打开辐射校正系数文件用于写入辐射校正系数
@@ -455,7 +497,7 @@ def main(py_path, file_path, out_path, partfileinfo='*.tif'):
             lun = open(txtname, 'w', newline=None)
             lun.write('{:<3d} {} {}'.format(igeom, '(User defined)', '\n'))
             lun.write(
-                '{:<10.5} {:<10.5} {:<10.5} {:<10.5} {:<3d} {:<3d} {} {}'.format(zsun, asun, zsat, asat, int(month),
+                '{:<10.5f} {:<10.5f} {:<10.5f} {:<10.5f} {:<3d} {:<3d} {} {}'.format(zsun, asun, zsat, asat, int(month),
                                                                                      int(day),
                                                                                      '(geometrical conditions)', '\n'))
             lun.write('{:<3d} {} {}'.format(idatm, 'Midlatitude Summer', '\n'))
@@ -466,7 +508,7 @@ def main(py_path, file_path, out_path, partfileinfo='*.tif'):
             lun.write('{:<3d} {} {}'.format(xpp, '(sensor level)', '\n'))
             lun.write('{:<3d} {} {}'.format(iwave, "User's defined filtered function", '\n'))
             lun.write('{:<7.3} {:<7.3} {}'.format(w[a][0], w[a][1], '\n'))
-            res = SECTRUM(w[a][0], w[a][1], a, function_position, SatelliteID)
+            res = SECTRUM(w[a][0], w[a][1], a, function_position, SensorID, SatelliteID)
             for spec_value in res:
                 lun.write('{:<10.6f} {}'.format(spec_value, '\n'))
             lun.write('{:<3d} {} {}'.format(inhomo, 'Homogeneous surface', '\n'))
@@ -497,7 +539,7 @@ def main(py_path, file_path, out_path, partfileinfo='*.tif'):
         # if not os.path.isdir(out_path):
         #     os.makedirs(out_path)
         out_file = out_path + os.sep + out_file_name + '_atm.tif'
-        ATM_CORRECT(input, out_file, coearr, oDocument)
+        ATM_CORRECT(input, out_file, coearr, SensorID, SatelliteID, year)
         # 输出大气校正影像的相关信息
         print(basename)
         print(coearr)
@@ -506,8 +548,10 @@ def main(py_path, file_path, out_path, partfileinfo='*.tif'):
 
 if __name__ == '__main__':
     start_time = time.clock()
-    file_path = r'\\192.168.0.234\nydsj\user\ZSS\GJ20190507\ort'
-    out = r"\\192.168.0.234\nydsj\user\ZSS\GJ20190507\atm"
+    file_path = r'\\192.168.0.234\nydsj\user\ZSS\temp'
+    # ID = ['5896', '5893', '5752']
+    out = r"F:\test_sample\sv\gfout"
+    #
     # for num_id in ID:
     #     partfileinfo = 'GF2*' + num_id + '*.img'
     #     print('The program starts running!')
@@ -516,12 +560,14 @@ if __name__ == '__main__':
     #     # partfileinfo = sys.argv[2]
     #     # tao = float(sys.argv[3])
     #     main(fun_path, file_path, out, partfileinfo)
-    partfileinfo = 'SV1*.tiff'
+
+    partfileinfo = 'GF2*.img'
     print('The program starts running!')
-    fun_path = os.path.dirname(sys.argv[0])
     # file_path = sys.argv[1]
     # partfileinfo = sys.argv[2]
     # tao = float(sys.argv[3])
-    main(fun_path, file_path, out, partfileinfo)
+    main(file_path, out, partfileinfo)
+
     end_time = time.clock()
+
     print("time: %.4f secs." % (end_time - start_time))
