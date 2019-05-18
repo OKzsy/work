@@ -235,7 +235,7 @@ del shp_ds
 
 # ogr2ogr command for projecting the shapefile. You need to run this from the
 # folder containing the shapefile.
-ogr2ogr -f "ESRI Shapefile" -t_srs "+proj=lcc +lat_1=-5 +lat_2=-42 +lat_0=-32 +lon_0=-60 +x_0=0 +y_0=0 +ellps=aust_SA +units=m +no_defs" albatross_lambert.shp albatross_dd.shp
+# ogr2ogr -f "ESRI Shapefile" -t_srs "+proj=lcc +lat_1=-5 +lat_2=-42 +lat_0=-32 +lon_0=-60 +x_0=0 +y_0=0 +ellps=aust_SA +units=m +no_defs" albatross_lambert.shp albatross_dd.shp
 
 
 # Function to get unique values from an attribute field. This is in the
@@ -256,4 +256,4 @@ for tag_id in get_unique(ds, 'albatross_lambert', 'tag_id'):
              WHERE tag_id = '{0}'""".format(tag_id)
     lyr = ds.ExecuteSQL(sql)
     for row in lyr:
-        print '{0}: {1}'.format(tag_id, row.GetField(0))
+        print('{0}: {1}'.format(tag_id, row.GetField(0)))
