@@ -286,9 +286,9 @@ if __name__ == '__main__':
     #     sys.exit('Problem reading input')
     # in_file1 = r"F:\GF\GF2_PMS2_E113.1_N34.9_20171020_L1A0002693345-PAN2.tif"
     # in_file2 = r"F:\GF\GF2_PMS2_E113.1_N34.9_20171020_L1A0002693345-MSS2.tif"
-    in_file1 = r"F:\GF\GF2_PAN.tif"
-    in_file2 = r"F:\GF\GF2_mss.tif"
-    out_file = r"F:\GF\outimg\test.tiff"
+    in_file1 = r"F:\test_data\GS_test\5952_pan.tif"
+    in_file2 = r"F:\test_data\GS_test\5952_MSS.tif"
+    out_file = r"F:\test_data\GS_test\test.tif"
 
     # in_file1 = sys.argv[1]
     # in_file2 = sys.argv[2]
