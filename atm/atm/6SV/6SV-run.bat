@@ -1,1 +1,0 @@
-type E:\mypycode\procode\atm\6SV\in.txt|6sv2.1 >> E:\mypycode\procode\atm\6SV\out.txt
