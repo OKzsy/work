@@ -97,7 +97,7 @@ def cdf(img):
 
 def var(B):  # 方差
     n = B.shape[0]
-    var = np.sum((B - np.mean(B)) ** 2) / n
+    var = np.sum(((B - np.mean(B)) ** 2), dtype=np.float64) / n
     return var
 
 
@@ -251,7 +251,7 @@ def main(in_file1, in_file2, out_file):
     img2 = data2.transpose(1, 2, 0)  # 低分辨率多光谱影像
     del data2
     gc.collect()
-    img3 = np.mean(img2, axis=2,dtype='float16')  # img3为模拟的低分辨率全色影像#用多光谱各波段均值来模拟
+    img3 = np.mean(img2, axis=2, dtype='float16')  # img3为模拟的低分辨率全色影像#用多光谱各波段均值来模拟
     #    cdf(img1)
     #    cdf(img3)
     #    img1=np.int32(img1)
