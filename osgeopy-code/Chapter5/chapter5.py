@@ -11,7 +11,7 @@ from ospybook.vectorplotter import VectorPlotter
 # course, you can type the full path to the file for each example if you'd
 # prefer.
 # data_dir = r'D:\osgeopy-data'
-data_dir =
+data_dir = r""
 
 
 

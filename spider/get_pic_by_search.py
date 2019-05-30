@@ -16,14 +16,18 @@ Hostreferer = {
     'User-Agent': 'Mozilla/4.0 (compatible; MSIE 6.0; Windows NT 5.1)',
     'Referer': 'http://www.mzitu.com'
 }
+header = {
+    'User-Agent': "Mozilla / 5.0(Windows NT 10.0; WOW64) AppleWebKit / 537.36(KHTML, like Gecko) Chrome / 74.0.3729.157 Safari / 537.36",
+    "authority": "www.mzitu.com"
+}
 Picreferer = {
-    'User-Agent': 'Mozilla/4.0 (compatible; MSIE 6.0; Windows NT 5.1)',
-    'Referer': 'http://i.meizitu.net'
+    'User-Agent': "Mozilla / 5.0(Windows NT 10.0; WOW64) AppleWebKit / 537.36(KHTML, like Gecko) Chrome / 74.0.3729.157 Safari / 537.36",
+    'Referer':'http://i.meizitu.net'
 }
 
 
 def get_tag(url):
-    html = requests.get(url).text
+    html = requests.get(url, headers=header).text
     bsObj = BeautifulSoup(html, features="lxml")
     tags = bsObj.find('div', attrs={"class": "postlist"}).findAll("li")
     tag_links = []
@@ -52,7 +56,7 @@ def get_album(topic_link):
 def get_pic_url(alb_url):
     # 获取相册中某一页中照片的url
     # alb_url = "https://www.mzitu.com/127079/15"
-    html = requests.get(alb_url).text
+    html = requests.get(alb_url, headers=Picreferer).text
     bsObj = BeautifulSoup(html, features="lxml")
     img_url = bsObj.find('div', {"class": "main-image"}).find("img").attrs['src']
     return img_url
@@ -109,6 +113,6 @@ if __name__ == "__main__":
     # 图片存放路径
     pic_dir = r"E:\PythonCode\pic"
     # 通过标签下载图片
-    source_url = "https://www.mzitu.com/search/奶/"
+    source_url = "https://www.mzitu.com/search/酥胸/"
     main(source_url)
     pass

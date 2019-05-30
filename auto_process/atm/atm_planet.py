@@ -255,12 +255,47 @@ def ATM_CORRECT(img_in_path, img_out_path, atm_coe, oDocument):
     return None
 
 
-def main(py_path, file_path, partfileinfo='*AnalyticMS.tif', AOD=0.1696):
+def get_aod(oDocument, aod_file):
+    aod_ds = gdal.Open(aod_file)
+    aod_geo = aod_ds.GetGeoTransform()
+    aod_inv_geo = gdal.InvGeoTransform(aod_geo)
+    # 左上经度
+    ID = 'ps:longitude'
+    ulx = float(GET_XMLELEMENTS(oDocument, ID)[0])
+    # 左上纬度
+    ID = 'ps:latitude'
+    uly = float(GET_XMLELEMENTS(oDocument, ID)[0])
+    # 右下经度
+    ID = 'ps:longitude'
+    lrx = float(GET_XMLELEMENTS(oDocument, ID)[2])
+    # 右下纬度
+    ID = 'ps:latitude'
+    lry = float(GET_XMLELEMENTS(oDocument, ID)[2])
+    extent = [ulx, uly, lrx, lry]
+    # 计算在aod影像上的行列号
+    off_ulx, off_uly = map(int, gdal.ApplyGeoTransform(
+        aod_inv_geo, extent[0], extent[1]))
+    off_drx, off_dry = map(math.ceil, gdal.ApplyGeoTransform(
+        aod_inv_geo, extent[2], extent[3]))
+    columns = off_drx - off_ulx
+    rows = off_dry - off_uly
+    aod = aod_ds.ReadAsArray(off_ulx, off_uly, columns, rows)
+    numbers = columns * rows
+    spec_num = np.where(aod == -9999)[0].shape[0]
+    if spec_num == numbers:
+        mean_aod = 0.6
+    else:
+        mean_aod = np.mean(aod[np.where(aod != -9999)]) * 0.001
+    aod_ds = None
+    return mean_aod
+
+
+def main(file_path, out_path, partfileinfo='*AnalyticMS.tif'):
     # 注册所有gdal的驱动
     gdal.AllRegister()
     gdal.SetConfigOption("gdal_FILENAME_IS_UTF8", "YES")
     # 获取当前工作路径
-    function_position = py_path
+    function_position = os.path.dirname(os.path.abspath(sys.argv[0]))
     # 需要大气校正影像路径
     original_dir_path = file_path
     original_imgs = searchfiles(original_dir_path, partfileinfo, recursive=True)
@@ -300,15 +335,22 @@ def main(py_path, file_path, partfileinfo='*AnalyticMS.tif', AOD=0.1696):
         asat = float(GET_XMLELEMENTS(oDocument, ID))  # 卫星方位角
         ID = 'ps:acquisitionDateTime'
         acqtime = GET_XMLELEMENTS(oDocument, ID)
-        month = int(acqtime[5:5 + 2])  # 月份
-        day = int(acqtime[8:8 + 2])  # 日期
+        year = acqtime[0:4]  # 年份
+        month = acqtime[5:5 + 2]  # 月份
+        day = acqtime[8:8 + 2]  # 日期
         if (month >= 4) and (month <= 9):
             idatm = 2  # 大气模式中纬度夏季
         else:
             idatm = 3  # 大气模式中纬度冬季
         iaer = 1  # 气溶胶模式大陆型
         v = 0  # 选择输入能见度还是气溶胶光学厚度
-        tao = AOD  # 550nm气溶胶光学厚度
+        # 组合对应aod文件名字
+        aod_path = os.path.join(function_position, '6SV', 'tif_aod')
+        basename_aod = year + month + day + '.tif'
+        aod_file = os.path.join(aod_path, basename_aod)
+        # 获取AOD
+        tao = round(get_aod(oDocument, aod_file), 3)  # 550nm气溶胶光学厚度
+        print('AOD:{}'.format(tao))
         xps = 0  # 目标物高度
         xpp = -475  # 星测
         iwave = 1  # 自定义1输入波段范围和反射相函数
@@ -330,7 +372,8 @@ def main(py_path, file_path, partfileinfo='*AnalyticMS.tif', AOD=0.1696):
             lun = open(txtname, 'w', newline=None)
             lun.write('{:<3d} {} {}'.format(igeom, '(User defined)', '\n'))
             lun.write(
-                '{:<10.5f} {:<10.5f} {:<10.5f} {:<10.5f} {:<3d} {:<3d} {} {}'.format(zsun, asun, zsat, asat, month, day,
+                '{:<10.5f} {:<10.5f} {:<10.5f} {:<10.5f} {:<3d} {:<3d} {} {}'.format(zsun, asun, zsat, asat, int(month),
+                                                                                     int(day),
                                                                                      '(geometrical conditions)', '\n'))
             lun.write('{:<3d} {} {}'.format(idatm, 'Midlatitude Summer', '\n'))
             lun.write('{:<3d} {} {}'.format(iaer, 'Continental Model', '\n'))
@@ -365,12 +408,15 @@ def main(py_path, file_path, partfileinfo='*AnalyticMS.tif', AOD=0.1696):
         # 关闭文件
         lun_coe.close()
 
+        # # 对影像进行大气校正
+        # out_file_name = basename
+        # out_path = file_dir + os.sep + 'outimg'
+        # if not os.path.isdir(out_path):
+        #     os.makedirs(out_path)
+        # out_file = out_path + os.sep + out_file_name + '-atm.tif'
         # 对影像进行大气校正
         out_file_name = basename
-        out_path = file_dir + os.sep + 'outimg'
-        if not os.path.isdir(out_path):
-            os.makedirs(out_path)
-        out_file = out_path + os.sep + out_file_name + '-atm.tif'
+        out_file = os.path.join(out_path, out_file_name) + '-atm.tif'
         ATM_CORRECT(input, out_file, coearr, oDocument)
         # 输出大气校正影像的相关信息
         print(basename)
@@ -380,19 +426,11 @@ def main(py_path, file_path, partfileinfo='*AnalyticMS.tif', AOD=0.1696):
 
 if __name__ == '__main__':
     start_time = time.clock()
-    fun_path = sys.path[0]
-    file_path = r'\\192.168.0.234\nydsj\user\ZSS\planet_order_312182-惠济区\planet_order_312182-2'
+    file_path = r'G:\sample_data\planet\planet_order_275915_queshan\20180614_023503_103e'
+    out = r"G:\sample_data\planet\planet_order_275915_queshan\out"
     partfileinfo = '*AnalyticMS.tif'
-    # 浮点型的气溶胶光学厚度值
-    tao = 0.5
-
     print('The program starts running!')
-    # fun_path = os.path.dirname(sys.argv[0])
-    # file_path = sys.argv[1]
-    # partfileinfo = sys.argv[2]
-    # tao = float(sys.argv[3])
-
-    main(fun_path, file_path, partfileinfo, tao)
+    main(file_path=file_path, out=out, partfileinfo=partfileinfo)
 
     end_time = time.clock()
 

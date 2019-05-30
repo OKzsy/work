@@ -203,7 +203,7 @@ def ATM_CORRECT(img_in_path, img_out_path, atm_coe, oDocument):
     Inf_band = np.where(Inf_band == a_nodata, 0, Inf_band)
     # 判断是否缺少波段
     if Blue_band.max() == 0 or Green_band.max() == 0 or Red_band.max() == 0 or Inf_band.max() == 0:
-        print('The {} file has no inf band'.format('basename'))
+        print('The {} file has no inf band'.format(basename))
         return
     # 辐射定标至表观反射率
     Blue_ref = Blue_band * ref_coe[0]
