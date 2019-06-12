@@ -438,7 +438,7 @@ def main(file_path, out_path, partfileinfo='*.tif'):
         day = date[2]  # 日期
         # 组合对应aod文件名字
         aod_path = os.path.join(function_position, '6SV', 'tif_aod')
-        basename_aod = year + month + day + '.tif'
+        basename_aod = "{:0>4d}".format(int(year)) + "{:0>2d}".format(int(month)) + "{:0>2d}".format(int(day)) + '.tif'
         aod_file = os.path.join(aod_path, basename_aod)
         hour = time[0]  # 小时
         minute = time[1]  # 分钟
