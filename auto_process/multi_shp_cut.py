@@ -1,23 +1,26 @@
 #!/usr/bin/env python3
 # -*- coding:utf-8 -*-
 """
-# @Time    : 2019/2/15 16:16
+# @Time    : 2019/9/16 9:51
 # @Author  : zhaoss
-# @FileName: subset_sample_shapefile.py
+# @FileName: multi_shp_cut.py
 # @Email   : zhaoshaoshuai@hnnydsj.com
 Description:
-    对栅格分要素裁剪
+
+
 Parameters
-    参数1：输入影像
-    参数2：用于裁剪的矢量
-    参数3：裁剪结果输出路径
+
+
 """
 
 import os
-import sys
 import glob
-import numpy as np
 import time
+import sys
+import fnmatch
+import math
+import numpy as np
+
 from osgeo import gdal, ogr, osr, gdalconst
 
 try:
@@ -47,29 +50,6 @@ def rpj_vec(lyr, srs):
     return mem_ds, outLayer
 
 
-def Feature_memory_shp(feat, sr):
-    """将指定的geometry导出为内存中单独的shpfile"""
-    fid = feat.GetFID()
-    # 在内存中创建临时的矢量文件，用以存储单独的要素
-    # 创建临时矢量文件
-    mem_dri = ogr.GetDriverByName('Memory')
-    mem_ds = mem_dri.CreateDataSource(' ')
-    outLayer = mem_ds.CreateLayer(' ', geom_type=ogr.wkbPolygon, srs=sr)
-    # 给图层中创建字段用以标识原来的FID
-    coor_fld = ogr.FieldDefn('ID_FID', ogr.OFTInteger)
-    outLayer.CreateField(coor_fld)
-    # 创建虚拟要素，用以填充原始要素
-    out_defn = outLayer.GetLayerDefn()
-    out_feat = ogr.Feature(out_defn)
-    # 对ID_FID字段填充值
-    fld_index = outLayer.GetLayerDefn().GetFieldIndex('ID_FID')
-    out_feat.SetField(fld_index, fid)
-    # 填充要素
-    out_feat.SetGeometry(feat.geometry())
-    outLayer.CreateFeature(out_feat)
-    return mem_ds, outLayer
-
-
 def shp2raster(raster_ds, shp_layer, ext):
     # 将行列整数浮点化
     ext = np.array(ext) * 1.0
@@ -81,14 +61,15 @@ def shp2raster(raster_ds, shp_layer, ext):
     x_size = ext[2] - ext[0]
     y_size = ext[3] - ext[1]
     # 创建mask
-    # out = r"F:\test_data\clipraster\gdal_mask2\test3.tif"
+    # out = r"F:\test_data\mask.tif"
     # mask_ds = gdal.GetDriverByName('GTiff').Create(out, int(x_size), int(y_size), 1, gdal.GDT_Byte)
     mask_ds = gdal.GetDriverByName('MEM').Create('', int(x_size), int(y_size), 1, gdal.GDT_Byte)
     mask_ds.SetProjection(raster_prj)
     mask_geo = [ulx, raster_geo[1], 0, uly, 0, raster_geo[5]]
     mask_ds.SetGeoTransform(mask_geo)
     # 矢量栅格化
-    gdal.RasterizeLayer(mask_ds, [1], shp_layer, burn_values=[1])
+    print('Begin shape to mask')
+    gdal.RasterizeLayer(mask_ds, [1], shp_layer, burn_values=[1], callback=progress)
     return mask_ds
 
 
@@ -109,7 +90,7 @@ def min_rect(raster_ds, shp_layer):
     off_drx, off_dry = map(round, gdal.ApplyGeoTransform(raster_inv_geo, extent[1], extent[2]))
     # 判断是否有重叠区域
     if off_ulx >= x_size or off_uly >= y_size or off_drx <= 0 or off_dry <= 0:
-        return 0
+        sys.exit("Have no overlap")
     # 限定重叠范围在栅格影像上
     # 列
     offset_column = np.array([off_ulx, off_drx])
@@ -117,15 +98,11 @@ def min_rect(raster_ds, shp_layer):
     # 行
     offset_line = np.array([off_uly, off_dry])
     offset_line = np.maximum((np.minimum(offset_line, y_size - 1)), 0)
-    # 强制矢量对应最小行列为1个像元
-    if offset_line[1] == offset_line[0]:
-        offset_line[1] += 1
-    if offset_column[1] == offset_column[0]:
-        offset_column[1] += 1
+
     return [offset_column[0], offset_line[0], offset_column[1], offset_line[1]]
 
 
-def mask_raster(raster_ds, mask_ds, outfile, ext):
+def mask_raster(raster_ds, mask_ds, outfile, ext, nodata):
     # 将行列整数浮点化
     ext = np.array(ext) * 1.0
     # 获取栅格数据的基本信息
@@ -146,65 +123,78 @@ def mask_raster(raster_ds, mask_ds, outfile, ext):
     mask = mask_ds.GetRasterBand(1).ReadAsArray()
     mask = 1 - mask
     # 对原始影像进行掩模并输出
+    print('Begin mask')
+    # progress(0.0)
     for band in range(bandCount):
         banddata = raster_ds.GetRasterBand(band + 1).ReadAsArray(int(ext[0]), int(ext[1]), int(x_size), int(y_size))
-        banddata = np.choose(mask, (banddata, 0))
+        banddata = np.choose(mask, (banddata, nodata))
+        # if nodata is not None:
+        #     result_ds.GetRasterBand(band + 1).SetNoDataValue(nodata)
         result_ds.GetRasterBand(band + 1).WriteArray(banddata)
+        # progress((1 + band) / bandCount)
     return 1
 
 
-def main(rasters, shp, out, fieldName='Name'):
-    # 循环处理栅格影像
-    for raster in rasters:
+def searchfiles(dirpath, partfileinfo='*', recursive=False):
+    """列出符合条件的文件（包含路径），默认不进行递归查询，当recursive为True时同时查询子文件夹"""
+    # 定义结果输出列表
+    filelist = []
+    # 列出根目录下包含文件夹在内的所有文件目录
+    pathlist = glob.glob(os.path.join(os.path.sep, dirpath, "*"))
+    # 逐文件进行判断
+    for mpath in pathlist:
+        if os.path.isdir(mpath):
+            # 默认不判断子文件夹
+            if recursive:
+                filelist += searchfiles(mpath, partfileinfo, recursive)
+        elif fnmatch.fnmatch(os.path.basename(mpath), partfileinfo):
+            filelist.append(mpath)
+        # 如果mpath为子文件夹，则进行递归调用，判断子文件夹下的文件
+
+    return filelist
+
+
+def main(in_path, shp, out_path, nodata=None):
+    # 搜索路径下所有tif
+    files = searchfiles(in_path, partfileinfo='*.tif')
+    shp_ds = ogr.Open(shp)
+    shp_lyr = shp_ds.GetLayer()
+    shp_sr = shp_lyr.GetSpatialRef()
+    re_shp_l = shp_lyr
+    re_shp_ds = shp_ds
+    shp_ds = None
+    shp_lyr = None
+    for raster in files:
+        # 获取影像名称
+        basename = os.path.basename(raster)
         # 打开栅格和矢量影像
         raster_ds = gdal.Open(raster)
-        shp_ds = ogr.Open(shp)
-        shp_lyr = shp_ds.GetLayer()
-        shp_sr = shp_lyr.GetSpatialRef()
-        # 获取影像名称
-        raster_basename = os.path.splitext(os.path.basename(raster))[0]
         # 判断栅格和矢量的投影是否一致，不一致进行矢量投影变换
         raster_srs_wkt = raster_ds.GetProjection()
         raster_srs = osr.SpatialReference()
         raster_srs.ImportFromWkt(raster_srs_wkt)
-        # 判断两个SRS的基准是否一致
-        if not shp_sr.IsSameGeogCS(raster_srs):
-            sys.exit("两个空间参考的基准面不一致，不能进行投影转换！！！")
-        # 判断两个SRS是否一致
-        elif shp_sr.IsSame(raster_srs):
-            re_shp_l = shp_lyr
-            shp_lyr = None
-        else:
-            re_shp_ds, re_shp_l = rpj_vec(shp_lyr, raster_srs)
-        # 拆分矢量用以对单个要素进行裁剪
-        # 定义变量用以显示进度条
-        count = 0
-        num_feature = re_shp_l.GetFeatureCount()
-        for feat in re_shp_l:
-            # 获取要素的属性值用以确定输出tif影像的名字和路径
-            # outdir = os.path.join(out, feat.Name.split('-')[1])
-            # if not os.path.exists(outdir):
-            #     os.makedirs(outdir)
-            outdir = out
-            outpath = os.path.join(outdir, raster_basename + '_' + feat.GetField(fieldName) + '.tif')
-            print(os.path.basename(outpath))
-            # 要素提取为图层
-            feat_ds, feat_lyr = Feature_memory_shp(feat, raster_srs)
-            # 要素裁剪
-            # 计算矢量和栅格的最小重叠矩形
-            offset = min_rect(raster_ds, feat_lyr)
-            # 判断是否有重叠区域，如无（0），则跳过
-            if offset == 0:
-                continue
-            # 矢量栅格化
-            mask_ds = shp2raster(raster_ds, feat_lyr, offset)
-            # 进行裁剪
-            res = mask_raster(raster_ds, mask_ds, outpath, offset)
-            progress((count + 1) / num_feature)
-            count += 1
-        re_shp_ds = None
+        # # 判断两个SRS的基准是否一致
+        # if not shp_sr.IsSameGeogCS(raster_srs):
+        #     sys.exit("两个空间参考的基准面不一致，不能进行投影转换！！！")
+        # # 判断两个SRS是否一致
+        # elif shp_sr.IsSame(raster_srs):
+        #     re_shp_l = shp_lyr
+        #     re_shp_ds = shp_ds
+        #     shp_ds = None
+        #     shp_lyr = None
+        # else:
+        #     re_shp_ds, re_shp_l = rpj_vec(shp_lyr, raster_srs)
+
+        # 计算矢量和栅格的最小重叠矩形
+        offset = min_rect(raster_ds, re_shp_l)
+        # 矢量栅格化
+        mask_ds = shp2raster(raster_ds, re_shp_l, offset)
+        out = os.path.join(out_path, basename)
+        # 进行裁剪
+        res = mask_raster(raster_ds, mask_ds, out, offset, nodata)
         raster_ds = None
-        shp_ds = None
+    re_shp_ds = None
+    shp_ds = None
     return None
 
 
@@ -217,21 +207,19 @@ if __name__ == '__main__':
     ogr.RegisterAll()
     # 注册所有gdal驱动
     gdal.AllRegister()
-
     start_time = time.clock()
-    # if len(sys.argv[1:]) < 3:r
-    #     sys.exit('Problem reading input')
-    # main(sys.argv[1], sys.argv[2], sys.argv[3])
-    in_files = [r"\\192.168.0.234\nydsj\user\ZSS\农保项目\遥感院提供img\4.sha\GF_new\GF1D_20190829_L1A1256624380_sha.tif",
-                r"\\192.168.0.234\nydsj\user\ZSS\农保项目\遥感院提供img\4.sha\GF1B_20190818_L1A1227680519_sha.tif",
-                r"\\192.168.0.234\nydsj\user\ZSS\农保项目\遥感院提供img\4.sha\GF1B_20190818_L1A1227680526_sha.tif",
-                r"\\192.168.0.234\nydsj\user\ZSS\农保项目\遥感院提供img\4.sha\GF1D_20190829_L1A1256624344_sha.tif",
-                r"\\192.168.0.234\nydsj\user\ZSS\农保项目\遥感院提供img\4.sha\GF1D_20190829_L1A1256624353_sha.tif",
-                r"\\192.168.0.234\nydsj\user\ZSS\农保项目\遥感院提供img\4.sha\GF_new\GF6_20190820_L1A1119913673_sha.tif",
-                r"\\192.168.0.234\nydsj\user\ZSS\农保项目\遥感院提供img\4.sha\GF6_20190820_L1A1119913691_sha.tif"]
-    shpfile = r"\\192.168.0.234\nydsj\user\遥感院\农保项目\深度学习\land_7_训练.shp"
-    outfile = r"\\192.168.0.234\nydsj\user\ZSS\testaera\result"
-    main(in_files, shpfile, outfile)
+    in_dir = r"F:\test_data\henan_cld\cld_mask"
+    shpfile = r"\\192.168.0.234\nydsj\common\1.vector\1.xzqh\hn_shp_wgs84\single\省\河南省.shp"
+    out_dir = r"F:\test_data\henan_cld\henan_cld"
+    nodata = 0
+    print('The program starts running!')
+    # in_file = sys.argv[1]
+    # shpfile = sys.argv[2]
+    # outfile = sys.argv[3]
+    # nodata = sys.argv[4]
+
+    main(in_dir, shpfile, out_dir, nodata)
+
     end_time = time.clock()
 
     print("time: %.4f secs." % (end_time - start_time))

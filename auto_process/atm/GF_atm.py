@@ -1,25 +1,25 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # -*- coding:utf-8 -*-
 """
-Author: zhaoss
-Email:zhaoshaoshuai@hnnydsj.com
-Create date: 2019/01/14
-
+# @Time    : 2019/6/28 10:56
+# @Author  : zhaoss
+# @FileName: GF_atm.py
+# @Email   : zhaoshaoshuai@hnnydsj.com
 Description:
-    Atmospheric correction of images
+
 
 Parameters
-    file_path: Image directory
-    partfileinfo: Use regular expressions to select images to process,The default is '*.tif'
-    tao: the aerosol optical depth
+
 
 """
+
 import os
 import sys
 import subprocess
 import glob
 import fnmatch
 import math
+import json
 import xml.dom.minidom
 import numba as nb
 import numpy as np
@@ -218,44 +218,31 @@ def reproject_dataset(src_ds, new_x_size, new_y_size):
     return dest
 
 
-# @nb.jit
-def ATM_CORRECT(img_in_path, img_out_path, atm_coe, senID, satID, year):
-    # 对影像进行大气校正
-    # 原影像路径
-    file_inpath = img_in_path
-    # 影像输出路径
-    file_outpath = img_out_path
-    basename = file_basename(file_inpath)
-    # 高分定标系数
-    # [PAN, Band1, Band2, Band3, Band4]
-    if not int(year) == 2016:
-        year = 'other'
-    # GF定标系数
-    rad_coe_dict = {'GF1': \
-                        {'2016': \
-                             {'PMS1': [0.1982, 0.232, 0.187, 0.1795, 0.196], \
-                              'PMS2': [0.1979, 0.224, 0.1851, 0.1793, 0.1863]}, \
-                         'other': \
-                             {'PMS1': [0.1428, 0.153, 0.1356, 0.1366, 0.1272], \
-                              'PMS2': [0.149, 0.1523, 0.1382, 0.1403, 0.1334]}}, \
-                    'GF2': {'2016': \
-                                {'PMS1': [0.1501, 0.1322, 0.1550, 0.1477, 0.1613], \
-                                 'PMS2': [0.1863, 0.1762, 0.1856, 0.1754, 0.1980]}, \
-                            'other': \
-                                {'PMS1': [0.1503, 0.1193, 0.1530, 0.1424, 0.1569], \
-                                 'PMS2': [0.1679, 0.1434, 0.1595, 0.1511, 0.1685]}}}
-                            # 'other': \
-                            #     {'PMS1': [0.1725, 0.1356, 0.1736, 0.1644, 0.1788], \
-                            #      'PMS2': [0.2136, 0.1859, 0.2072, 0.1934, 0.2180]}}}
-    rad_coe = rad_coe_dict[satID][year][senID]
+def get_rad_coe(satID, year, senID, function_position):
+    # GF定标系数文件
+    rad_coe_path = os.path.join(function_position, '6SV', 'rad_coe.json')
+    with open(rad_coe_path) as f_obj:
+        rad_coe_dict = json.load(f_obj)
+    # 获取satID下所有定标系数的年份
+    year_list = [int(x) for x in rad_coe_dict[satID].keys()]
+    if int(year) in year_list:
+        rad_coe = rad_coe_dict[satID][year][senID]
+    elif (int(year) > max(year_list)) and (int(year) - max(year_list) == 1):
+        year = str(max(year_list))
+        rad_coe = rad_coe_dict[satID][year][senID]
+    else:
+        rad_coe = None
+    return rad_coe
 
+
+# @nb.jit
+def ATM_CORRECT(source_ds, img_out_path, atm_coe, rad_coe, satID):
+    # 对影像进行大气校正
     # 大气校正系数
     # xa, xb, xc
     # y = xa * (measured radiance) - xb
     # acr = y / (1. + xc * y)
     # atm_coe = ['Blue', 'Green', 'Red', 'Ninf']
-    # 打开影像
-    source_ds = gdal.Open(file_inpath)
     # 获取投影和放射变换参数
     source_prj = source_ds.GetProjection()
     source_geo = source_ds.GetGeoTransform()
@@ -268,7 +255,6 @@ def ATM_CORRECT(img_in_path, img_out_path, atm_coe, senID, satID, year):
     if band_count == 1:
         # 获取数据
         pan = source_ds.GetRasterBand(1).ReadAsArray()
-        # pan = np.where(pan == a_nodata, 0, pan)
         zero_index = np.where(pan == a_nodata)
         # 辐射定标至表观辐亮度
         pan_ref = pan * rad_coe[0]
@@ -278,7 +264,6 @@ def ATM_CORRECT(img_in_path, img_out_path, atm_coe, senID, satID, year):
         y = atm_coe[0, 0] * pan_ref - atm_coe[0, 1]
         pan_ref = None
         pan_suf_ref = y / (1.0 + atm_coe[0, 2] * y)
-        # pan_suf_ref = np.where(pan_suf_ref == pan_suf_ref.min(), 0.0, pan_suf_ref)
         pan_suf_ref[zero_index] = 0
         pan_suf_ref = (pan_suf_ref * 10000).round()
         # 创建临时数据集用于存放大气校正结果
@@ -287,7 +272,7 @@ def ATM_CORRECT(img_in_path, img_out_path, atm_coe, senID, satID, year):
         atm_ds.GetRasterBand(1).WriteArray(pan_suf_ref)
         pan_suf_ref = None
         # 进行重投影和重采样
-        if satID == 'GF1':
+        if satID in ['GF1', 'GF1B', 'GF1C', 'GF1D', 'GF6']:
             new_xs = 0.00002
             new_ys = 0.00002
         else:
@@ -303,13 +288,9 @@ def ATM_CORRECT(img_in_path, img_out_path, atm_coe, senID, satID, year):
         # 获取数据
         Blue_band = source_ds.GetRasterBand(1).ReadAsArray()
         zero_index = np.where(Blue_band == a_nodata)
-        # Blue_band = np.where(Blue_band == a_nodata, 0, Blue_band)
         Green_band = source_ds.GetRasterBand(2).ReadAsArray()
-        # Green_band = np.where(Green_band == a_nodata, 0, Green_band)
         Red_band = source_ds.GetRasterBand(3).ReadAsArray()
-        # Red_band = np.where(Red_band == a_nodata, 0, Red_band)
         Inf_band = source_ds.GetRasterBand(4).ReadAsArray()
-        # Inf_band = np.where(Inf_band == a_nodata, 0, Inf_band)
         # 判断是否缺少波段
         if Blue_band.max() == 0 or Green_band.max() == 0 or Red_band.max() == 0 or Inf_band.max() == 0:
             print('The {} file has no inf band'.format('basename'))
@@ -323,25 +304,21 @@ def ATM_CORRECT(img_in_path, img_out_path, atm_coe, senID, satID, year):
         # Blue
         y = atm_coe[1, 0] * Blue_ref - atm_coe[1, 1]
         Blue_suf_ref = y / (1.0 + atm_coe[1, 2] * y)
-        # Blue_suf_ref = np.where(Blue_suf_ref == Blue_suf_ref.min(), 0.0, Blue_suf_ref)
         Blue_suf_ref[zero_index] = 0
         Blue_suf_ref = (Blue_suf_ref * 10000).round()
         # Green
         y = atm_coe[2, 0] * Green_ref - atm_coe[2, 1]
         Green_suf_ref = y / (1.0 + atm_coe[2, 2] * y)
-        # Green_suf_ref = np.where(Green_suf_ref == Green_suf_ref.min(), 0.0, Green_suf_ref)
         Green_suf_ref[zero_index] = 0
         Green_suf_ref = (Green_suf_ref * 10000).round()
         # Red
         y = atm_coe[3, 0] * Red_ref - atm_coe[3, 1]
         Red_suf_ref = y / (1.0 + atm_coe[3, 2] * y)
-        # Red_suf_ref = np.where(Red_suf_ref == Red_suf_ref.min(), 0.0, Red_suf_ref)
         Red_suf_ref[zero_index] = 0
         Red_suf_ref = (Red_suf_ref * 10000).round()
         # Inf
         y = atm_coe[4, 0] * Inf_ref - atm_coe[4, 1]
         Inf_suf_ref = y / (1.0 + atm_coe[4, 2] * y)
-        # Inf_suf_ref = np.where(Inf_suf_ref == Inf_suf_ref.min(), 0.0, Inf_suf_ref)
         Inf_suf_ref[zero_index] = 0
         Inf_suf_ref = (Inf_suf_ref * 10000).round()
         # 创建临时数据集用于存放大气校正结果
@@ -352,7 +329,7 @@ def ATM_CORRECT(img_in_path, img_out_path, atm_coe, senID, satID, year):
         atm_ds.GetRasterBand(3).WriteArray(Red_suf_ref)
         atm_ds.GetRasterBand(4).WriteArray(Inf_suf_ref)
         # 进行重投影和重采样
-        if satID == 'GF1':
+        if satID in ['GF1', 'GF1B', 'GF1C', 'GF1D', 'GF6']:
             new_xs = 0.00008
             new_ys = 0.00008
         else:
@@ -371,22 +348,21 @@ def ATM_CORRECT(img_in_path, img_out_path, atm_coe, senID, satID, year):
     return None
 
 
-def get_aod(oDocument, aod_file):
+def get_aod(img_ds, aod_file):
+    img_geo = img_ds.GetGeoTransform()
+    xsize = img_ds.RasterXSize
+    ysize = img_ds.RasterYSize
     aod_ds = gdal.Open(aod_file)
     aod_geo = aod_ds.GetGeoTransform()
     aod_inv_geo = gdal.InvGeoTransform(aod_geo)
     # 左上经度
-    ID = 'TopLeftLongitude'
-    ulx = float(GET_XMLELEMENTS(oDocument, ID))
+    ulx = img_geo[0]
     # 左上纬度
-    ID = 'TopLeftLatitude'
-    uly = float(GET_XMLELEMENTS(oDocument, ID))
+    uly = img_geo[3]
     # 右下经度
-    ID = 'BottomRightLongitude'
-    lrx = float(GET_XMLELEMENTS(oDocument, ID))
+    lrx = corner_to_geo(xsize, ysize, img_ds)[0]
     # 右下纬度
-    ID = 'BottomRightLatitude'
-    lry = float(GET_XMLELEMENTS(oDocument, ID))
+    lry = corner_to_geo(xsize, ysize, img_ds)[1]
     extent = [ulx, uly, lrx, lry]
     # 计算在aod影像上的行列号
     off_ulx, off_uly = map(int, gdal.ApplyGeoTransform(aod_inv_geo, extent[0], extent[1]))
@@ -418,6 +394,12 @@ def main(file_path, out_path, partfileinfo='*.tif'):
     for num_file in range(len(original_imgs)):
         # 开始循环单个文件处理
         input = original_imgs[num_file]
+        # 打开影像
+        input_ds = gdal.Open(input)
+        band_count = input_ds.RasterCount
+        input_geo = input_ds.GetGeoTransform()
+        xsize = input_ds.RasterXSize
+        ysize = input_ds.RasterYSize
         # 获取文件根目录
         file_dir = os.path.dirname(input)
         # 文件名
@@ -453,16 +435,21 @@ def main(file_path, out_path, partfileinfo='*.tif'):
         hour = time[0]  # 小时
         minute = time[1]  # 分钟
         second = time[2]  # 秒
-        GMTtime = hour + minute + '.' + second
+        GMTtime = "{:0>2d}".format(int(hour)) + "{:0>2d}".format(int(minute)) + "." + "{:0>2d}".format(
+            int(float(second)))
         # 获取四角坐标
-        ID = 'TopLeftLatitude'
-        TopLeftLatitude = float(GET_XMLELEMENTS(oDocument, ID))
-        ID = 'TopLeftLongitude'
-        TopLeftLongitude = float(GET_XMLELEMENTS(oDocument, ID))
-        ID = 'BottomRightLatitude'
-        BottomRightLatitude = float(GET_XMLELEMENTS(oDocument, ID))
-        ID = 'BottomRightLongitude'
-        BottomRightLongitude = float(GET_XMLELEMENTS(oDocument, ID))
+        # ID = 'TopLeftLatitude'
+        # TopLeftLatitude = float(GET_XMLELEMENTS(oDocument, ID))
+        # ID = 'TopLeftLongitude'
+        # TopLeftLongitude = float(GET_XMLELEMENTS(oDocument, ID))
+        # ID = 'BottomRightLatitude'
+        # BottomRightLatitude = float(GET_XMLELEMENTS(oDocument, ID))
+        # ID = 'BottomRightLongitude'
+        # BottomRightLongitude = float(GET_XMLELEMENTS(oDocument, ID))
+        # 为了避免xml记录错误，通过影像计算交点坐标
+        TopLeftLongitude = input_geo[0]
+        TopLeftLatitude = input_geo[3]
+        BottomRightLongitude, BottomRightLatitude = corner_to_geo(xsize, ysize, input_ds)
         # 中心经纬度
         lat = (TopLeftLatitude + BottomRightLatitude) * 1.0 / 2
         lon = (TopLeftLongitude + BottomRightLongitude) * 1.0 / 2
@@ -474,7 +461,10 @@ def main(file_path, out_path, partfileinfo='*.tif'):
         asun = float(GET_XMLELEMENTS(oDocument, ID))  # 太阳方位角
         ID = 'SatelliteZenith'
         tmp_zsat = float(GET_XMLELEMENTS(oDocument, ID))
-        zsat = 90.0 - tmp_zsat  # 卫星天顶角
+        if SatelliteID in ['GF1B', 'GF1C', 'GF1D', 'GF6']:
+            zsat = tmp_zsat  # 卫星天顶角
+        else:
+            zsat = 90.0 - tmp_zsat  # 卫星天顶角
         ID = 'SatelliteAzimuth'
         asat = float(GET_XMLELEMENTS(oDocument, ID))  # 卫星方位角
 
@@ -484,7 +474,9 @@ def main(file_path, out_path, partfileinfo='*.tif'):
             idatm = 3  # 大气模式中纬度冬季
         iaer = 1  # 气溶胶模式大陆型
         v = 0  # 选择输入能见度还是气溶胶光学厚度
-        tao = round(get_aod(oDocument, aod_file), 3)  # 550nm气溶胶光学厚度
+        if not os.path.exists(aod_file):
+            sys.exit("The aod file of {} doesn't exit!".format(os.path.basename(aod_file)))
+        tao = round(get_aod(input_ds, aod_file), 3)  # 550nm气溶胶光学厚度
         print('AOD:{}'.format(tao))
         xps = 0  # 目标物高度
         xpp = -631  # 星测
@@ -500,8 +492,10 @@ def main(file_path, out_path, partfileinfo='*.tif'):
         outcoe = os.path.join(function_position, '6SV', 'outcoe', SensorID) + '-' + ProductID + '.txt'
         # 打开辐射校正系数文件用于写入辐射校正系数
         lun_coe = open(outcoe, 'w', newline=None)
-        coearr = np.full((5, 3), -999.0, dtype='float16')
-        for a in range(5):  # 循环处理各个波段
+        if band_count != 1:
+            band_count = 5
+        coearr = np.full((band_count, 3), -999.0, dtype='float16')
+        for a in range(band_count):  # 循环处理各个波段
             band = ['pan', 'Blue', 'Green', 'Red', 'Ninf']
             txtname = 'in.txt'
             lun = open(txtname, 'w', newline=None)
@@ -546,7 +540,14 @@ def main(file_path, out_path, partfileinfo='*.tif'):
         # 对影像进行大气校正
         out_file_name = basename
         out_file = out_path + os.sep + out_file_name + '_atm.tif'
-        ATM_CORRECT(input, out_file, coearr, SensorID, SatelliteID, year)
+        # 获取该景影像的辐射定标系数
+        # 高分定标系数
+        # [PAN, Band1, Band2, Band3, Band4]
+        radiance_coefficient = get_rad_coe(SatelliteID, year, SensorID, function_position)
+        if radiance_coefficient == None:
+            print("The image of {} doesn't have radiance coefficients".format(basename))
+            continue
+        ATM_CORRECT(input_ds, out_file, coearr, radiance_coefficient, SatelliteID)
         # 输出大气校正影像的相关信息
         print(basename)
         print(coearr)
@@ -555,23 +556,11 @@ def main(file_path, out_path, partfileinfo='*.tif'):
 
 if __name__ == '__main__':
     start_time = time.clock()
-    file_path = r'F:\test_data\GS_test\atm\atm_out'
+    file_path = r'\\192.168.0.234\nydsj\user\ZSS\农保项目\GF6\1.source'
     # ID = ['5896', '5893', '5752']
-    out = r"F:\test_data\GS_test\atm\atm_out"
-    #
-    # for num_id in ID:
-    #     partfileinfo = 'GF2*' + num_id + '*.img'
-    #     print('The program starts running!')
-    #     fun_path = os.path.dirname(sys.argv[0])
-    #     # file_path = sys.argv[1]
-    #     # partfileinfo = sys.argv[2]
-    #     # tao = float(sys.argv[3])
-    #     main(fun_path, file_path, out, partfileinfo)
-    partfileinfo = 'GF2*_L1A0003099333*.tif'
+    out = r"\\192.168.0.234\nydsj\user\ZSS\农保项目\GF6\out"
+    partfileinfo = 'GF*.img'
     print('The program starts running!')
-    # file_path = sys.argv[1]
-    # partfileinfo = sys.argv[2]
-    # tao = float(sys.argv[3])
     main(file_path, out, partfileinfo)
     end_time = time.clock()
 

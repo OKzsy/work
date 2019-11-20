@@ -1,1 +1,1 @@
-type E:\mypycode\procode\atm\6SV\in.txt|6sv2.1 >> E:\mypycode\procode\atm\6SV\out.txt
+type E:\mypycode\auto_process\atm\6SV\in.txt|6sv1-run >> E:\mypycode\auto_process\atm\6SV\out.txt

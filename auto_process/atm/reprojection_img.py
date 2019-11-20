@@ -120,7 +120,7 @@ def main(in_file, out_pixel, out_file):
 
     # 重新投影和重采样
     res = gdal.ReprojectImage(source_dataset, out_dataset, in_proj, out_proj_wkt.ExportToWkt(),
-                              gdal.GRA_NearestNeighbour, callback = progress, WarpMemoryLimit = 2048)
+                              gdal.GRA_NearestNeighbour, callback=progress, WarpMemoryLimit=2048)
 
     source_dataset = None
     out_dataset = None

@@ -191,7 +191,7 @@ def main(raster_files, shp, out_dir, fieldName='name'):
         for image_str in relate_images:
             # 在影像文件加下获取该影响的绝对路径
             id = image_str.split("_")[-1]
-            img_path = searchfiles(raster_files, partfileinfo="*" + id + "*.tiff")
+            img_path = searchfiles(raster_files, partfileinfo="*" + id + "*.tif")
             if len(img_path) == 0:
                 print("the image dose not exist:{0}, the relevant vector is :{1}".format(image_str,
                                                                                          category_name[0] + "_" +
@@ -204,7 +204,7 @@ def main(raster_files, shp, out_dir, fieldName='name'):
             # 获取和该要素相关的影像名称
             img_name = os.path.splitext(os.path.basename(image))[0].split("_")
             # 拼接样本的输出名字
-            sample_out_name = '_'.join([category_name[0], img_name[0], img_name[4], img_name[5], category_name[1]])
+            sample_out_name = '_'.join([category_name[0], img_name[0], img_name[1], img_name[2]]) + "-" + category_name[1]
             # 拼接输出路径
             outpath = os.path.join(out_dir, sample_out_name + '.tiff')
             # 打开影像开始裁剪
@@ -228,7 +228,7 @@ def main(raster_files, shp, out_dir, fieldName='name'):
 
 if __name__ == '__main__':
     # 支持中文路径
-    gdal.SetConfigOption("GDAL_FILENAME_IS_UTF8", "NO")
+    gdal.SetConfigOption("GDAL_FILENAME_IS_UTF8", "YES")
     # 支持中文属性字段
     gdal.SetConfigOption("SHAPE_ENCODING", "GBK")
     # 注册所有ogr驱动
@@ -237,9 +237,9 @@ if __name__ == '__main__':
     gdal.AllRegister()
 
     start_time = time.clock()
-    in_dir = r"G:\Fusion"
-    shpfile = r"G:\sample_shp\zong.shp"
-    out_dir = r"H:\sample_out"
+    in_dir = r"G:\20190612-out"
+    shpfile = r"\\192.168.0.234\nydsj\project\8.变化检测\3.vector\6.遥感院提供正样本shp\总样本.shp"
+    out_dir = r"G:\20190612-sample"
     main(in_dir, shpfile, out_dir)
     end_time = time.clock()
 

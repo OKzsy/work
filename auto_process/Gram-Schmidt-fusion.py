@@ -227,7 +227,8 @@ def Inv_Gram_Schmidt_Transform(modified_pan, GST_file, mss_resize_file, coordina
         mss_resize_mean = np.nanmean(mss_resize_array)
         for iGSband in range(iband):
             if iGSband == 0:
-                phi_gs = phi(mss_resize_array, modified_pan, zero_num, mean=mss_resize_mean) * modified_pan
+                phi_gs = phi(mss_resize_array, modified_pan, zero_num,
+                             mean=mss_resize_mean) * modified_pan  # 在这要求原始多光谱必须为高分辨率
             else:
                 GST_array[iGSband - 1, :, :][index] = np.nan
                 temp_GST_arr = GST_array[iGSband - 1, :, :]
@@ -336,12 +337,12 @@ def main(pan, mss, fusion):
 
 if __name__ == '__main__':
     start_time = time.clock()
-    # in_pan_file = r"\\192.168.0.234\nydsj\project\8.变化检测\1.data\1.GF\2.atm\zhoukou_luoyang_jiyuan\GF2_PMS2_E115.0_N33.6_20190509_L1A0003988007-PAN2_atm.tif"
-    # in_mss_file = r"\\192.168.0.234\nydsj\project\8.变化检测\1.data\1.GF\2.atm\zhoukou_luoyang_jiyuan\GF2_PMS2_E115.0_N33.6_20190509_L1A0003988007-MSS2_atm.tif"
-    # fusion_path = r"F:\test_data\GS_test\GF2_PMS2_E115.0_N33.6_20190509_L1A0003988007-py_sha.tif"
-    in_pan_file = r"F:\test_data\GS_test\3988007-PAN2-pian.tiff"
-    in_mss_file = r"F:\test_data\GS_test\3988007-MSS2-pian.tiff"
-    fusion_path = r"F:\test_data\GS_test\3988007-MSS2-pian_sha5.tif"
+    in_pan_file = r"F:\test_data\GS_test\GF2_PMS2_E114.0_N32.2_20180718_L1A0003330812-PAN2_atm.tiff"
+    in_mss_file = r"F:\test_data\GS_test\GF2_PMS2_E114.0_N32.2_20180718_L1A0003330812-MSS2_atm.tiff"
+    fusion_path = r"F:\test_data\GS_test\GF2_PMS2_E114.0_N32.2_20180718_L1A0003330812-py_sha.tif"
+    # in_pan_file = r"F:\test_data\GS_test\3988007-PAN2-pian.tiff"
+    # in_mss_file = r"F:\test_data\GS_test\3988007-MSS2-pian.tiff"
+    # fusion_path = r"F:\test_data\GS_test\3988007-MSS2-pian_sha5.tif"
     main(pan=in_pan_file, mss=in_mss_file, fusion=fusion_path)
     end_time = time.clock()
 

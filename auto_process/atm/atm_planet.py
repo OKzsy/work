@@ -19,6 +19,7 @@ import sys
 import glob
 import fnmatch
 import math
+import gc
 import xml.dom.minidom
 import numpy as np
 import time
@@ -165,7 +166,7 @@ def reproject_dataset(src_ds, new_x_size, new_y_size):
     print('Begin to reprojection and resample!')
     res = gdal.ReprojectImage(src_ds, dest, \
                               src_prj, oSRS.ExportToWkt(), \
-                              gdal.GRA_Bilinear, callback=progress)
+                              gdal.GRA_NearestNeighbour, callback=progress)
     return dest
 
 
@@ -284,6 +285,7 @@ def get_aod(oDocument, aod_file):
     spec_num = np.where(aod == -9999)[0].shape[0]
     if spec_num == numbers:
         mean_aod = 0.6
+        # mean_aod = 0.1696
     else:
         mean_aod = np.mean(aod[np.where(aod != -9999)]) * 0.001
     aod_ds = None
@@ -338,7 +340,7 @@ def main(file_path, out_path, partfileinfo='*AnalyticMS.tif'):
         year = acqtime[0:4]  # 年份
         month = acqtime[5:5 + 2]  # 月份
         day = acqtime[8:8 + 2]  # 日期
-        if (month >= 4) and (month <= 9):
+        if (int(month) >= 4) and (int(month) <= 9):
             idatm = 2  # 大气模式中纬度夏季
         else:
             idatm = 3  # 大气模式中纬度冬季
@@ -407,7 +409,6 @@ def main(file_path, out_path, partfileinfo='*AnalyticMS.tif'):
             os.remove(txtname)
         # 关闭文件
         lun_coe.close()
-
         # # 对影像进行大气校正
         # out_file_name = basename
         # out_path = file_dir + os.sep + 'outimg'
@@ -418,6 +419,7 @@ def main(file_path, out_path, partfileinfo='*AnalyticMS.tif'):
         out_file_name = basename
         out_file = os.path.join(out_path, out_file_name) + '-atm.tif'
         ATM_CORRECT(input, out_file, coearr, oDocument)
+        gc.collect()
         # 输出大气校正影像的相关信息
         print(basename)
         print(coearr)
@@ -426,11 +428,11 @@ def main(file_path, out_path, partfileinfo='*AnalyticMS.tif'):
 
 if __name__ == '__main__':
     start_time = time.clock()
-    file_path = r'G:\sample_data\planet\planet_order_275915_queshan\20180614_023503_103e'
-    out = r"G:\sample_data\planet\planet_order_275915_queshan\out"
+    file_path = r"\\192.168.0.234\nydsj\project\2.zhiyan\2.2019\2.data\4.planet\1.source\yancao\planet_order_372841_洛阳\planet_order_372841\20190726_025124_1010"
+    out = r"\\192.168.0.234\nydsj\user\ZSS\20190810"
     partfileinfo = '*AnalyticMS.tif'
     print('The program starts running!')
-    main(file_path=file_path, out=out, partfileinfo=partfileinfo)
+    main(file_path=file_path, out_path=out, partfileinfo=partfileinfo)
 
     end_time = time.clock()
 
