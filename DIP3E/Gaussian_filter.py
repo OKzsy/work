@@ -45,14 +45,12 @@ def Extend(xs, ys, matrix):
     return extended_val
 
 
-def function_template(sigma_val):
+def gaussian_template_one(sigma_val):
     ksize = math.ceil(2 * round(3 * sigma_val) + 1)
-    template = np.zeros((ksize, ksize), dtype=np.float32)
-    for row in range(ksize):
-        for col in range(ksize):
-            u = row - ksize // 2
-            v = col - ksize // 2
-            template[row, col] = math.exp(-(u ** 2 + v ** 2) / (2 * sigma_val ** 2)) / (2 * math.pi * sigma_val ** 2)
+    template = np.zeros(ksize, dtype=np.float32)
+    for element in range(ksize):
+        u = element - ksize // 2
+        template[element] = math.exp(-u ** 2 / (2 * sigma_val ** 2)) / (math.sqrt(2 * math.pi) * sigma_val)
 
     return ksize, template / np.sum(template)
 
@@ -68,11 +66,14 @@ def img_filtering(xs, ys, ori_xsize, ori_ysize, kernel, ext_img):
     """
     # 使用切片后影像的波段书
     # 创建切片后存储矩阵
-    filtered_img = np.zeros((ori_ysize, ori_xsize), dtype=np.float32)
-    for iraw in range(ys):
-        for icol in range(xs):
-            filtered_img += ext_img[iraw: iraw + ori_ysize, icol: icol + ori_xsize] * kernel[iraw, icol]
+    filtered_img_h = np.zeros((ori_ysize + ys - 1, ori_xsize), dtype=np.float32)
+    for icol in range(xs):
+        filtered_img_h += ext_img[:, icol: icol + ori_xsize] * kernel[icol]
     ext_img = None
+    filtered_img = np.zeros((ori_ysize, ori_xsize), dtype=np.float32)
+    for irow in range(ys):
+        filtered_img += filtered_img_h[irow: irow + ori_ysize, :] * kernel[irow]
+    filtered_img_h = None
     return filtered_img
 
 
@@ -83,11 +84,8 @@ def main(in_image, out_image):
     ysize = img_dst.RasterYSize
     imgval1 = img_dst.GetRasterBand(1).ReadAsArray()
     # 定义滤波函数
-    # kernel = np.array([[1, 1, 1], [1, -8, 1], [1, 1, 1]])
-    # kernel_xsize = 3
-    # kernel_ysize = 3
-    sigma = 0.6
-    win_size, template = function_template(sigma)
+    sigma = 16.0
+    win_size, template = gaussian_template_one(sigma)
     kernel_xsize = kernel_ysize = win_size
     # 结合滤波函数对待滤波影像进行边缘扩展，目的是保证滤波结果和原始影像大小一致
     extended_img = Extend(kernel_xsize, kernel_ysize, imgval1)
@@ -120,7 +118,7 @@ if __name__ == '__main__':
     gdal.AllRegister()
     start_time = time.time()
     imgPath = r"F:\test_data\数字图像处理标准测试图\Lena.tif"
-    outPath = r"F:\test_data\数字图像处理标准测试图\test_out\Lena_16.0.tif"
+    outPath = r"F:\test_data\数字图像处理标准测试图\test_out\Lena_new_16.tif"
     main(imgPath, outPath)
     end_time = time.time()
     print("time: %.4f secs." % (end_time - start_time))
