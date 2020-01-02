@@ -37,12 +37,10 @@ def resize(src_dst, dst_xsize, dst_ysize, seq):
     :param dst_ysize: 目标影像行数
     :return: 返回重采样后的目标影像数据集
     """
-    # 获取原始影像的数据类型
-    datatype = src_dst.GetRasterBand(1).DataType
     # 根据目标大小，在内存创建结果影像
     tmp_dst_path = r'/vsimem/tmp_dst_{}.tiff'.format(str(seq))
-    gdal.Translate(tmp_dst_path, src_dst, resampleAlg=gdal.GRA_Bilinear, format='GTiff', width=dst_xsize,
-                   height=dst_ysize, outputType=datatype)
+    gdal.Translate(tmp_dst_path, src_dst, resampleAlg=gdalconst.GRA_Bilinear, format='GTiff', width=dst_xsize,
+                   height=dst_ysize, outputType=gdalconst.GDT_Float32)
     tmp_dst = gdal.Open(tmp_dst_path)
     src_dst = None
     gdal.Unlink(tmp_dst_path)
@@ -58,22 +56,22 @@ def Extend(xs, ys, matrix):
     :param matrix: 原始影像矩阵
     :return: 依据模板大小扩展后的矩阵
     """
-    extended_xs = (xs - 1) + matrix.shape[1]
-    extended_ys = (ys - 1) + matrix.shape[0]
-    extended_val = np.zeros((extended_ys, extended_xs), dtype=matrix.dtype)
-    xs_start_pos = int((xs - 1) / 2)
-    ys_start_pos = int((ys - 1) / 2)
-    extended_val[ys_start_pos: -ys_start_pos, xs_start_pos: -xs_start_pos] = matrix
+    xs_fill = int((xs - 1) / 2)
+    ys_fill = int((ys - 1) / 2)
+    # 使用镜像填充
+    extended_val = np.pad(matrix, ((ys_fill, ys_fill), (xs_fill, xs_fill)), "reflect")
     matrix = None
     return extended_val
 
 
 def gaussian_template_one(sigma_val):
-    ksize = math.ceil(2 * round(3 * sigma_val) + 1)
+    # opencv认为当图像为8bit时，其能量集中再3个方差内，否则为4个方差内，有待考究
+    # ksize = round(2 * round(3 * sigma_val) + 1)
+    ksize = round(2 * round(4 * sigma_val) + 1)
     template = np.zeros(ksize, dtype=np.float32)
     for element in range(ksize):
         u = element - ksize // 2
-        template[element] = math.exp(-u ** 2 / (2 * sigma_val ** 2)) / (math.sqrt(2 * math.pi) * sigma_val)
+        template[element] = math.exp(-u ** 2 / (2 * sigma_val ** 2))
     return ksize, template / np.sum(template)
 
 
@@ -99,71 +97,88 @@ def img_filtering(xs, ys, ori_xsize, ori_ysize, kernel, ext_img):
     return filtered_img
 
 
-def scale_space(ioctave):
+def scale_space(sigma):
     """
-    根据输入的层数信息，计算该层的尺度空间参数
-    :param ioctave: 层数信息
-    :return: 该层的尺度空间参数
+    计算高斯尺度金子塔的相对模糊尺度
+    :param sigma: 自定义高斯金字塔初始尺度
+    :param camera_sigma: 影像采集时镜头的模糊尺度
+    :return: 尺度金字塔的相对模糊模糊尺度
     """
-    # 定义初始尺度空间参数
-    sigma = 1.6
     # 定义高斯尺度空间中每组各层的尺度间隔
     k = 2 ** (1 / 3)
     # 计算该层的尺度空间参数
     scales_para = []
-    for iscal_spatial in range(6):
-        scales_para.append(2 ** ioctave * k ** iscal_spatial * sigma)
+    scales_para.append(sigma)
+    for iscal_spatial in range(1, 6):
+        sig_prev = k ** (iscal_spatial - 1) * sigma
+        sig_total = sig_prev * k
+        scales_para.append(math.sqrt(sig_total ** 2 - sig_prev ** 2))
     return scales_para[:]
 
 
-def build_dog(src_dst, scale_para):
+def detect_ext_points(gauss_diff_pyr):
+    """
+    对输入的高斯差分金字塔进行极值点检测
+    :param gauss_diff_pyr: 高斯差分金字塔
+    :return: 极值点
+    """
+    return 1
+
+
+def build_dog(src_array, scale_para):
     """
     根据空间尺度参数构建高斯差分金字塔，根据sift算法的原理，只计算2-5层
-    :param src_dst: 构建高斯差分金字塔的初始数据
+    :param src_array: 构建高斯差分金字塔的初始数据
     :param scale_para: 高斯空间尺度参数
     :return: 高斯差分金字塔和高斯金字塔下一层初始数据
     """
-    xsize = src_dst.RasterXSize
-    ysize = src_dst.RasterYSize
-    src_val = src_dst.ReadAsArray()
-    src_dst = None
+    xsize = src_array.shape[1]
+    ysize = src_array.shape[0]
     # 创建存储高斯差分金字塔的数组
-    dog_matrix = np.zeros((4, ysize, xsize), dtype=np.float32)
-    for ilayer in range(4):
-        win_size, template = gaussian_template_one(scale_para[ilayer + 1])
+    gauss_matrix = np.zeros((6, ysize, xsize), dtype=np.float32)
+    dog_matrix = np.zeros((5, ysize, xsize), dtype=np.float32)
+    for ilayer in range(6):
+        if ilayer == 0:
+            dog_matrix[ilayer, :, :] = src_array
+            gauss_matrix[ilayer, :, :] = src_array
+            continue
+        sigmaf = scale_para[ilayer]
+        win_size, template = gaussian_template_one(sigmaf)
         kernel_xsize = kernel_ysize = win_size
         # 结合滤波函数对待滤波影像进行边缘扩展，目的是保证滤波结果和原始影像大小一致
-        extended_img = Extend(kernel_xsize, kernel_ysize, src_val)
+        extended_img = Extend(kernel_xsize, kernel_ysize, src_array)
         # 使用模板进行滤波
         filtered_img = img_filtering(kernel_xsize, kernel_ysize, xsize, ysize, template, extended_img)
+        extended_img = None
+        src_array = filtered_img
+        filtered_img = None
+        gauss_matrix[ilayer, :, :] = src_array
         # 输出下高斯金字塔下一层的原始数据
-        if ilayer == 2:
+        if ilayer == 3:
             mem_driver = gdal.GetDriverByName("MEM")
             next_dst = mem_driver.Create('', xsize, ysize, 1, gdal.GDT_Float32)
-            next_dst.GetRasterBand(1).WriteArray(filtered_img)
+            next_dst.GetRasterBand(1).WriteArray(src_array)
         # 计算高斯差分金字塔并存储
-        if ilayer == 3:
-            dog_matrix[ilayer, :, :] = filtered_img - dog_matrix[ilayer, :, :]
-            filtered_img = None
+        if ilayer == 5:
+            dog_matrix[ilayer - 1, :, :] = src_array - dog_matrix[ilayer - 1, :, :]
         else:
-            dog_matrix[ilayer + 1, :, :] = filtered_img
-            filtered_img = None
-            dog_matrix[ilayer, :, :] = dog_matrix[ilayer + 1, :, :] - dog_matrix[ilayer, :, :]
+            dog_matrix[ilayer, :, :] = src_array
+            dog_matrix[ilayer - 1, :, :] = src_array - dog_matrix[ilayer - 1, :, :]
         gc.collect()
-    return next_dst, dog_matrix[1:4, :, :]
+    return next_dst, dog_matrix, gauss_matrix
 
 
-def pyramid(octave_val, src_dst, points, n=0):
+def pyramid(octave_val, src_dst, points, scale, n=0):
     if n == octave_val:  # 当达到指定层数后，返回监测的极值点
         # 返回极值点，可是设定在该返回位置做最后一层
         # 获取原始数据集的基本信息
         src_xsize = src_dst.RasterXSize
         src_ysize = src_dst.RasterYSize
         new_dst = resize(src_dst, int(src_xsize / 2), int(src_ysize / 2), n)  # 缩小一倍
-        # 计算改层的高斯尺度空间
-        scale = scale_space(n)
-        print(scale)
         src_dst = None
+        filtered_img = new_dst.ReadAsArray()
+        # 建立高斯差分金字塔
+        next_dst, dog_pyr, gauss_pyr = build_dog(filtered_img, scale)
         # 监测极值点，包括极值点定位
         # points.append(list(range(int(dataset))))
         return points
@@ -173,29 +188,44 @@ def pyramid(octave_val, src_dst, points, n=0):
             src_xsize = src_dst.RasterXSize
             src_ysize = src_dst.RasterYSize
             new_dst = resize(src_dst, src_xsize * 2, src_ysize * 2, n)  # 放大一倍
-            # 计算该层的高斯尺度空间
-            scale = scale_space(n)
             src_dst = None
+            src_val = new_dst.ReadAsArray()
+            # 针对第一组第一层需要考虑镜头模糊度进行特殊处理
+            init_sigma_diff = math.sqrt(scale[0] ** 2 - (2 * init_camera_sigma) ** 2)
+            win_size, template = gaussian_template_one(init_sigma_diff)
+            kernel_xsize = kernel_ysize = win_size
+            # 结合滤波函数对待滤波影像进行边缘扩展，目的是保证滤波结果和原始影像大小一致
+            extended_img = Extend(kernel_xsize, kernel_ysize, src_val)
+            # 使用模板进行滤波
+            filtered_img = img_filtering(kernel_xsize, kernel_ysize, src_xsize * 2, src_ysize * 2, template,
+                                         extended_img)
+            extended_img = None
             # 建立高斯差分金字塔
-            next_dst, dog_pyr = build_dog(new_dst, scale)
+            next_dst, dog_pyr, gauss_pyr = build_dog(filtered_img, scale)
+            filtered_img = None
+            # 检测极值点
+            ext_points = detect_ext_points(dog_pyr)
             # 监测极值点，包括极值点定位
             # points.append(list(range(int(dataset))))
-            return pyramid(octave_val, next_dst, points[:], n + 1)
+            return pyramid(octave_val, next_dst, points[:], scale, n + 1)
         else:
             # 获取原始数据集的基本信息
             src_xsize = src_dst.RasterXSize
             src_ysize = src_dst.RasterYSize
             new_dst = resize(src_dst, int(src_xsize / 2), int(src_ysize / 2), n)  # 缩小一倍
-            # 计算该层的高斯尺度空间
-            scale = scale_space(n)
-            print(scale)
             src_dst = None
+            filtered_img = new_dst.ReadAsArray()
+            # 建立高斯差分金字塔
+            next_dst, dog_pyr, gauss_pyr = build_dog(filtered_img, scale)
             # 监测极值点，包括极值点定位
             # points.append(list(range(int(dataset))))
-            return pyramid(octave_val, new_dst, points[:], n + 1)
+            return pyramid(octave_val, next_dst, points[:], scale, n + 1)
 
 
 def main(in_fn, band_index):
+    init_sigma = 1.6
+    global init_camera_sigma
+    init_camera_sigma = 0.5
     # 读取影像
     src_dst = gdal.Open(in_fn)
     xsize = src_dst.RasterXSize
@@ -211,9 +241,11 @@ def main(in_fn, band_index):
     octave = math.floor(math.log(min(xsize, ysize), 2) / 2)
     if octave > 5:
         octave = 5
+    # 计算该层的高斯尺度空间
+    scale = scale_space(init_sigma)
     # 构建高斯金字塔并检测极值点
     extreme_points = []
-    extreme_points = pyramid(octave, src_one_dst, extreme_points[:])
+    extreme_points = pyramid(octave, src_one_dst, extreme_points[:], scale)
     # num = 0
     # o = 4
     # dataset = 10
@@ -232,7 +264,7 @@ if __name__ == '__main__':
     # 注册所有gdal驱动
     gdal.AllRegister()
     start_time = time.time()
-    in_file = r"F:\SIFT\left.PNG"
+    in_file = r"F:\SIFT\left_one_band.PNG"
     # in_file = r"F:\test_data\new_test\GF2_20180718_L1A0003330812_sha.tiff"
     band_idx = 1
     main(in_file, band_idx)
