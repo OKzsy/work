@@ -116,18 +116,220 @@ def scale_space(sigma):
     return scales_para[:]
 
 
-def detect_ext_points(gauss_diff_pyr):
+def adjustLocalExtrema(dog, o, l, r, c):
     """
-    对输入的高斯差分金字塔进行极值点检测
-    :param gauss_diff_pyr: 高斯差分金字塔
-    :return: 极值点
+    确定局部极值
+    :param dog: 高斯差分金字塔
+    :param o: 组数信息
+    :param l: 层数信息
+    :param r: 疑似极值点行
+    :param c: 疑似极值点列
+    :return:
     """
+    # img_scale = 1 / global_maximun
+    img_scale = 1 / 255
+    deriv_scale = img_scale * 0.5
+    second_deriv_scale = img_scale
+    cross_seriv_scale = img_scale * 0.25
+    xr = xc = xl = contr = 0
+    istep = 0
+    while istep < sift_max_interp_steps:
+        local_detect_img = dog[l - 1: l + 2, :, :]
+        dx = (local_detect_img[1, r, c + 1] - local_detect_img[1, r, c - 1]) * deriv_scale
+        dy = (local_detect_img[1, r + 1, c] - local_detect_img[1, r - 1, c]) * deriv_scale
+        ds = (local_detect_img[2, r, c] - local_detect_img[0, r, c]) * deriv_scale
+        dD = np.array([dx, dy, ds])
+        v2 = local_detect_img[1, r, c] * 2
+        dxx = (local_detect_img[1, r, c + 1] + local_detect_img[1, r, c - 1] - v2) * second_deriv_scale
+        dyy = (local_detect_img[1, r + 1, c] + local_detect_img[1, r - 1, c] - v2) * second_deriv_scale
+        dss = (local_detect_img[2, r, c] + local_detect_img[0, r, c] - v2) * second_deriv_scale
+        dxy = (local_detect_img[1, r + 1, c + 1] - local_detect_img[1, r + 1, c - 1] - \
+               local_detect_img[1, r - 1, c + 1] + local_detect_img[1, r - 1, c - 1]) * cross_seriv_scale
+        dxs = (local_detect_img[2, r, c + 1] - local_detect_img[2, r, c - 1] - \
+               local_detect_img[0, r, c + 1] + local_detect_img[0, r, c - 1]) * cross_seriv_scale
+        dys = (local_detect_img[2, r + 1, c] - local_detect_img[2, r - 1, c] - \
+               local_detect_img[0, r + 1, c] + local_detect_img[0, r - 1, c]) * cross_seriv_scale
+        H = np.array([[dxx, dxy, dxs], [dxy, dyy, dys], [dxs, dys, dss]])
+        X = np.dot(np.linalg.inv(H), dD)
+        xc, xr, xl = -X
+        if abs(xc) < 0.5 and abs(xr) < 0.5 and abs(xl) < 0.5:
+            break
+        int_max = 32767 / 3
+        if abs(xc) > int_max or abs(xr) > int_max or abs(xl) > int_max:
+            return False, r, c, l
+        c += int(round(xc))
+        r += int(round(xr))
+        l += int(round(xl))
+        if l < 1 or l > 3 or r < sift_img_border or r > local_detect_img.shape[1] - sift_img_border \
+                or c < sift_img_border or c > local_detect_img.shape[2] - sift_img_border:
+            return False, r, c, l
+        istep += 1
+    if istep >= sift_max_interp_steps:
+        return False, r, c, l
+    local_detect_img = dog[l - 1: l + 2, :, :]
+    dx = (local_detect_img[1, r, c + 1] - local_detect_img[1, r, c - 1]) * deriv_scale
+    dy = (local_detect_img[1, r + 1, c] - local_detect_img[1, r - 1, c]) * deriv_scale
+    ds = (local_detect_img[2, r, c] - local_detect_img[0, r, c]) * deriv_scale
+    dD = np.array([dx, dy, ds])
+    t = np.dot(dD, -X)
+
+    contr = local_detect_img[1, r, c] * img_scale + t * 0.5
+    if abs(contr) * 3 < contrastThreshold:
+        return False, r, c, l
+    v2 = local_detect_img[1, r, c] * 2
+    dxx = (local_detect_img[1, r, c + 1] + local_detect_img[1, r, c - 1] - v2) * second_deriv_scale
+    dyy = (local_detect_img[1, r + 1, c] + local_detect_img[1, r - 1, c] - v2) * second_deriv_scale
+    dxy = (local_detect_img[1, r + 1, c + 1] - local_detect_img[1, r + 1, c - 1] - \
+           local_detect_img[1, r - 1, c + 1] + local_detect_img[1, r - 1, c - 1]) * cross_seriv_scale
+    tr = dxx + dyy
+    det = dxx * dyy - dxy * dxy
+    if (det <= 0) or (tr * tr * edgeThreshold >= (edgeThreshold + 1) * (edgeThreshold + 1) * det):
+        return False, r, c, l
+    kpt_y = (r + xr) * (1 << o)
+    kpt_x = (c + xc) * (1 << o)
+    kpt_octave = o + (l << 8) + (int(round((xl + 0.5) * 255)) << 16)
+    kpt_size = init_sigma * math.pow(2.0, (l + xl) / 3) * (1 << o) * 2
+    kpt_response = abs(contr)
+    local_tmp_point = [kpt_y, kpt_x, kpt_octave, kpt_size, kpt_response]
+    return local_tmp_point, r, c, l
+
+
+def calcOrientationHist(guass_matrix, ext_point, radius, local_sigma, n):
+    """
+    在特征点局部区域计算特征点的主方向
+    :param guass_matrix: 离特征点所在尺度层最近的高斯模糊层
+    :param ext_point: 特征点所在坐标（行，列）
+    :param radius: 计算幅值和特征点主方向区域的半径
+    :param local_sigma:特征点所在层计算高斯函数的方差
+    :param n:用于直方图统计的区间个数（0-360度，分36个区间）
+    :return:特征点的主方向和幅值（有可能有多个）
+    """
+    anchor_x = ext_point[0]
+    anchor_y = ext_point[1]
+    rows = guass_matrix.shape[0]
+    cols = guass_matrix.shape[1]
+    star_x = -radius if (anchor_x - radius) > 0 else (1 - anchor_x)
+    star_y = -radius if (anchor_y - radius) > 0 else (1 - anchor_y)
+    end_x = radius if (rows - anchor_x - radius) > 1 else (rows - anchor_x - 2)
+    end_y = radius if (cols - anchor_y - radius) > 1 else (cols - anchor_y - 2)
+    # 生成所在区域窗口位置索引，用于计算高斯权重
+    x = list(range(star_x, end_x + 1))
+    y = list(range(star_y, end_y + 1))
+    weight_index = np.meshgrid(y, x)
+    expf_scale = -1 / (2 * local_sigma * local_sigma)
+    weight = np.exp((weight_index[1] * weight_index[1] + weight_index[0] * weight_index[0]) * expf_scale)
+    weight_index = None
+    # 计算梯度
+    xx = list(range(star_x - 1 + anchor_x, end_x + 2 + anchor_x))
+    yy = list(range(star_y - 1 + anchor_y, end_y + 2 + anchor_y))
+    grad_index = np.meshgrid(yy, xx)
+    # 获取计算梯度区域数据
+    grad_matrix = guass_matrix[grad_index[1], grad_index[0]]
+    grad_index = None
+    # 计算列方向梯度
+    grad_x = grad_matrix[1: -1, 2:] - grad_matrix[1: -1, 0: -2]
+    # 计算行方向梯度（和公式符号相反，为了和opencv保持一致）
+    grad_y = grad_matrix[0: -2, 1: -1] - grad_matrix[2:, 1: -1]
+    grad_matrix = None
+    # 计算角度
+    ori = ((np.arctan2(grad_y, grad_x) + 2 * np.pi) % (2 * np.pi)) * (180 / np.pi)
+    # 计算幅值
+    mag = np.sqrt(grad_x * grad_x + grad_y * grad_y)
+    # 计算经高斯加权后的累计幅值
+    bin_index = np.round((n / 360) * ori).astype(np.int)
+    bin_index = np.where(bin_index >= n, bin_index - n, bin_index)
+    bin_index = np.where(bin_index < 0, bin_index + n, bin_index)
+    ori = None
+    # 对幅值进行加权
+    weight_mag = mag * weight
+    mag = None
+    # 统计幅值直方图
+    temphist = np.zeros(n + 4, dtype=np.float32)
+    for ibin in range(0, n):
+        tmp_index = np.where(bin_index == ibin)
+        tmp_sum = np.sum(weight_mag[tmp_index])
+        temphist[ibin + 2] = tmp_sum
+    # smooth the histogram
+    temphist[0] = temphist[n]
+    temphist[1] = temphist[n + 1]
+    temphist[-2] = temphist[2]
+    temphist[-1] = temphist[3]
+    hist = np.zeros(n, dtype=np.float32)
+    for ihist in range(2, n + 2):
+        hist[ihist - 2] = (temphist[ihist - 2] + temphist[ihist + 2]) * (1 / 16) + \
+                          (temphist[ihist - 1] + temphist[ihist + 1]) * (4 / 16) + \
+                          temphist[ihist] * (6 / 16)
+    temphist = None
+    gc.collect()
+    return hist.max(), hist[:]
+
+
+def detect_ext_points(gauss_pyr, gauss_dog_pyr, octave, points):
+    """
+
+    :param gauss_pyr: 高斯金字塔
+    :param gauss_dog_pyr: 高斯差分金子塔
+    :param octave: 所在层数信息
+    :return: 精确极值点位置和所在尺度空间信息
+    """
+    points = set()
+    # 计算用于初步过滤极值点的阈值
+    threshold = math.floor(0.5 * contrastThreshold / 3 * global_maximun)
+    n = SIFT_ORI_HIST_BINS
+    # 获取差分金字塔影像的行列数
+    channels, rows, cols = gauss_dog_pyr.shape
+    # 循环差分金字塔中间三层寻找极值点
+    for ilayer in range(1, 4):
+        # 获取包含ilayer，ilayer - 1，ilayer + 1 共三层的影像用于检测
+        detect_img = gauss_dog_pyr[ilayer - 1: ilayer + 2, :, :]
+        for irow in range(sift_img_border, rows - sift_img_border):
+            for icol in range(sift_img_border, cols - sift_img_border):
+                # 判断中心点是否满足阈值要求，如果不满足直接跳过
+                val = detect_img[1, irow, icol]
+                if abs(val) < threshold:
+                    continue
+                # 获取待检测窗口
+                detect_win = detect_img[:, irow - 1: irow + 2, icol - 1: icol + 2]
+                if ((val > 0) and (val >= detect_win.max())) or ((val < 0) and (val <= detect_win.min())):
+                    r, c, l = irow, icol, ilayer
+                    tmp_point, r1, c1, l1 = adjustLocalExtrema(gauss_dog_pyr, octave, l, r, c)
+                    if tmp_point is False:
+                        continue
+                    scl_octv = tmp_point[3] * 0.5 / (1 << octave)
+
+                    # 计算特征点主方向
+                    omax, hist = calcOrientationHist(gauss_pyr[l1], (r1, c1), int(round(SIFT_ORI_RADIUS * scl_octv)),
+                                                     SIFT_ORI_SIG_FCTR * scl_octv, n)
+
+                    mag_thr = omax * SIFT_ORI_PEAK_RATIO
+                    for ihist in range(0, n):
+                        pre_ihist = ihist - 1 if ihist > 0 else n - 1
+                        next_ihist = ihist + 1 if ihist < n - 1 else 0
+                        if hist[ihist] > hist[pre_ihist] and hist[ihist] > hist[next_ihist] and hist[ihist] >= mag_thr:
+                            bin = ihist + 0.5 * (hist[pre_ihist] - hist[next_ihist]) / (
+                                        hist[pre_ihist] - 2 * hist[ihist] + hist[next_ihist])
+                            bin = n + bin if bin < 0 else bin
+                            bin = bin - n if bin >= n else bin
+                            angle = 360 - ((360 / n) * bin)
+                            flt_epslon = 1.192092896e-07
+                            if abs(angle - 360.0) < flt_epslon:
+                                angle = 0.0
+                            local_tmp_point = tmp_point[:]
+                            local_tmp_point.append(angle)
+                            points.append(local_tmp_point)
+                            local_tmp_point = None
+                            pass
+                    pass
+            pass
+        pass
+    pass
+
     return 1
 
 
 def build_dog(src_array, scale_para):
     """
-    根据空间尺度参数构建高斯差分金字塔，根据sift算法的原理，只计算2-5层
+    根据空间尺度参数构建高斯差分金字塔
     :param src_array: 构建高斯差分金字塔的初始数据
     :param scale_para: 高斯空间尺度参数
     :return: 高斯差分金字塔和高斯金字塔下一层初始数据
@@ -139,7 +341,6 @@ def build_dog(src_array, scale_para):
     dog_matrix = np.zeros((5, ysize, xsize), dtype=np.float32)
     for ilayer in range(6):
         if ilayer == 0:
-            dog_matrix[ilayer, :, :] = src_array
             gauss_matrix[ilayer, :, :] = src_array
             continue
         sigmaf = scale_para[ilayer]
@@ -159,11 +360,7 @@ def build_dog(src_array, scale_para):
             next_dst = mem_driver.Create('', xsize, ysize, 1, gdal.GDT_Float32)
             next_dst.GetRasterBand(1).WriteArray(src_array)
         # 计算高斯差分金字塔并存储
-        if ilayer == 5:
-            dog_matrix[ilayer - 1, :, :] = src_array - dog_matrix[ilayer - 1, :, :]
-        else:
-            dog_matrix[ilayer, :, :] = src_array
-            dog_matrix[ilayer - 1, :, :] = src_array - dog_matrix[ilayer - 1, :, :]
+        dog_matrix[ilayer - 1, :, :] = gauss_matrix[ilayer, :, :] - gauss_matrix[ilayer - 1, :, :]
         gc.collect()
     return next_dst, dog_matrix, gauss_matrix
 
@@ -179,9 +376,10 @@ def pyramid(octave_val, src_dst, points, scale, n=0):
         filtered_img = new_dst.ReadAsArray()
         # 建立高斯差分金字塔
         next_dst, dog_pyr, gauss_pyr = build_dog(filtered_img, scale)
-        # 监测极值点，包括极值点定位
-        # points.append(list(range(int(dataset))))
-        return points
+        filtered_img = None
+        # 检测极值点
+        ext_points = detect_ext_points(gauss_pyr, dog_pyr, n)
+        return ext_points
     else:
         if n == 0:
             # 获取原始数据集的基本信息
@@ -204,10 +402,8 @@ def pyramid(octave_val, src_dst, points, scale, n=0):
             next_dst, dog_pyr, gauss_pyr = build_dog(filtered_img, scale)
             filtered_img = None
             # 检测极值点
-            ext_points = detect_ext_points(dog_pyr)
-            # 监测极值点，包括极值点定位
-            # points.append(list(range(int(dataset))))
-            return pyramid(octave_val, next_dst, points[:], scale, n + 1)
+            ext_points = detect_ext_points(gauss_pyr, dog_pyr, n, points[:])
+            return pyramid(octave_val, next_dst, ext_points[:], scale, n + 1)
         else:
             # 获取原始数据集的基本信息
             src_xsize = src_dst.RasterXSize
@@ -217,25 +413,44 @@ def pyramid(octave_val, src_dst, points, scale, n=0):
             filtered_img = new_dst.ReadAsArray()
             # 建立高斯差分金字塔
             next_dst, dog_pyr, gauss_pyr = build_dog(filtered_img, scale)
-            # 监测极值点，包括极值点定位
-            # points.append(list(range(int(dataset))))
-            return pyramid(octave_val, next_dst, points[:], scale, n + 1)
+            filtered_img = None
+            # 检测极值点
+            ext_points = detect_ext_points(gauss_pyr, dog_pyr, n)
+            return pyramid(octave_val, next_dst, ext_points[:], scale, n + 1)
 
 
 def main(in_fn, band_index):
+    global init_sigma
     init_sigma = 1.6
     global init_camera_sigma
     init_camera_sigma = 0.5
+    global global_maximun
+    global contrastThreshold
+    contrastThreshold = 0.04
+    global sift_img_border
+    sift_img_border = 5
+    global sift_max_interp_steps
+    sift_max_interp_steps = 5
+    global edgeThreshold
+    edgeThreshold = 10.0
+    global SIFT_ORI_HIST_BINS
+    SIFT_ORI_HIST_BINS = 36
+    global SIFT_ORI_SIG_FCTR
+    SIFT_ORI_SIG_FCTR = 1.5
+    global SIFT_ORI_RADIUS
+    SIFT_ORI_RADIUS = 3 * SIFT_ORI_SIG_FCTR
+    global SIFT_ORI_PEAK_RATIO
+    SIFT_ORI_PEAK_RATIO = 0.8
     # 读取影像
     src_dst = gdal.Open(in_fn)
     xsize = src_dst.RasterXSize
     ysize = src_dst.RasterYSize
     ori_band = src_dst.GetRasterBand(band_index)
-    dtype = ori_band.DataType
     # 提取单波段为一个数据集进行高斯尺度金字塔构建
     driver = gdal.GetDriverByName('MEM')
-    src_one_dst = driver.Create('', xsize, ysize, 1, dtype)
+    src_one_dst = driver.Create('', xsize, ysize, 1, gdal.GDT_Float32)
     src_one_dst.GetRasterBand(1).WriteArray(ori_band.ReadAsArray())
+    global_maximun = ori_band.ComputeRasterMinMax(True)[1]
     src_dst = ori_band = None
     # 确定高斯金子塔的组数
     octave = math.floor(math.log(min(xsize, ysize), 2) / 2)
@@ -246,11 +461,6 @@ def main(in_fn, band_index):
     # 构建高斯金字塔并检测极值点
     extreme_points = []
     extreme_points = pyramid(octave, src_one_dst, extreme_points[:], scale)
-    # num = 0
-    # o = 4
-    # dataset = 10
-    # res_points = []
-    # res = pyramid(num, o, dataset, res_points[:])
     return None
 
 
