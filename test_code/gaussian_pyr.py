@@ -20,6 +20,7 @@ import gc
 import math
 import time
 import fnmatch
+import operator
 import numpy as np
 from osgeo import gdal, ogr, osr, gdalconst
 
@@ -264,7 +265,7 @@ def calcOrientationHist(guass_matrix, ext_point, radius, local_sigma, n):
     return hist.max(), hist[:]
 
 
-def detect_ext_points(gauss_pyr, gauss_dog_pyr, octave, points):
+def detect_ext_points(gauss_pyr, gauss_dog_pyr, octave):
     """
 
     :param gauss_pyr: 高斯金字塔
@@ -272,7 +273,7 @@ def detect_ext_points(gauss_pyr, gauss_dog_pyr, octave, points):
     :param octave: 所在层数信息
     :return: 精确极值点位置和所在尺度空间信息
     """
-    points = set()
+    points = []
     # 计算用于初步过滤极值点的阈值
     threshold = math.floor(0.5 * contrastThreshold / 3 * global_maximun)
     n = SIFT_ORI_HIST_BINS
@@ -307,7 +308,7 @@ def detect_ext_points(gauss_pyr, gauss_dog_pyr, octave, points):
                         next_ihist = ihist + 1 if ihist < n - 1 else 0
                         if hist[ihist] > hist[pre_ihist] and hist[ihist] > hist[next_ihist] and hist[ihist] >= mag_thr:
                             bin = ihist + 0.5 * (hist[pre_ihist] - hist[next_ihist]) / (
-                                        hist[pre_ihist] - 2 * hist[ihist] + hist[next_ihist])
+                                    hist[pre_ihist] - 2 * hist[ihist] + hist[next_ihist])
                             bin = n + bin if bin < 0 else bin
                             bin = bin - n if bin >= n else bin
                             angle = 360 - ((360 / n) * bin)
@@ -318,13 +319,10 @@ def detect_ext_points(gauss_pyr, gauss_dog_pyr, octave, points):
                             local_tmp_point.append(angle)
                             points.append(local_tmp_point)
                             local_tmp_point = None
-                            pass
-                    pass
-            pass
-        pass
-    pass
-
-    return 1
+    no_rep_points = [list(t) for t in set(tuple(_) for _ in points)]
+    no_rep_points.sort(key=points.index)
+    points = None
+    return no_rep_points
 
 
 def build_dog(src_array, scale_para):
@@ -365,7 +363,181 @@ def build_dog(src_array, scale_para):
     return next_dst, dog_matrix, gauss_matrix
 
 
-def pyramid(octave_val, src_dst, points, scale, n=0):
+def unpackoctave(extrem_point):
+    """
+    对特征点进行解码
+    :param extrem_point: 编码后的特征点
+    :return: octave 特征点所在的组
+    :return: layer 特征点所在的层
+    :return: ext_scale 特征点的尺度
+    """
+    octave = extrem_point[2] & 255
+    layer = (extrem_point[2] >> 8) & 255
+    octave = octave if octave < 128 else (-128 | octave)
+    ext_scale = 1 / (1 << octave) if octave >= 0 else (1 << -octave)
+    return octave, layer, ext_scale
+
+
+def calcDescriptors(gauss_img, ptf, angle, scl, d, n):
+    """
+
+    :param gauss_img:
+    :param ptf:
+    :param angle:
+    :param scl:
+    :param d:
+    :param n:
+    :return:
+    """
+    anchor_x = int(round(ptf[0]))
+    anchor_y = int(round(ptf[1]))
+    cos_t = math.cos(angle * (math.pi / 180))
+    sin_t = math.sin(angle * (math.pi / 180))
+    bins_per_rad = n / 360
+    exp_scale = -1 / (d * d * 0.5)
+    rows = gauss_img.shape[0]
+    cols = gauss_img.shape[1]
+    hist_width = SIFT_DESCR_SCL_FCTR * scl
+    radius = int(round(hist_width * 1.4142135623730951 * (d + 1) * 0.5))
+    radius = min(radius,
+                 int(math.sqrt(rows * rows + cols * cols)))
+    cos_t /= hist_width
+    sin_t /= hist_width
+    star_x = -radius if (anchor_x - radius) > 0 else (1 - anchor_x)
+    star_y = -radius if (anchor_y - radius) > 0 else (1 - anchor_y)
+    end_x = radius if (rows - anchor_x - radius) > 1 else (rows - anchor_x - 2)
+    end_y = radius if (cols - anchor_y - radius) > 1 else (cols - anchor_y - 2)
+    # 计算梯度
+    xx = list(range(star_x - 1 + anchor_x, end_x + 2 + anchor_x))
+    yy = list(range(star_y - 1 + anchor_y, end_y + 2 + anchor_y))
+    grad_index = np.meshgrid(yy, xx)
+    # 获取计算梯度区域数据
+    grad_matrix = gauss_img[grad_index[1], grad_index[0]]
+    grad_index = None
+    # 计算列方向梯度
+    grad_x = grad_matrix[1: -1, 2:] - grad_matrix[1: -1, 0: -2]
+    # 计算行方向梯度（和公式符号相反，为了和opencv保持一致）
+    grad_y = grad_matrix[0: -2, 1: -1] - grad_matrix[2:, 1: -1]
+    grad_matrix = None
+    # 计算角度
+    ori = ((np.arctan2(grad_y, grad_x) + 2 * np.pi) % (2 * np.pi)) * (180 / np.pi)
+    # 计算幅值
+    mag = np.sqrt(grad_x * grad_x + grad_y * grad_y)
+    # 生成所在区域窗口位置索引，用于计算高斯权重,并计算旋转后坐标位置
+    x = list(range(star_x, end_x + 1))
+    y = list(range(star_y, end_y + 1))
+    rot_index = np.meshgrid(y, x)
+    # 计算旋转坐标
+    r_rot = rot_index[0] * cos_t - rot_index[1] * sin_t
+    c_rot = rot_index[0] * sin_t + rot_index[1] * cos_t
+    # 计算权中
+    weight = np.exp((c_rot * c_rot + r_rot * r_rot) * exp_scale)
+    # 计算落在子区域的坐标
+    rbin = c_rot + d / 2 - 0.5
+    cbin = r_rot + d / 2 - 0.5
+    # 获取满足要求的区域坐标索引
+    cbin_index = np.where((cbin > -1) & (cbin < d))
+    cbin_index_one_dims = cbin_index[0] * cbin.shape[1] + cbin_index[1]
+    bin_index = cbin_index_one_dims[np.where((rbin[cbin_index] > -1) & (rbin[cbin_index] < d))]
+    bin_index_two_dims = (bin_index // cbin.shape[1], bin_index % cbin.shape[1])
+    # 截取满足要求的梯度，权重，旋转后的坐标
+    # 梯度
+    ori_grad_x = grad_x[bin_index_two_dims]
+    ori_grad_y = grad_y[bin_index_two_dims]
+    # 权重
+    ori_weight = weight[bin_index_two_dims]
+    # 坐标
+    ori_rbin = rbin[bin_index_two_dims]
+    ori_cbin = cbin[bin_index_two_dims]
+    # 角度
+    ori_ori = ori[bin_index_two_dims]
+    # 幅值
+    ori_mag = mag[bin_index_two_dims]
+    # 幅值加权
+    ori_weight_mag = ori_mag * ori_weight
+    # 创建特征矢量直方图
+    hist = np.zeros((d + 2) * (d + 2) * (n + 2), dtype=np.float32)
+    dst = np.zeros(d * d * n, dtype=np.float32)
+    # 线性插值
+    for k in range(len(bin_index)):
+        inter_rbin = ori_rbin[k]
+        inter_cbin = ori_cbin[k]
+        inter_obin = (ori_ori[k] - angle) * bins_per_rad
+        inter_mag = ori_weight_mag[k]
+        r0 = int(math.floor(inter_rbin))
+        c0 = int(math.floor(inter_cbin))
+        o0 = int(math.floor(inter_obin))
+        inter_rbin -= r0
+        inter_cbin -= c0
+        inter_obin -= o0
+        if o0 < 0:
+            o0 += n
+        if o0 >= n:
+            o0 -= n
+        # histogram update using tri-linear interpolation
+        v_r1 = inter_mag * inter_rbin
+        v_r0 = inter_mag - v_r1
+
+        v_rc11 = v_r1 * inter_cbin
+        v_rc10 = v_r1 - v_rc11
+
+        v_rc01 = v_r0 * inter_cbin
+        v_rc00 = v_r0 - v_rc01
+
+        v_rco111 = v_rc11 * inter_obin
+        v_rco110 = v_rc11 - v_rco111
+
+        v_rco101 = v_rc10 * inter_obin
+        v_rco100 = v_rc10 - v_rco101
+
+        v_rco011 = v_rc01 * inter_obin
+        v_rco010 = v_rc01 - v_rco011
+
+        v_rco001 = v_rc00 * inter_obin
+        v_rco000 = v_rc00 - v_rco001
+
+        idx = ((r0 + 1) * (d + 2) + c0 + 1) * (n + 2) + o0
+        hist[idx] += v_rco000
+        hist[idx + 1] += v_rco001
+        hist[idx + (n + 2)] += v_rco010
+        hist[idx + (n + 3)] += v_rco011
+        hist[idx + (d + 2) * (n + 2)] += v_rco100
+        hist[idx + (d + 2) * (n + 2) + 1] += v_rco101
+        hist[idx + (d + 3) * (n + 2)] += v_rco110
+        hist[idx + (d + 3) * (n + 2) + 1] += v_rco111
+    for i in range(d):
+        for j in range(d):
+            idx = ((i + 1) * (d + 2) + (j + 1)) * (n + 2)
+            hist[idx] += hist[idx + n]
+            hist[idx + 1] += hist[idx + n + 1]
+            for k in range(n):
+                dst[(i * d + j) * n + k] = hist[idx + k]
+    thr = np.sqrt(np.sum(dst * dst)) * SIFT_DESCR_MAG_THR
+    # 把特征矢量中大于反归一化阈值thr的元素用thr替代
+    dst = np.minimum(dst, thr)
+    nrm2 = SIFT_INT_DESCR_FCTR / max(np.sqrt(np.sum(dst * dst)), sys.float_info.epsilon)
+    dst = dst * nrm2
+    return list(dst)
+
+
+def calcDescriptorsComputer(gauss_pyr, Extreme_points, points_description):
+    d = SIFT_DESCR_WIDTH
+    n = SIFT_DESCR_HIST_BINS
+    for iextpoint in Extreme_points:
+        octave, layer, ext_scale = unpackoctave(iextpoint[:])
+        assert (octave >= firstOctave and layer <= 5)
+        size = iextpoint[3] * ext_scale
+        ptf_y = iextpoint[0] * ext_scale
+        ptf_x = iextpoint[1] * ext_scale
+        angle = 360 - iextpoint[5]
+        if abs(360 - angle) < sys.float_info.epsilon:
+            angle = 0.0
+        iextpoint_description = calcDescriptors(gauss_pyr[layer], (ptf_y, ptf_x), angle, size * 0.5, d, n)
+        points_description.append(iextpoint_description)
+    return points_description[:]
+
+
+def pyramid(octave_val, src_dst, points_des, scale, n=0):
     if n == octave_val:  # 当达到指定层数后，返回监测的极值点
         # 返回极值点，可是设定在该返回位置做最后一层
         # 获取原始数据集的基本信息
@@ -379,7 +551,16 @@ def pyramid(octave_val, src_dst, points, scale, n=0):
         filtered_img = None
         # 检测极值点
         ext_points = detect_ext_points(gauss_pyr, dog_pyr, n)
-        return ext_points
+        if firstOctave < 0:
+            local_scale = 1 / (1 << -firstOctave)
+            for ipoint in ext_points:
+                ipoint[2] = (ipoint[2] & ~255) | ((ipoint[2] + firstOctave) & 255)  # kpt_octave
+                ipoint[0] *= local_scale  # kpt_y
+                ipoint[1] *= local_scale  # kpt_x
+                ipoint[3] *= local_scale  # kpt_size
+        # 创建特征点的描述子
+        points_des_vector = calcDescriptorsComputer(gauss_pyr, ext_points[:], points_des)
+        return points_des_vector
     else:
         if n == 0:
             # 获取原始数据集的基本信息
@@ -402,8 +583,18 @@ def pyramid(octave_val, src_dst, points, scale, n=0):
             next_dst, dog_pyr, gauss_pyr = build_dog(filtered_img, scale)
             filtered_img = None
             # 检测极值点
-            ext_points = detect_ext_points(gauss_pyr, dog_pyr, n, points[:])
-            return pyramid(octave_val, next_dst, ext_points[:], scale, n + 1)
+            ext_points = detect_ext_points(gauss_pyr, dog_pyr, n)
+            if firstOctave < 0:
+                local_scale = 1 / (1 << -firstOctave)
+                for ipoint in ext_points:
+                    ipoint[2] = (ipoint[2] & ~255) | ((ipoint[2] + firstOctave) & 255)  # kpt_octave
+                    ipoint[0] *= local_scale  # kpt_y
+                    ipoint[1] *= local_scale  # kpt_x
+                    ipoint[3] *= local_scale  # kpt_size
+            # 创建特征点的描述子
+            points_des_vector = calcDescriptorsComputer(gauss_pyr, ext_points[:], points_des)
+            # 递归函数中有可能需要传递的是描述子的数据结构变量，不应该是极值点的变量****************************
+            return pyramid(octave_val, next_dst, points_des_vector, scale, n + 1)
         else:
             # 获取原始数据集的基本信息
             src_xsize = src_dst.RasterXSize
@@ -416,7 +607,16 @@ def pyramid(octave_val, src_dst, points, scale, n=0):
             filtered_img = None
             # 检测极值点
             ext_points = detect_ext_points(gauss_pyr, dog_pyr, n)
-            return pyramid(octave_val, next_dst, ext_points[:], scale, n + 1)
+            if firstOctave < 0:
+                local_scale = 1 / (1 << -firstOctave)
+                for ipoint in ext_points:
+                    ipoint[2] = (ipoint[2] & ~255) | ((ipoint[2] + firstOctave) & 255)  # kpt_octave
+                    ipoint[0] *= local_scale  # kpt_y
+                    ipoint[1] *= local_scale  # kpt_x
+                    ipoint[3] *= local_scale  # kpt_size
+            # 创建特征点的描述子
+            points_des_vector = calcDescriptorsComputer(gauss_pyr, ext_points[:], points_des)
+            return pyramid(octave_val, next_dst, points_des_vector, scale, n + 1)
 
 
 def main(in_fn, band_index):
@@ -441,6 +641,18 @@ def main(in_fn, band_index):
     SIFT_ORI_RADIUS = 3 * SIFT_ORI_SIG_FCTR
     global SIFT_ORI_PEAK_RATIO
     SIFT_ORI_PEAK_RATIO = 0.8
+    global firstOctave
+    firstOctave = -1
+    global SIFT_DESCR_WIDTH
+    SIFT_DESCR_WIDTH = 4
+    global SIFT_DESCR_HIST_BINS
+    SIFT_DESCR_HIST_BINS = 8
+    global SIFT_DESCR_SCL_FCTR
+    SIFT_DESCR_SCL_FCTR = 3
+    global SIFT_DESCR_MAG_THR
+    SIFT_DESCR_MAG_THR = 0.2
+    global SIFT_INT_DESCR_FCTR
+    SIFT_INT_DESCR_FCTR = 512.0
     # 读取影像
     src_dst = gdal.Open(in_fn)
     xsize = src_dst.RasterXSize
@@ -459,8 +671,8 @@ def main(in_fn, band_index):
     # 计算该层的高斯尺度空间
     scale = scale_space(init_sigma)
     # 构建高斯金字塔并检测极值点
-    extreme_points = []
-    extreme_points = pyramid(octave, src_one_dst, extreme_points[:], scale)
+    point_description = []
+    descrition = pyramid(octave, src_one_dst, point_description, scale)
     return None
 
 
