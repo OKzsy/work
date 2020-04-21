@@ -18,6 +18,7 @@ Parameters
 
 import os
 import glob
+import gc
 import time
 import fnmatch
 from osgeo import gdal, ogr, osr, gdalconst
@@ -69,7 +70,9 @@ def reproject_dataset(src_ds):
     """
     # 定义目标投影
     oSRS = osr.SpatialReference()
-    oSRS.SetWellKnownGeogCS("WGS84")
+    # oSRS.SetWellKnownGeogCS("WGS84")
+    # oSRS.ImportFromEPSG(3857)
+    oSRS.ImportFromEPSG(4526)
     # 获取原始投影
     src_prj = src_ds.GetProjection()
     oSRC = osr.SpatialReference()
@@ -80,16 +83,16 @@ def reproject_dataset(src_ds):
 
     # 获取原始影像的放射变换参数
     geo_t = src_ds.GetGeoTransform()
-    x_size = src_ds.RasterXSize  # Raster xsize
-    y_size = src_ds.RasterYSize  # Raster ysize
-    bandCount = src_ds.RasterCount  # Band Count
-    dataType = src_ds.GetRasterBand(1).DataType  # Data Type
+    x_size = src_ds.RasterXSize
+    y_size = src_ds.RasterYSize
+    bandCount = src_ds.RasterCount
+    dataType = src_ds.GetRasterBand(1).DataType
     if oSRC.GetAttrValue("UNIT") == "metre":
-        new_x_size = geo_t[1] / 10**(5)
-        new_y_size = geo_t[5] / 10**(5)
+        new_x_size = geo_t[1] * 10 ** (-5)
+        new_y_size = geo_t[5] * 10 ** (-5)
     else:
         new_x_size = geo_t[1]
-        new_y_size = geo_t[1]
+        new_y_size = geo_t[5]
     # 获取影像的四个角点地理坐标
     # 左上
     old_ulx, old_uly = corner_to_geo(0, 0, src_ds)
@@ -122,7 +125,7 @@ def reproject_dataset(src_ds):
     mem_drv = gdal.GetDriverByName('MEM')
     # 根据计算的参数创建存储空间
     dest = mem_drv.Create('', int((lrx - ulx) / new_x_size), \
-                          int((uly - lry) / (-new_y_size)), bandCount, dataType)
+                          int((uly - lry) / -new_y_size), bandCount, dataType)
     # 计算新的放射变换参数
     new_geo = (ulx, new_x_size, geo_t[2], uly, geo_t[4], new_y_size)
     # 为重投影结果设置空间参考
@@ -138,9 +141,12 @@ def reproject_dataset(src_ds):
 
 def main(in_dir, out_dir, partfileinfo):
     # 搜索需要处理的影像
-    Pending_images = searchfiles(in_dir, partfileinfo=partfileinfo, recursive=True)
+    Pending_images = searchfiles(in_dir, partfileinfo=partfileinfo)
     # 开始重采样
+    count = 1
     for ifile in Pending_images:
+        print("A total of {} scene images, this is the {}".format(len(Pending_images), count))
+        count += 1
         # 获取影像的名称
         basename = os.path.splitext(os.path.basename(ifile))[0]
         # 打开影像
@@ -148,7 +154,7 @@ def main(in_dir, out_dir, partfileinfo):
         # 重投影
         dest = reproject_dataset(dataset)
         # 拼接输出影像绝对路径
-        out_img_path = os.path.join(out_dir, basename) + "-prj.tiff"
+        out_img_path = os.path.join(out_dir, basename) + "-prj.tif"
         # 存储经重采样的结果
         print('Store the reprojected image!')
         driver = gdal.GetDriverByName("GTiff")
@@ -157,18 +163,19 @@ def main(in_dir, out_dir, partfileinfo):
         dataset = None
         dest = None
         dst_ds = None
+        gc.collect()
     return None
 
 
 if __name__ == '__main__':
     # 支持中文路径
-    gdal.SetConfigOption("GDAL_FILENAME_IS_UTF8", "NO")
+    gdal.SetConfigOption("GDAL_FILENAME_IS_UTF8", "YES")
     # 注册所有gdal驱动
     gdal.AllRegister()
     start_time = time.clock()
-    in_dir = r"F:\ChangeMonitoring\huijiqu\2018"
-    out_dir = r"F:\ChangeMonitoring\huijiqu\out"
-    partfileinfo = "*sha.tif"
+    in_dir = r"F:\test\20190816_out"
+    out_dir = r"F:\test\20190816_out"
+    partfileinfo = "S2_20180816.tif"
     main(in_dir, out_dir, partfileinfo)
     end_time = time.clock()
 

@@ -3,9 +3,10 @@
 
 """
 
-Author: tianjg
-Email:jango.tian@gmail.com
-Create date: 2018/7/16 9:54
+# @Time    : 2019/8/30 10:04
+# @Author  : zhaoss
+# @FileName: TranslateFromYoudao.py
+# @Email   : zhaoshaoshuai@hnnydsj.com
 
 Description:
     根据输入的4通道表观反射率影响，进行云检测处理，输出云shapefile文件

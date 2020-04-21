@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="PublishConfigData" serverName="102" createEmptyFolders="true">
+    <serverData>
+      <paths name="102">
+        <serverdata>
+          <mappings>
+            <mapping deploy="/test" local="$PROJECT_DIR$" web="/" />
+          </mappings>
+        </serverdata>
+      </paths>
+      <paths name="zhaoshaoshuai@172.16.0.102:22">
+        <serverdata>
+          <mappings>
+            <mapping deploy="/home/zhaoshaoshuai/test" local="$PROJECT_DIR$" />
+          </mappings>
+        </serverdata>
+      </paths>
+    </serverData>
+  </component>
+</project>

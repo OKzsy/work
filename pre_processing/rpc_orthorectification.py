@@ -90,9 +90,9 @@ if __name__ == "__main__":
     # out_file = r"D:\Data\Test_data\un_zip\out_dir\GF2_PMS2_E114.0_N34.7_20180327_L1A0003087399_mss2_ort.tif"
     # dem_file = r"D:\Data\Other_data\dem_zm_8m\gf2_dem.tif"
     #
-    in_file = r"\\192.168.0.234\nydsj\project\9.Insurance_gongyi\2019年\1.data\2.GJ\1.source\SV1-03_20190328_L2A0000820208_1103190064002_01\SV1-03_20190328_L2A0000820208_1103190064002_01-MUX.tiff"
-    out_file = r"\\192.168.0.234\nydsj\user\ZSS\GJ20190507\ort\SV1-03_20190328_L2A0000820208_1103190064002_01-MUX_ort.tiff"
-    dem_file = r"D:\ENVI5.3\ENVI53\data\GMTED2010.jp2"
+    in_file = r"\\192.168.0.234\nydsj\user\ZSS\农保项目\1.source\GF1\GF1C_PMS_E114.0_N34.7_20190828_L1A1021464251\GF1C_PMS_E114.0_N34.7_20190828_L1A1021464251-PAN.tiff"
+    out_file = r"\\192.168.0.234\nydsj\user\ZSS\农保项目\3.rpc\GF1C_PMS_E114.0_N34.7_20190828_L1A1021464251-PAN.tiff"
+    dem_file = r"\\192.168.0.234\nydsj\project\26.玉米分类\1.data\DEM\GF1_2\Level18\GF1_2.tif"
     main(in_file, out_file, dem_file)
 
     # if len(sys.argv[1:]) < 3:

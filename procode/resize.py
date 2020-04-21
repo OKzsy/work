@@ -15,6 +15,7 @@ Parameters
 import os
 import sys
 import glob
+import gc
 import numpy as np
 import time
 from osgeo import gdal, ogr, gdalconst
@@ -23,6 +24,27 @@ try:
     progress = gdal.TermProgress_nocb
 except:
     progress = gdal.TermProgress
+
+
+def resize(src_dst, dst_xsize, dst_ysize, seq):
+    """
+    根据输入的目标影像行列数对原始影像进行缩放，缩放方法为双线性插值
+    :param src_dst: 原始数据集
+    :param dst_xsize: 目标影像列数
+    :param dst_ysize: 目标影像行数
+    :return: 返回重采样后的目标影像数据集
+    """
+    # 获取原始影像的数据类型
+    datatype = src_dst.GetRasterBand(1).DataType
+    # 根据目标大小，在内存创建结果影像
+    tmp_dst_path = r'/vsimem/tmp_dst_{}.tiff'.format(str(seq))
+    gdal.Translate(tmp_dst_path, src_dst, resampleAlg=gdal.GRA_Bilinear, format='GTiff', width=dst_xsize,
+                   height=dst_ysize, outputType=datatype)
+    tmp_dst = gdal.Open(tmp_dst_path)
+    src_dst = None
+    gdal.Unlink(tmp_dst_path)
+    gc.collect()
+    return tmp_dst
 
 
 def main(pan, mss, out):
@@ -67,13 +89,13 @@ if __name__ == '__main__':
     gdal.AllRegister()
     gdal.SetConfigOption("gdal_FILENAME_IS_UTF8", "YES")
 
-    start_time = time.clock()
-    pan_file = r"F:\GF\GF2_PMS2_E113.1_N34.9_20171020_L1A0002693345-PAN2.tif"
-    mss_file = r"F:\GF\GF2_PMS2_E113.1_N34.9_20171020_L1A0002693345-MSS2.tif"
-    out_file = r"F:\GF\out\resize.tif"
+    start_time = time.time()
+    pan_file = r"F:\test_data\new_test\GF2_20180718_L1A0003330812_sha_inter_ceil_num.tiff"
+    mss_file = r"F:\test_data\new_test\GF2_20180718_L1A0003330812_sha.tiff"
+    out_file = r"F:\test_data\new_test\GF2_20180718_L1A0003330812_sha_inter_gdal.tiff"
 
     main(pan_file, mss_file, out_file)
 
-    end_time = time.clock()
+    end_time = time.time()
 
     print("time: %.4f secs." % (end_time - start_time))

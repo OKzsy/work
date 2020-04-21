@@ -7,6 +7,7 @@ import numpy as np
 import datetime
 import os
 import re
+import time
 import requests
 
 # 创建随机数种子
@@ -22,7 +23,7 @@ header = {
 }
 Picreferer = {
     'User-Agent': "Mozilla / 5.0(Windows NT 10.0; WOW64) AppleWebKit / 537.36(KHTML, like Gecko) Chrome / 74.0.3729.157 Safari / 537.36",
-    'Referer':'http://i.meizitu.net'
+    'Referer': 'https://www.mzitu.com'
 }
 
 
@@ -93,6 +94,7 @@ def save_pic(link, name, pic_dir):
         pic_url = get_pic_url(ialb_url)
         save_img(pic_url, ipic, alb_dir)
         print('正在保存第' + str(ipic) + '张图片')
+        time.sleep(0.5)
     print("图集--" + name + "保存成功")
     return 1
 
@@ -112,7 +114,9 @@ def main(url):
 if __name__ == "__main__":
     # 图片存放路径
     pic_dir = r"E:\PythonCode\pic"
+    if not os.path.exists(pic_dir):
+        os.makedirs(pic_dir)
     # 通过标签下载图片
-    source_url = "https://www.mzitu.com/search/酥胸/"
+    source_url = "https://www.mzitu.com/search/头/"
     main(source_url)
     pass

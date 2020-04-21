@@ -21,6 +21,7 @@ import csv
 import time
 import shutil
 import numpy as np
+
 try:
     from osgeo import gdal
 except ImportError:
@@ -66,7 +67,6 @@ def main(in_file, in_dir, out_file):
 
     csv_list = search_file(in_dir, '.csv')
 
-
     for icsv in range(len(csv_list)):
         # 读取csv
         with open(csv_list[icsv], 'r') as in_csv:
@@ -92,18 +92,16 @@ def main(in_file, in_dir, out_file):
     progress(1)
 
 
-
 if __name__ == '__main__':
     start_time = time.time()
 
-    if len(sys.argv[1:]) < 3:
-        sys.exit('Problem reading input')
-    main(sys.argv[1], sys.argv[2], sys.argv[3])
-    # in_file = r"D:\Data\Test_data\un_zip\yingqiao_20180523+0607_reg_clip2.tif"
-    # in_dir = r"D:\Data\Test_data\un_zip\out_dir\test5_class"
-    # out_file = r"D:\Data\Test_data\un_zip\yingqiao_20180523+0607_reg_clip2_class5.tif"
-    # main(in_file, in_dir, out_file)
+    # if len(sys.argv[1:]) < 3:
+    #     sys.exit('Problem reading input')
+    # main(sys.argv[1], sys.argv[2], sys.argv[3])
+    in_file = r"D:\Data\Test_data\un_zip\yingqiao_20180523+0607_reg_clip2.tif"
+    in_dir = r"D:\Data\Test_data\un_zip\out_dir\test5_class"
+    out_file = r"D:\Data\Test_data\un_zip\yingqiao_20180523+0607_reg_clip2_class5.tif"
+    main(in_file, in_dir, out_file)
 
     end_time = time.time()
     print("time: %.2f min." % ((end_time - start_time) / 60))
-

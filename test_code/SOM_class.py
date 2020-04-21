@@ -6,7 +6,7 @@
 # @FileName: SOM_class.py
 # @Email   : zhaoshaoshuai@hnnydsj.com
 Description:
-
+根据地块边界矢量数据计算地块的土壤有机质平均含量，并将平均值写入地块对应的属性字段中
 
 Parameters
 

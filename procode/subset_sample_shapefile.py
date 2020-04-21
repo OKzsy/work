@@ -16,6 +16,7 @@ Parameters
 import os
 import sys
 import glob
+import re
 import numpy as np
 import time
 from osgeo import gdal, ogr, osr, gdalconst
@@ -117,7 +118,10 @@ def min_rect(raster_ds, shp_layer):
     # 行
     offset_line = np.array([off_uly, off_dry])
     offset_line = np.maximum((np.minimum(offset_line, y_size - 1)), 0)
-
+    if offset_column[1] == offset_column[0]:
+        offset_column[1] += 1
+    if offset_line[1] == offset_line[0]:
+        offset_line[1] += 1
     return [offset_column[0], offset_line[0], offset_column[1], offset_line[1]]
 
 
@@ -149,9 +153,12 @@ def mask_raster(raster_ds, mask_ds, outfile, ext):
     return 1
 
 
-def main(raster, shp, out, fieldName='Name'):
+def main(raster, shp, out, fieldName):
+    if fieldName == None:
+        fieldName = 'Name'
     # 打开栅格和矢量影像
     raster_ds = gdal.Open(raster)
+    raster_basename = os.path.splitext(os.path.basename(raster))[0]
     shp_ds = ogr.Open(shp)
     shp_lyr = shp_ds.GetLayer()
     shp_sr = shp_lyr.GetSpatialRef()
@@ -172,13 +179,12 @@ def main(raster, shp, out, fieldName='Name'):
     # 定义变量用以显示进度条
     count = 0
     num_feature = re_shp_l.GetFeatureCount()
+    # 打开栅格影像
     for feat in re_shp_l:
-        # 获取要素的属性值用以确定输出tif影像的名字和路径
-        # outdir = os.path.join(out, feat.Name.split('-')[1])
-        # if not os.path.exists(outdir):
-        #     os.makedirs(outdir)
+        progress((count + 1) / num_feature)
+        count += 1
         outdir = out
-        outpath = os.path.join(outdir, feat.GetField(fieldName) + '.tiff')
+        outpath = os.path.join(outdir, raster_basename + '_' + feat.GetField(fieldName) + '.tif')
         # 要素提取为图层
         feat_ds, feat_lyr = Feature_memory_shp(feat, raster_srs)
         # 要素裁剪
@@ -191,8 +197,6 @@ def main(raster, shp, out, fieldName='Name'):
         mask_ds = shp2raster(raster_ds, feat_lyr, offset)
         # 进行裁剪
         res = mask_raster(raster_ds, mask_ds, outpath, offset)
-        progress((count + 1) / num_feature)
-        count += 1
     re_shp_ds = None
     raster_ds = None
     shp_ds = None
@@ -201,7 +205,7 @@ def main(raster, shp, out, fieldName='Name'):
 
 if __name__ == '__main__':
     # 支持中文路径
-    gdal.SetConfigOption("GDAL_FILENAME_IS_UTF8", "NO")
+    gdal.SetConfigOption("GDAL_FILENAME_IS_UTF8", "YES")
     # 支持中文属性字段
     gdal.SetConfigOption("SHAPE_ENCODING", "GBK")
     # 注册所有ogr驱动
@@ -213,10 +217,19 @@ if __name__ == '__main__':
     # if len(sys.argv[1:]) < 3:
     #     sys.exit('Problem reading input')
     # main(sys.argv[1], sys.argv[2], sys.argv[3])
-    in_file = r"\\192.168.0.234\nydsj\user\HYK\sampleTest\planet_20180921_clip.tif"
-    shpfile = r"\\192.168.0.234\nydsj\user\HYK\sampleTest\shp\land_huijiqu.shp"
-    outfile = r"\\192.168.0.234\nydsj\user\HYK\out"
-    main(in_file, shpfile, outfile)
+    in_file = r"\\192.168.0.234\nydsj\user\ZSS\农保项目\S2\62xianque_out\res\L2A_T50SKC_A021665_20190816T031414_ref_10m-prj.tif"
+    shpfile = r"\\192.168.0.234\nydsj\user\遥感院\农保项目\深度学习\S2\land_L2A_T50SKC_A021665_20190816T031414.shp"
+    outfile = r"\\192.168.0.234\nydsj\user\LXX\协助他人\农保\clip\use"
+    # if len(sys.argv[1:]) < 4:
+    #     sys.exit('Problem reading input')
+    # in_file = sys.argv[1]
+    # shpfile = sys.argv[2]
+    # outfile = sys.argv[3]
+    # field_name = sys.argv[4]
+    # if len(field_name) == 0:
+    #     field_name = None
+    field_name = None
+    main(in_file, shpfile, outfile, field_name)
     end_time = time.clock()
 
     print("time: %.4f secs." % (end_time - start_time))

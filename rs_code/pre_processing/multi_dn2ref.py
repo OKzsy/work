@@ -292,8 +292,8 @@ if __name__ == '__main__':
     # in_dir = sys.argv[1]
     # out_dir = sys.argv[2]
     #
-    in_dir = r"\\192.168.0.234\nydsj\user\ZSS\T50SKD"
-    out_dir = r"\\192.168.0.234\nydsj\user\ZSS\zhengzhou_s2\T50SKD_out"
+    in_dir = r"\\192.168.0.234\nydsj\user\ZFF\哨兵"
+    out_dir = r"\\192.168.0.234\nydsj\user\ZSS\20190613"
     main(in_dir, out_dir)
 
     end_time = time.time()

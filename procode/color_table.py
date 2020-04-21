@@ -7,6 +7,11 @@ import numpy as np
 import time
 from osgeo import gdal
 
+try:
+    progress = gdal.TermProgress_nocb
+except:
+    progress = gdal.TermProgress
+
 
 def color(infile, outfile, deep_leaning_table, all_sample_labels):
     # 注册所有gdal的驱动
@@ -18,37 +23,36 @@ def color(infile, outfile, deep_leaning_table, all_sample_labels):
     prj = source_ds.GetProjection()
     geo = source_ds.GetGeoTransform()
     in_band = source_ds.GetRasterBand(1)
-    a_nodata = in_band.GetNoDataValue()
     # 创建输出影像
     gtiff_driver = gdal.GetDriverByName('GTiff')
     dest_ds = gtiff_driver.Create(outfile, in_band.XSize, in_band.YSize, 1, gdal.GDT_Byte)
     dest_ds.SetProjection(prj)
     dest_ds.SetGeoTransform(geo)
 
-    out_band1 = dest_ds.GetRasterBand(1)
-    if not a_nodata == None:
-        out_band1.SetNoDataValue(a_nodata)
-    # 临时处理影像
-    in_array = in_band.ReadAsArray()
-    in_array = np.where(in_array == 0, 30, 0)
-    out_band1.WriteArray(in_array)
+    class_array = in_band.ReadAsArray()
     # 写入颜色表
     colors = gdal.ColorTable()
     for key, value in deep_leaning_table.items():
-        colors.SetColorEntry(key, all_sample_labels[value][1])
+        # 获取品类的规范化的标签
+        normal_cate_valeu = all_sample_labels[value][0]
+        # 将影像中的值规范化
+        index = np.where(class_array == key)
+        class_array[index] = normal_cate_valeu
+        # colors.SetColorEntry(key, all_sample_labels[value][1])
 
-    out_band1.SetRasterColorTable(colors)
-
+    # out_band1.SetRasterColorTable(colors)
+    dest_ds.GetRasterBand(1).WriteArray(class_array, callback=progress)
+    dest_ds.FlushCache()
     source_ds = None
     dest_ds = None
 
 
 def main(infile, outfile, deep_leaning_table):
-    all_sample_labels = {'白菜': [1, (0, 153, 102)], '包菜': [2, (153, 204, 51)], '菠菜': [3, (0, 102, 51)],
+    all_sample_labels = {'白菜': [1, (0, 153, 102)], '大豆': [2, (153, 204, 51)], '菠菜': [3, (0, 102, 51)],
                          '草莓': [4, (255, 153, 204)], '大葱': [5, (204, 204, 102)], '大蒜': [6, (34, 139, 34)],
                          '冬瓜': [7, (153, 204, 153)], '豆角': [8, (51, 102, 102)], '番茄': [9, (51, 51, 153)],
                          '红薯': [10, (153, 0, 51)], '花菜': [11, (102, 102, 153)], '花生': [12, (255, 153, 0)],
-                         '黄瓜': [13, (93, 154, 66)], '芥兰': [14, (0, 51, 102)], '苦瓜': [15, (61, 61, 140)],
+                         '黄瓜': [13, (93, 154, 66)], '芝麻': [14, (0, 51, 102)], '水稻': [15, (61, 61, 140)],
                          '苦菊': [16, (105, 107, 182)], '辣椒': [17, (255, 102, 102)], '萝卜': [18, (50, 40, 239)],
                          '棉花': [19, (0, 102, 153)], '南瓜': [20, (102, 51, 0)], '茄子': [21, (102, 51, 102)],
                          '芹菜': [22, (153, 102, 102)], '青菜': [23, (38, 254, 2)], '生菜': [24, (38, 54, 209)],

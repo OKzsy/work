@@ -28,8 +28,8 @@ class RequestError(Exception):
     pass
 
 
-# USERAGENT = 'tis/download.py_1.0--' + sys.version.replace('\n', '').replace('\r', '')
-USERAGENT = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/74.0.3729.131 Safari/537.36'
+USERAGENT = 'tis/download.py_1.0--' + sys.version.replace('\n', '').replace('\r', '')
+# USERAGENT = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/74.0.3729.131 Safari/537.36'
 
 
 class Nasa:
@@ -77,14 +77,15 @@ class Nasa:
 def sync(source, dest, tok):
     """synchronize src url with dest directory"""
     headers = {'user-agent': USERAGENT,
-               "Referer": "https: // ladsweb.modaps.eosdis.nasa.gov / archive / allData",
+               # "Referer": "https://ladsweb.modaps.eosdis.nasa.gov/archive/allData",
+               "Referer": source[0] + '/',
                "Host": "ladsweb.modaps.eosdis.nasa.gov"}
     if not tok is None:
         headers['Authorization'] = 'Bearer ' + tok
     src = source[0]
     files = source[1]
     if not os.path.exists(save_path):
-        os.mkdir(save_path)
+        os.makedirs(save_path)
     for k, f in files.items():
         filesize = int(f['size'])
         path = os.path.join(dest, f['name'])
@@ -103,10 +104,10 @@ def sync(source, dest, tok):
                 else:
                     print('skipping: ', path)
             except exceptions.Timeout as e:
-                print('请求超时：' + str(e.message))
+                print('请求超时：' + str(e.strerror))
                 sys.exit(-1)
             except exceptions.HTTPError as e:
-                print('http请求错误: ' + str(e.message))
+                print('http请求错误: ' + str(e.strerror))
                 sys.exit(-1)
             except IOError as e:
                 print("open `%s': %s" % (e.filename, e.strerror), file=sys.stderr)
@@ -128,9 +129,10 @@ def main(date, latlng, save_path):
 
 if __name__ == '__main__':
     start_time = time.clock()
-    day = '2019-05-09'
+    day = '2020-02-09'
     latlng = 'x110.369217y36.354952,x116.650994y31.400914'
-    save_path = os.path.join(r"F:\henanxiaomai\new", day.replace("-", ""))
+    # latlng = 'x105.285347y32.203355,x110.194193y28.16
+    save_path = os.path.join(r"F:\test_modis", day.replace("-", ""))
     main(date=day, latlng=latlng, save_path=save_path)
     end_time = time.clock()
 

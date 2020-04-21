@@ -296,6 +296,16 @@ def main(in_dir, out_dir, partfileinfo=None):
         # 打开栅格影像
         pan_ds = gdal.Open(pan)
         mss_ds = gdal.Open(mss)
+        # 判断全色和多光谱影像的投影是否一致，不一致退出程序
+        pan_rpj = pan_ds.GetProjection()
+        mss_rpj = mss_ds.GetProjection()
+        pan_osr = osr.SpatialReference()
+        pan_osr.ImportFromWkt(pan_rpj)
+        mss_osr = osr.SpatialReference()
+        mss_osr.ImportFromWkt(mss_rpj)
+        if not pan_osr.IsSame(mss_osr):
+            pan_ds = mss_ds = None
+            sys.exit("The Projection is not same!")
         # 获取待处理影像的文件名
         pan_file_name = os.path.splitext(os.path.basename(pan))[0]
         if not os.path.exists(temp_dir):

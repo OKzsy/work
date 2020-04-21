@@ -245,7 +245,6 @@ def ATM_CORRECT(img_in_path, img_out_path, atm_coe, senID, satID, year):
                                 {'PMS1': [0.1725, 0.1356, 0.1736, 0.1644, 0.1788], \
                                  'PMS2': [0.2136, 0.1859, 0.2072, 0.1934, 0.2180]}}}
     rad_coe = rad_coe_dict[satID][year][senID]
-
     # 大气校正系数
     # xa, xb, xc
     # y = xa * (measured radiance) - xb
