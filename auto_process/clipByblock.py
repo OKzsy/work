@@ -224,9 +224,9 @@ if __name__ == '__main__':
     # 注册所有gdal驱动
     gdal.AllRegister()
     start_time = time.clock()
-    in_file = r"F:\kuihua8\out\base\H08_20200311_0630_L2WLFbet_FLDK.06001_06001.tif"
-    shpfile = r"F:\kuihua8\guojie\bou1_4p.shp"
-    outfile = r"F:\kuihua8\base\H08_20200311_0630_L2WLFbet_FLDK.06001_06001.tif"
+    in_file = r"F:\kuihua\H08_20200311_0420_L2WLFbet_FLDK.06001_06001.tif"
+    shpfile = r"F:\kuihua\guojie\bou1_4p.shp"
+    outfile = r"F:\kuihua\base\H08_20200311_0420_L2WLFbet_FLDK.06001_06001.tif"
     nodata = 0
 
     print('The program starts running!')

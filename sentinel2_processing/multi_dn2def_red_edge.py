@@ -216,27 +216,27 @@ def main(in_dir, out_dir):
     if zip_files == []:
         sys.exit('no zip file')
     # 建立多个进程
-    # pool = mp.Pool(processes=4)
-    # func = partial(dn2ref, out_dir)
-    # for izip in zip_files:
-    #     res = pool.apply_async(func, args=(izip,))
-    # pool.close()
-    # pool.join()
+    pool = mp.Pool(processes=4)
+    func = partial(dn2ref, out_dir)
+    for izip in zip_files:
+        res = pool.apply_async(func, args=(izip,))
+    pool.close()
+    pool.join()
     # 建立多个进程
-    num_proc = min(8, len(zip_files))
-    for zip in range(0, len(zip_files), num_proc):
-
-        sub_zip_list = zip_files[zip: num_proc + zip]
-
-        thread_list = []
-        for izip in sub_zip_list:
-            # dn2ref(out_dir, izip)
-            thread = Thread(target=dn2ref, args=(out_dir, izip,))
-            thread.start()
-            thread_list.append(thread)
-
-        for it in thread_list:
-            it.join()
+    # num_proc = min(8, len(zip_files))
+    # for zip in range(0, len(zip_files), num_proc):
+    #
+    #     sub_zip_list = zip_files[zip: num_proc + zip]
+    #
+    #     thread_list = []
+    #     for izip in sub_zip_list:
+    #         # dn2ref(out_dir, izip)
+    #         thread = Thread(target=dn2ref, args=(out_dir, izip,))
+    #         thread.start()
+    #         thread_list.append(thread)
+    #
+    #     for it in thread_list:
+    #         it.join()
 
 
 if __name__ == '__main__':
