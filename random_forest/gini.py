@@ -138,12 +138,10 @@ def predict(sample, tree):
 
 
 def main():
-    ls = [[1, 1, 1], [1, 1, 1], [1, 0, 0], [0, 1, 0], [0, 1, 0]]
+    ls = [[2, 2, 1], [2, 2, 1], [2, 3, 0], [3, 2, 0], [3, 2, 0]]
     label_ar = np.array(ls)
-    res = cal_gini_index(label_ar[:, -1])
-    print(res)
     tree = build_tree(label_ar)
-    sample = np.array([0, 1])
+    sample = np.array([3, 2])
     res = predict(sample, tree)
     print(res)
     return None
