@@ -113,7 +113,7 @@ def build_tree(data):
         return node(fea=bestcriteria[0], value=bestcriteria[1], right=right, left=left)
     else:
         # 返回当前的类别标签作为最终的类别标签
-        return node(results=np.unique(data, return_counts=True))
+        return node(results=np.unique(data[:, -1], return_counts=True))
 
 
 def predict(sample, tree):
@@ -138,10 +138,10 @@ def predict(sample, tree):
 
 
 def main():
-    ls = [[2, 2, 1], [2, 2, 1], [2, 3, 0], [3, 2, 0], [3, 2, 0]]
+    ls = [[1, 1, 1], [1, 1, 1], [1, 0, 0], [0, 1, 0], [0, 1, 0]]
     label_ar = np.array(ls)
     tree = build_tree(label_ar)
-    sample = np.array([3, 2])
+    sample = np.array([[[0, 1, 1], [1, 0, 0], [1, 0, 0]], [[0, 0, 1], [1, 1, 0], [1, 1, 0]]])
     res = predict(sample, tree)
     print(res)
     return None
