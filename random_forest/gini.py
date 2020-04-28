@@ -142,9 +142,11 @@ def main():
     label_ar = np.array(ls)
     tree = build_tree(label_ar)
     sample = np.array([[[0, 1, 1], [1, 0, 0], [1, 0, 0]], [[0, 0, 1], [1, 1, 0], [1, 1, 0]]])
-    res = predict(sample, tree)
-    print(res)
-    return None
+    for irow in range(3):
+        for icol in range(3):
+            tmp_sample = sample[:, irow, icol]
+            res = predict(tmp_sample, tree)
+            print(res)
 
 
 if __name__ == '__main__':
