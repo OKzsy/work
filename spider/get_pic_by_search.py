@@ -7,18 +7,20 @@ import numpy as np
 import datetime
 import os
 import re
+import time
 import requests
 
 # 创建随机数种子
 np.random.seed(datetime.datetime.now().microsecond)
 
 Hostreferer = {
-    'User-Agent': 'Mozilla/4.0 (compatible; MSIE 6.0; Windows NT 5.1)',
-    'Referer': 'http://www.mzitu.com'
+    'User-Agent': "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/80.0.3987.122 Safari/537.36",
+    "authority": "www.mzitu.com"
 }
 header = {
-    'User-Agent': "Mozilla / 5.0(Windows NT 10.0; WOW64) AppleWebKit / 537.36(KHTML, like Gecko) Chrome / 74.0.3729.157 Safari / 537.36",
-    "authority": "www.mzitu.com"
+    'User-Agent': "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/80.0.3987.122 Safari/537.36",
+    "authority": "www.mzitu.com",
+    "referer": "https://www.mzitu.com/"
 }
 Picreferer = {
     'User-Agent': "Mozilla / 5.0(Windows NT 10.0; WOW64) AppleWebKit / 537.36(KHTML, like Gecko) Chrome / 74.0.3729.157 Safari / 537.36",
@@ -56,6 +58,7 @@ def get_album(topic_link):
 def get_pic_url(alb_url):
     # 获取相册中某一页中照片的url
     # alb_url = "https://www.mzitu.com/127079/15"
+    Picreferer['Referer'] = alb_url
     html = requests.get(alb_url, headers=Picreferer).text
     bsObj = BeautifulSoup(html, features="lxml")
     img_url = bsObj.find('div', {"class": "main-image"}).find("img").attrs['src']
@@ -91,6 +94,7 @@ def save_pic(link, name, pic_dir):
     for ipic in range(1, int(page_num) + 1):
         ialb_url = link + "/" + str(ipic)
         pic_url = get_pic_url(ialb_url)
+        time.sleep(1)
         save_img(pic_url, ipic, alb_dir)
         print('正在保存第' + str(ipic) + '张图片')
     print("图集--" + name + "保存成功")
@@ -101,7 +105,8 @@ def main(url):
     global pic_dir
     # 获取网页上所有的一级标签
     links, names = get_tag(url)
-    for ialb in np.random.randint(0, len(links) - 1, 10):
+    nums_links = int(len(links) / 2)
+    for ialb in np.random.randint(0, len(links) - 1, nums_links):
         # 随机获取某一个相册，共获取10个相册
         print("Now begin to get the {} album, whose link is: {}".format(names[ialb], links[ialb]))
         # 开始抓取主题内的图片
@@ -113,6 +118,6 @@ if __name__ == "__main__":
     # 图片存放路径
     pic_dir = r"E:\PythonCode\pic"
     # 通过标签下载图片
-    source_url = "https://www.mzitu.com/search/酥胸/"
+    source_url = "https://www.mzitu.com/search/hot/"
     main(source_url)
     pass

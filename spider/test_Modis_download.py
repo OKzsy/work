@@ -128,7 +128,7 @@ def main(date, latlng, save_path):
 
 if __name__ == '__main__':
     start_time = time.clock()
-    day = '2019-05-09'
+    day = '2018-11-25'
     latlng = 'x110.369217y36.354952,x116.650994y31.400914'
     save_path = os.path.join(r"F:\henanxiaomai\new", day.replace("-", ""))
     main(date=day, latlng=latlng, save_path=save_path)

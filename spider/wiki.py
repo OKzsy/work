@@ -10,14 +10,14 @@ import re
 
 random.seed(datetime.datetime.now())
 pages = set()
+def getinerlink(articalUrl):
+    html = urlopen("https://en.wikipedia.org" + articalUrl)
+    bs = BeautifulSoup(html.read(), 'lxml')
+    for link in bs.find_all('a'):
+        if 'href' in link.attrs:
+            print(link.attrs['href'])
+    return None
 
-
-# def getLinks(articalUrl):
-#     html = urlopen("https://en.wikipedia.org" + articalUrl)
-#     bsObj = BeautifulSoup(html, features="lxml")
-#
-#     return bsObj.find("div", {"id": "bodyContent"}).findAll("a",
-#                                                             href=re.compile("^(/wiki/)((?!:).)*$"))
 def getLinks(articalUrl):
     global pages
     html = urlopen("https://en.wikipedia.org" + articalUrl)
@@ -36,6 +36,16 @@ def getLinks(articalUrl):
                 print("我们找到了新的网页：{}".format(newpage))
                 pages.add(newpage)
                 getLinks(newpage)
+    return 1
 
 
-links = getLinks("/wiki/Kevin_Bacon")
+def main(url):
+    # links = getLinks(url)
+    links = getinerlink(url)
+    return None
+
+
+if __name__ == "__main__":
+    url = "/wiki/Kevin_Bacon"
+    main(url)
+    pass
