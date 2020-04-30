@@ -18,6 +18,7 @@ import sys
 import glob
 import time
 import math
+import pickle
 import fnmatch
 import numpy as np
 from osgeo import gdal, ogr, osr, gdalconst
@@ -169,7 +170,105 @@ def random_forest_training(data_train, trees_num):
     return trees_result, trees_feature
 
 
-def main():
+def predict(sample, tree):
+    """
+    对每一个样本进行预测
+    :param sample: numpy array 需要预测的样本
+    :param tree: 构建好的决策树
+    :return: 所属类别
+    """
+    # 只有树根
+    if tree.results != None:
+        return tree.results[0][0]
+    else:
+        # 有左右子树
+        val_sample = sample[tree.fea]
+        branch = None
+        if val_sample >= tree.value:
+            branch = tree.right
+        else:
+            branch = tree.left
+        return predict(sample, branch)
+
+
+def get_predict(trees_result, trees_feature, data_train):
+    """
+    利用训练好的随机森林模型对样本进行预测
+    :param trees_result: 训练好的随机森林模型
+    :param trees_feature: 每一颗分类树选择的特征
+    :param data_train: 训练样本
+    :return: 对样本的预测结果
+    """
+    m_tree = len(trees_result)
+    m = data_train.shape[0]
+
+    # 遍历所有训练好的树，并对应选择建立该树时使用的特征，根据特征从原始数据集中挑选出子数据集
+    # ---------------------------------------------------------------------------
+    # 结合影像数据量大的特点，采用对对每一个像元遍历所有决策树，然后统计结果
+    # ---------------------------------------------------------------------------
+    # 实验程序采用样例算法的统计方式
+    result = []
+    for isample in range(m):
+        # 包含标签
+        data_sample = data_train[isample, :]
+        result_i = []
+        for itree in range(m_tree):
+            clf = trees_result[itree]
+            feature = trees_feature[itree]
+            data = data_sample[feature]
+            result_i.append(predict(data, clf))
+        u, c = np.unique(np.array(result_i), return_counts=True)
+        result.append(u[np.argmax(c)])
+    return np.array(result)
+
+
+def cal_corr_rate(data_train, final_predict):
+    """
+    计算模型的预测准确性
+    :param data_train: numpy array 训练样本
+    :param final_predict: 预测结果
+    :return: 准确性
+    """
+    m = final_predict.size
+    contrast = data_train[:, -1] - final_predict
+    accurate = np.where(contrast == 0)[0].shape[0]
+    return accurate / m
+
+
+def save_model(trees_result, trees_feature, model_file, feature_file):
+    """
+    保存最终模型
+    :param trees_result: 训练好的随机森林模型
+    :param trees_feature: 每一棵决策树选择的特征
+    :param model_file: 模型保存的文件
+    :param feature_file: 特征保存的文件
+    :return:
+    """
+    with open(feature_file, 'wb') as f:
+        pickle.dump(trees_feature, f)
+    with open(model_file, 'wb') as f:
+        pickle.dump(trees_result, f)
+    return None
+
+
+def main(sample_file, model_file, feature_file):
+    # 导入数据
+    print("--------------------load data---------------------")
+    data_train = np.loadtxt(sample_file)
+    # 训练random forest 模型
+    print("---------------random forest training-------------")
+    trees_result, trees_feature = random_forest_training(data_train, 5)
+    # with open(model_file, 'rb') as f:
+    #     trees_result = pickle.load(f)
+    # with open(feature_file, 'rb') as f:
+    #     trees_feature = pickle.load(f)
+    # 得到训练的准确性
+    print("---------------get prediction correct rate--------")
+    result = get_predict(trees_result, trees_feature, data_train)
+    corr_rate = cal_corr_rate(data_train, result)
+    print(corr_rate)
+    print("--------------------save model---------------------")
+    save_model(trees_result, trees_feature, model_file, feature_file)
     return None
 
 
@@ -183,7 +282,10 @@ if __name__ == '__main__':
     # 注册所有gdal驱动
     gdal.AllRegister()
     start_time = time.time()
+    txtfile = r"E:\MNIST_dataset\data.txt"
+    result_file = r"E:\MNIST_dataset\model.pkl"
+    feature_file = r"E:\MNIST_dataset\feature.pkl"
 
-    main()
+    main(txtfile, result_file, feature_file)
     end_time = time.time()
     print("time: %.4f secs." % (end_time - start_time))
