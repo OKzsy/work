@@ -21,6 +21,12 @@ def set_desktop_windows(imagepath):
 
 
 if __name__ == '__main__':
+    # 删除文件夹下所有残留图片
+    dirpath = 'D:\\back_pic'
+    files = os.listdir(dirpath)
+    for ifile in files:
+        if os.path.splitext(ifile)[1] == '.png':
+            os.remove(os.path.join(dirpath, ifile))
     print("正在下载图片")
     try:
         new_img_name = get_H8.dl_main()
