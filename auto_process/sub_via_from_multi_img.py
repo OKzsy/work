@@ -6,7 +6,7 @@
 # @FileName: subset_sample_shapefile.py
 # @Email   : zhaoshaoshuai@hnnydsj.com
 Description:
-    对栅格分要素裁剪
+    对栅格分要素裁剪，在矢量字段中指定具体影像
 Parameters
     参数1：输入影像
     参数2：用于裁剪的矢量

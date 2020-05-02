@@ -319,7 +319,9 @@ def min_rect(pan_ds, mss_file):
     return [ulx, uly, col, raw]
 
 
-def main(in_dir, out_dir, partfileinfo="*MSS*atm.tif"):
+def main(in_dir, out_dir, partfileinfo=None):
+    if partfileinfo == None:
+        partfileinfo = "*MSS*atm.tif"
     # 支持中文路径
     gdal.SetConfigOption("GDAL_FILENAME_IS_UTF8", "YES")
     # 注册所有gdal驱动
@@ -332,7 +334,7 @@ def main(in_dir, out_dir, partfileinfo="*MSS*atm.tif"):
         count += 1
         mss_basenames = os.path.basename(mss).split("_")
         id = mss_basenames[5].split("-")[0]
-        pan = searchfiles(in_dir, partfileinfo='*' + id + '-PAN*', recursive=True)[0]
+        pan = searchfiles(in_dir, partfileinfo='*' + id + '-PAN*.tif', recursive=True)[0]
         fusion_name = '_'.join([mss_basenames[0], mss_basenames[4], id])
         fusion = os.path.join(out_dir, fusion_name) + "_sha.tif"
         if os.path.exists(fusion):
@@ -374,11 +376,13 @@ def main(in_dir, out_dir, partfileinfo="*MSS*atm.tif"):
 
 if __name__ == '__main__':
     start_time = time.clock()
-    # in_dir = r"F:\test_data\new_test"
-    # out_dir = r"F:\test_data\GS_test"
-    in_dir = sys.argv[1]
-    out_dir = sys.argv[2]
-    main(in_dir=in_dir, out_dir=out_dir)
+    in_dir = r"\\192.168.0.234\nydsj\user\ZSS\sha_test\2.atm\new"
+    out_dir = r"F:\test_data\GS_test"
+    partfileinfo = "*L1A0002376162*MSS*.tif"
+    # in_dir = sys.argv[1]
+    # out_dir = sys.argv[2]
+    # partfileinfo = None
+    main(in_dir=in_dir, out_dir=out_dir, partfileinfo=partfileinfo)
     end_time = time.clock()
 
     print("time: %.4f secs." % (end_time - start_time))

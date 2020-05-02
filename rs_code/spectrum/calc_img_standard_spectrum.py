@@ -8,7 +8,7 @@ Email:jango.tian@gmail.com
 Create date: 2018/12/20 11:20
 
 Description:
-    
+    计算影像标准光谱
 
 Parameters
     
@@ -42,7 +42,6 @@ except:
 
 
 def get_flag_dict(folder_path, file_extension):
-
     # 获取flag标签和样本所在位置
     flag = []
     search_files = []
@@ -51,8 +50,8 @@ def get_flag_dict(folder_path, file_extension):
             if file.lower().endswith(file_extension):
                 flag.append(str(os.path.splitext(file)[0].split('-')[-1]))
                 search_files.append(os.path.normpath(os.path.join(dir_path, file)))
-    flag_set = list(set(flag)) # 去掉重复flag
-    flag_set.sort() # 排序
+    flag_set = list(set(flag))  # 去掉重复flag
+    flag_set.sort()  # 排序
     out_dict = {}
     for iflag in flag_set:
         iflag_list = []
@@ -63,17 +62,17 @@ def get_flag_dict(folder_path, file_extension):
         out_dict[iflag] = iflag_list
     return out_dict
 
-def get_standard_spectrum(in_files):
 
+def get_standard_spectrum(in_files):
     box_scale = 1.5
     num_band = gdal.Open(in_files[0]).RasterCount
 
-    spec_array = np.zeros((num_band, 1), dtype = np.int16)
+    spec_array = np.zeros((num_band, 1), dtype=np.int16)
     for ifile in range(len(in_files)):
         isds = gdal.Open(in_files[ifile])
         ixsize = isds.RasterXSize
         iysize = isds.RasterYSize
-        idata = isds.ReadAsArray().reshape(num_band, ixsize*iysize)
+        idata = isds.ReadAsArray().reshape(num_band, ixsize * iysize)
         ind_nodata = np.where(idata[0, :] != 0)
 
         isub_data = []
@@ -101,7 +100,6 @@ def get_standard_spectrum(in_files):
         iband_data = None
         ind_useful = None
 
-
     # 标准光谱数据集
     ind = np.where(ind_data == 1)
 
@@ -115,6 +113,7 @@ def get_standard_spectrum(in_files):
     spec_array = None
 
     return stand_spec_mean
+
 
 def main(in_dir, out_csv_file):
     print('get img files start...')
@@ -138,18 +137,19 @@ def main(in_dir, out_csv_file):
     out_csv_writer = None
     print('get falg standard spectrum done.')
 
+
 if __name__ == '__main__':
     start_time = time.time()
 
-    if len(sys.argv[1:]) < 2:
-        sys.exit('Problem reading input')
+    # if len(sys.argv[1:]) < 2:
+    #     sys.exit('Problem reading input')
+    #
+    # in_dir = sys.argv[1]
+    # out_csv_file = sys.argv[2]
 
-    in_dir = sys.argv[1]
-    out_csv_file = sys.argv[2]
-
-    # in_dir = r'\\192.168.0.234\nydsj\user\TJG\classification\20181224\out_sample_tif2'
-    # out_csv_file = r'\\192.168.0.234\nydsj\user\TJG\classification\20181224\zhongmu_xiaomai_dasuan_mean2.csv'
-    # main(in_dir, out_csv_file)
+    in_dir = r'\\192.168.0.234\nydsj\user\LXX\协助他人\农保\clip'
+    out_csv_file = r'\\192.168.0.234\nydsj\user\LXX\协助他人\农保\clip\sample2.csv'
+    main(in_dir, out_csv_file)
 
     end_time = time.time()
     print("time: %.2f min." % ((end_time - start_time) / 60))

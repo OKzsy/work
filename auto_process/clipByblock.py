@@ -6,7 +6,7 @@
 # @FileName: clipByblock.py
 # @Email   : zhaoshaoshuai@hnnydsj.com
 Description:
-
+对输入影像进行指定范围裁剪
 
 Parameters
 
@@ -224,10 +224,10 @@ if __name__ == '__main__':
     # 注册所有gdal驱动
     gdal.AllRegister()
     start_time = time.clock()
-    in_file = r"\\192.168.0.234\nydsj\user\ZSS\农保项目\遥感院提供img\2.atm\20191007\GF1B_PMS_E116.3_N33.6_20190822_L1A1227683041-MUX_atm.tif"
-    shpfile = r"\\192.168.0.234\nydsj\user\ZSS\testaera\3041.shp"
-    outfile = r"\\192.168.0.234\nydsj\user\ZSS\农保项目\遥感院提供img\2.atm\20191007\tmp\GF1B_PMS_E116.3_N33.6_20190822_L1A1227683041-MUX_atm.tif"
-    nodata = 200
+    in_file = r"F:\kuihua\H08_20200311_0420_L2WLFbet_FLDK.06001_06001.tif"
+    shpfile = r"F:\kuihua\guojie\bou1_4p.shp"
+    outfile = r"F:\kuihua\base\H08_20200311_0420_L2WLFbet_FLDK.06001_06001.tif"
+    nodata = 0
 
     print('The program starts running!')
 

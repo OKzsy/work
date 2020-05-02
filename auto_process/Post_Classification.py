@@ -7,7 +7,7 @@
 # @Email   : zhaoshaoshuai@hnnydsj.com
 Description:
     根据指定的标签，计算提供的矢量地块内该标签的比例，如果比例大于指定的阈值，则将整个地块栅格化到
-    结果上，否则栅格化为指定的nodata_value值
+    结果上，否则栅格化为指定的nodata_value值,需要规范化数据，用矢量地块裁剪分类结果
 
 Parameters
 
@@ -130,6 +130,8 @@ def min_rect(raster_ds, shp_layer):
 def main(file, shp, flags, threshold_value, nodata, out):
     # 打开栅格
     raster_ds = gdal.Open(file)
+    xsize = raster_ds.RasterXSize
+    ysize = raster_ds.RasterYSize
     raster_geo = raster_ds.GetGeoTransform()
     raster_srs_wkt = raster_ds.GetProjection()
     raster_srs = osr.SpatialReference()
@@ -181,6 +183,11 @@ def main(file, shp, flags, threshold_value, nodata, out):
         # 统计指定标签所占的比例
         # 统计非背景值像元个数
         real_value_count = real_overlap.size - np.where(np.isnan(real_overlap))[0].shape[0]
+        if real_value_count == 0:
+            changed_overlap = np.choose(mask_array, (nodata, overlap))
+            mem_ds.GetRasterBand(1).WriteArray(changed_overlap, int(offset[0]), int(offset[1]))
+            real_overlap = None
+            continue
         flags_pre = []
         for iflag in flags:
             flag_num = np.where(real_overlap == iflag)[0].shape[0]
@@ -197,9 +204,10 @@ def main(file, shp, flags, threshold_value, nodata, out):
         mask_ds = None
         feat_ds = None
     tif_driver = gdal.GetDriverByName('GTiff')
-    out_res = tif_driver.CreateCopy(out, mem_ds, strict=1, callback=progress)
+    out_ds = tif_driver.CreateCopy(out, mem_ds, strict=1, callback=progress)
     mem_ds = None
     raster_ds = None
+    out_men_ds = None
     return None
 
 
@@ -213,12 +221,12 @@ if __name__ == '__main__':
     # 注册所有gdal驱动
     gdal.AllRegister()
     start_time = time.clock()
-    in_file = r"\\192.168.0.234\nydsj\user\ZSS\20190830\gongyi_xiaomai_clip.tif"
-    in_shp = r"\\192.168.0.234\nydsj\user\ZSS\20190830\农业地块.shp"
-    outpath = r"\\192.168.0.234\nydsj\user\ZSS\20190830\result.tif"
-    category_flags = [30]
-    threshold = 0.5
-    nodata = 0
+    in_file = r"\\192.168.0.234\nydsj\user\LXX\温县\result\GF19023_1_1_tmp.tif"
+    in_shp = r"\\192.168.0.234\nydsj\project\28.山药地黄\2.vector\5.DK矢量\DK4108252016_wgs84.shp"
+    outpath = r"\\192.168.0.234\nydsj\user\LXX\温县\result\GF19023_1_1_res.tif"
+    category_flags = [1]
+    threshold = 0.7
+    nodata = 200
     main(in_file, in_shp, category_flags, threshold, nodata, outpath)
 
     end_time = time.clock()

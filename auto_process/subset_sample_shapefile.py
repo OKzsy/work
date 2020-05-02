@@ -6,7 +6,7 @@
 # @FileName: subset_sample_shapefile.py
 # @Email   : zhaoshaoshuai@hnnydsj.com
 Description:
-    对栅格分要素裁剪
+    从影像中裁剪样本
 Parameters
     参数1：输入影像
     参数2：用于裁剪的矢量
@@ -83,7 +83,8 @@ def shp2raster(raster_ds, shp_layer, ext):
     # 创建mask
     # out = r"F:\test_data\clipraster\gdal_mask2\test3.tif"
     # mask_ds = gdal.GetDriverByName('GTiff').Create(out, int(x_size), int(y_size), 1, gdal.GDT_Byte)
-    mask_ds = gdal.GetDriverByName('MEM').Create('', int(x_size), int(y_size), 1, gdal.GDT_Byte)
+    mask_ds = gdal.GetDriverByName('MEM').Create(
+        '', int(x_size), int(y_size), 1, gdal.GDT_Byte)
     mask_ds.SetProjection(raster_prj)
     mask_geo = [ulx, raster_geo[1], 0, uly, 0, raster_geo[5]]
     mask_ds.SetGeoTransform(mask_geo)
@@ -104,9 +105,11 @@ def min_rect(raster_ds, shp_layer):
     raster_inv_geo = gdal.InvGeoTransform(raster_geo)
     # 计算在raster上的行列号
     # 左上
-    off_ulx, off_uly = map(round, gdal.ApplyGeoTransform(raster_inv_geo, extent[0], extent[3]))
+    off_ulx, off_uly = map(round, gdal.ApplyGeoTransform(
+        raster_inv_geo, extent[0], extent[3]))
     # 右下
-    off_drx, off_dry = map(round, gdal.ApplyGeoTransform(raster_inv_geo, extent[1], extent[2]))
+    off_drx, off_dry = map(round, gdal.ApplyGeoTransform(
+        raster_inv_geo, extent[1], extent[2]))
     # 判断是否有重叠区域
     if off_ulx >= x_size or off_uly >= y_size or off_drx <= 0 or off_dry <= 0:
         return 0
@@ -138,7 +141,8 @@ def mask_raster(raster_ds, mask_ds, outfile, ext):
     x_size = ext[2] - ext[0]
     y_size = ext[3] - ext[1]
     # 创建输出影像
-    result_ds = gdal.GetDriverByName('GTiff').Create(outfile, int(x_size), int(y_size), bandCount, dataType)
+    result_ds = gdal.GetDriverByName('GTiff').Create(
+        outfile, int(x_size), int(y_size), bandCount, dataType)
     result_ds.SetProjection(raster_prj)
     result_geo = [ulx, raster_geo[1], 0, uly, 0, raster_geo[5]]
     result_ds.SetGeoTransform(result_geo)
@@ -147,7 +151,8 @@ def mask_raster(raster_ds, mask_ds, outfile, ext):
     mask = 1 - mask
     # 对原始影像进行掩模并输出
     for band in range(bandCount):
-        banddata = raster_ds.GetRasterBand(band + 1).ReadAsArray(int(ext[0]), int(ext[1]), int(x_size), int(y_size))
+        banddata = raster_ds.GetRasterBand(
+            band + 1).ReadAsArray(int(ext[0]), int(ext[1]), int(x_size), int(y_size))
         banddata = np.choose(mask, (banddata, 0))
         result_ds.GetRasterBand(band + 1).WriteArray(banddata)
     return 1
@@ -186,7 +191,8 @@ def main(rasters, shp, out, fieldName='Name'):
             # if not os.path.exists(outdir):
             #     os.makedirs(outdir)
             outdir = out
-            outpath = os.path.join(outdir, raster_basename + '_' + feat.GetField(fieldName) + '.tif')
+            outpath = os.path.join(
+                outdir, raster_basename + '_' + feat.GetField(fieldName) + '.tif')
             print(os.path.basename(outpath))
             # 要素提取为图层
             feat_ds, feat_lyr = Feature_memory_shp(feat, raster_srs)
@@ -219,18 +225,12 @@ if __name__ == '__main__':
     gdal.AllRegister()
 
     start_time = time.clock()
-    # if len(sys.argv[1:]) < 3:r
+    # if len(sys.argv[1:]) < 3
     #     sys.exit('Problem reading input')
     # main(sys.argv[1], sys.argv[2], sys.argv[3])
-    in_files = [r"\\192.168.0.234\nydsj\user\ZSS\农保项目\遥感院提供img\4.sha\GF_new\GF1D_20190829_L1A1256624380_sha.tif",
-                r"\\192.168.0.234\nydsj\user\ZSS\农保项目\遥感院提供img\4.sha\GF1B_20190818_L1A1227680519_sha.tif",
-                r"\\192.168.0.234\nydsj\user\ZSS\农保项目\遥感院提供img\4.sha\GF1B_20190818_L1A1227680526_sha.tif",
-                r"\\192.168.0.234\nydsj\user\ZSS\农保项目\遥感院提供img\4.sha\GF1D_20190829_L1A1256624344_sha.tif",
-                r"\\192.168.0.234\nydsj\user\ZSS\农保项目\遥感院提供img\4.sha\GF1D_20190829_L1A1256624353_sha.tif",
-                r"\\192.168.0.234\nydsj\user\ZSS\农保项目\遥感院提供img\4.sha\GF_new\GF6_20190820_L1A1119913673_sha.tif",
-                r"\\192.168.0.234\nydsj\user\ZSS\农保项目\遥感院提供img\4.sha\GF6_20190820_L1A1119913691_sha.tif"]
-    shpfile = r"\\192.168.0.234\nydsj\user\遥感院\农保项目\深度学习\land_7_训练.shp"
-    outfile = r"\\192.168.0.234\nydsj\user\ZSS\testaera\result"
+    in_files = [r"F:\wenxian\out\L1C_T49SFU_A021808_20190826T031315\L2A_T49SFU_A021808_20190826T031315_ref_10m.tif"]
+    shpfile = r"\\192.168.0.234\nydsj\project\28.山药地黄\2.vector\2.sample\land_zong\land_zong.shp"
+    outfile = r"F:\wenxian\out\sample"
     main(in_files, shpfile, outfile)
     end_time = time.clock()
 

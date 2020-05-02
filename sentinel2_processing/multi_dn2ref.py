@@ -40,17 +40,21 @@ except:
 
 def un_zip(zip_file, out_dir):
     try:
-        with zipfile.ZipFile(zip_file, 'r') as zip:
-            for file in zip.filelist:
-                # print(file.filename)
-                if os.path.exists(os.path.join(out_dir, file.filename)):
-                    # print('no')
-                    continue
-                else:
-                    # print('yes')
-                    zip.extract(file, out_dir)
-                # zip.extractall(out_dir)
-    except:
+        # with zipfile.ZipFile(zip_file, 'r') as zip:
+        #     for file in zip.filelist:
+        #         if os.path.exists(os.path.join(out_dir, file.filename)):
+        #             continue
+        #         else:
+        #             zip.extract(file, out_dir)
+        zip = zipfile.ZipFile(zip_file, 'r')
+        for name in zip.namelist():
+            if os.path.exists(os.path.join(out_dir, name)):
+                continue
+            else:
+                zip.extract(name, out_dir)
+        zip.close()
+    except Exception as e:
+        print(e)
         print('Problem opening file %s !' % zip_file)
         return 0
 
@@ -142,10 +146,7 @@ def dn2ref(out_dir, zip_file):
     temp_dir = os.path.normpath(os.path.join(out_dir, zip_name + '_un_zip'))
     if not os.path.isdir(temp_dir):
         os.mkdir(temp_dir)
-
     zip_value = un_zip(zip_file, temp_dir)
-    if zip_value is None:
-        return
     if zip_value == 0:
         shutil.rmtree(temp_dir)
         return
@@ -192,7 +193,7 @@ def dn2ref(out_dir, zip_file):
         # resam_nir_name_list[2] = 'B08'
         # resam_nir_file = os.path.join(os.path.dirname(jp2_20_files[0]), '%s.jp2' % '_'.join(resam_nir_name_list))
         # reproj_resample(jp2_10_files[-1], jp2_20_files[0], resam_nir_file)
-
+        #
         # jp2_20_files.insert(-3, jp2_10_files[-1])
 
         vrt_10_file = os.path.join(safe_dir, '%s_10m.vrt' % xml_name)
@@ -269,8 +270,8 @@ if __name__ == '__main__':
     # in_dir = sys.argv[1]
     # out_dir = sys.argv[2]
     #
-    in_dir = r"\\192.168.0.234\nydsj\user\ZSS\zhengzhou_s2\T49SFU"
-    out_dir = r"\\192.168.0.234\nydsj\user\ZSS\zhengzhou_s2\out_T49SKD"
+    in_dir = r"F:\test\nongbao"
+    out_dir = r"F:\test\out"
     main(in_dir, out_dir)
 
     end_time = time.time()

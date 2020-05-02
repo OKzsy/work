@@ -134,8 +134,8 @@ def _main(argv):
     # if not os.path.exists(args.destination):
     #     os.makedirs(args.destination)
     # return sync(args.source, args.destination, args.token)
-    source = ' https://ladsweb.modaps.eosdis.nasa.gov/archive/allData/61/MOD04_L2/2018/108'
-    destination = r"F:\test_modis\661"
+    source = 'https://ladsweb.modaps.eosdis.nasa.gov/archive/orders/501430500/'
+    destination = r"F:\modisdata"
     token = '38361F0C-3E1B-11E8-916F-FFF9569DBFBA'
     if not os.path.exists(destination):
         os.makedirs(destination)

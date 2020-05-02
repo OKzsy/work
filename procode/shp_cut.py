@@ -4,7 +4,7 @@
 Author:zhaoss
 Email:zhaoshaoshuai@hnnydsj.com
 Create date: 2019/2/10 15:01
-File: shp_cut.py
+File: pan.py
 Description:
 
 
@@ -59,7 +59,7 @@ def shp2raster(raster_ds, shp_layer, ext):
     x_size = ext[2] - ext[0]
     y_size = ext[3] - ext[1]
     # 创建mask
-    # out = r"F:\test_data\clipraster\gdal_mask2\test3.tif"
+    # out = r"F:\test_data\mask.tif"
     # mask_ds = gdal.GetDriverByName('GTiff').Create(out, int(x_size), int(y_size), 1, gdal.GDT_Byte)
     mask_ds = gdal.GetDriverByName('MEM').Create('', int(x_size), int(y_size), 1, gdal.GDT_Byte)
     mask_ds.SetProjection(raster_prj)
@@ -100,6 +100,29 @@ def min_rect(raster_ds, shp_layer):
     return [offset_column[0], offset_line[0], offset_column[1], offset_line[1]]
 
 
+def subsat(raster_ds=None, mask_ds=None, result_ds=None, block_size=100):
+    xsize = raster_ds.RasterXSize
+    ysize = raster_ds.RasterYSize
+    block_size = block_size
+    bandcount = raster_ds.RasterCount
+    print("Begin deal with subsat!")
+    for band in range(bandcount):
+        for y in range(0, ysize, block_size):
+            if y + block_size < ysize:
+                rows = block_size
+            else:
+                rows = ysize - y
+            cols = xsize
+            raster_data = raster_ds.GetRasterBand(band + 1).ReadAsArray(0, y, cols, rows)
+            mask_data = mask_ds.GetRasterBand(1).ReadAsArray(0, y, cols, rows)
+            mask_data = 1 - mask_data
+            banddata = np.choose(mask_data, (raster_data, 0))
+            result_ds.GetRasterBand(band + 1).WriteArray(banddata, 0, y)
+            progress(y / ysize)
+    progress(1.1)
+    return result_ds
+
+
 def mask_raster(raster_ds, mask_ds, outfile, ext, nodata):
     # 将行列整数浮点化
     ext = np.array(ext) * 1.0
@@ -130,6 +153,7 @@ def mask_raster(raster_ds, mask_ds, outfile, ext, nodata):
             result_ds.GetRasterBand(band + 1).SetNoDataValue(nodata)
         result_ds.GetRasterBand(band + 1).WriteArray(banddata)
         progress((1 + band) / bandCount)
+    # tmp = subsat(raster_ds, mask_ds, result_ds, block_size=500)
     return 1
 
 
@@ -167,7 +191,7 @@ def main(raster, shp, out, nodata=None):
 
 if __name__ == '__main__':
     # 支持中文路径
-    gdal.SetConfigOption("GDAL_FILENAME_IS_UTF8", "NO")
+    gdal.SetConfigOption("GDAL_FILENAME_IS_UTF8", "YES")
     # 支持中文属性字段
     gdal.SetConfigOption("SHAPE_ENCODING", "GBK")
     # 注册所有ogr驱动
@@ -175,9 +199,9 @@ if __name__ == '__main__':
     # 注册所有gdal驱动
     gdal.AllRegister()
     start_time = time.clock()
-    in_file = r"F:\beijing2\atm\gf2\GF2_PMS1_E114.3_N33.7_20180322_L1A0003077263-PAN1_atm.tif"
-    shpfile = r"\\192.168.0.234\nydsj\project\8.变化检测\7.object detection\2.label_arcgis\3.label\sample_2985952.shp"
-    outfile = r"F:\beijing2\atm\gf2\GF2_PMS1_E114.3_N33.7_20180322_L1A0003077263-PAN1_clip.tif"
+    in_file = r"\\192.168.0.234\nydsj\user\ZSS\农保项目\遥感院提供img\2.atm\GF1C_PMS_E112.7_N34.1_20190824_L1A1021462411-PAN_atm.tif"
+    shpfile = r"\\192.168.0.234\nydsj\user\ZSS\农保项目\shp\20190816\GF1C_PMS_E112.7_N34.1_20190824_L1A1021462411.shp"
+    outfile = r"\\192.168.0.234\nydsj\user\ZSS\农保项目\遥感院提供img\2.atm\20190816_ruzhou\GF1C_PMS_E112.7_N34.1_20190824_L1A1021462411-PAN_atm.tif"
     # nodata = 200
     print('The program starts running!')
     # in_file = sys.argv[1]

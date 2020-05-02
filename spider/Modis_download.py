@@ -29,7 +29,6 @@ class RequestError(Exception):
 
 USERAGENT = 'tis/download.py_1.0--' + sys.version.replace('\n', '').replace('\r', '')
 
-
 class Nasa:
     def __init__(self, product="MOD04_L2", collection="61", date=None, latlng=None, save_path=None):
         self.product = product
@@ -166,9 +165,9 @@ def main(date, latlng, save_path):
 
 if __name__ == '__main__':
     start_time = time.clock()
-    day = '2018-06-12'
+    day = '2020-03-02'
     latlng = 'x110.3692y36.354952,x116.650994y31.400914'
-    save_path = r"E:\PythonCode\pic\20180614"
+    save_path = r"E:\PythonCode\pic\20200302"
     if not os.path.exists(save_path):
         os.mkdir(save_path)
     main(date=day, latlng=latlng, save_path=save_path)
