@@ -228,9 +228,9 @@ if __name__ == '__main__':
     # if len(sys.argv[1:]) < 3
     #     sys.exit('Problem reading input')
     # main(sys.argv[1], sys.argv[2], sys.argv[3])
-    in_files = [r"\\192.168.0.234\nydsj\user\ZSS\20200430登封\S2\L2A_20200318_dengfeng.tif"]
-    shpfile = r"\\192.168.0.234\nydsj\user\ZSS\20200430登封\sample\land_L2A_20200318_dengfeng.shp"
-    outfile = r"\\192.168.0.234\nydsj\user\ZSS\20200430登封\sample_tif"
+    in_files = [r"F:\test_data\dengfeng\S2\L2A_20200318_dengfeng.tif"]
+    shpfile = r"F:\test_data\dengfeng\sample\land_L2A_20200318_dengfeng.shp"
+    outfile = r"F:\test_data\dengfeng\out"
     main(in_files, shpfile, outfile)
     end_time = time.clock()
 

@@ -18,6 +18,7 @@ import sys
 import glob
 import time
 import fnmatch
+import tempfile
 import numpy as np
 from osgeo import gdal, ogr, osr, gdalconst
 
@@ -52,10 +53,30 @@ def searchfiles(dirpath, partfileinfo='*', recursive=False):
     return filelist, catelist
 
 
-def main(flag_file, out_file):
+def img2csv(sample, tmp_csv_path, flag):
+    """
+    将影像中符合要求的像元转换成符合要求的格式进行训练
+    :param sample: 样本影像路径
+    :param flag: 样本标签
+    :return:
+    """
+    basename = os.path.splitext(os.path.basename(sample))[0]
+    iflag_name = basename.split('-')[-1]
+    iflag = flag[iflag_name]
+
+    return None
+
+
+def main(flag_file, sample_file, out_csv):
     # 获取标签
     flag = np.genfromtxt(flag_file, delimiter=',', dtype=None, encoding='utf8')
     flag_dict = dict(flag)
+    # 处理每一个样本
+    sample_list, category = searchfiles(sample_file, partfileinfo='*.tif')
+    tmp_csv_path = tempfile.mkdtemp(dir=os.path.dirname(out_csv))
+    for isample in sample_list:
+        img2csv(isample, tmp_csv_path, flag_dict)
+        pass
     return None
 
 
@@ -69,8 +90,9 @@ if __name__ == '__main__':
     # 注册所有gdal驱动
     gdal.AllRegister()
     start_time = time.time()
-    flag_file = r"\\192.168.0.234\nydsj\user\ZSS\20200430登封\flag.csv"
-    out_file = r"\\192.168.0.234\nydsj\user\ZSS\20200430登封\sample.pkl"
-    main(flag_file, out_file)
+    flag_file = r"F:\test_data\dengfeng\flag.csv"
+    sample_file = r"F:\test_data\dengfeng\out"
+    out_csv = r"F:\test_data\dengfeng\sample.csv"
+    main(flag_file, sample_file, out_csv)
     end_time = time.time()
     print("time: %.4f secs." % (end_time - start_time))
