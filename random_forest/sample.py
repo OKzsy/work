@@ -15,9 +15,11 @@ Parameters
 
 import os
 import sys
+import platform
 import glob
 import time
 import fnmatch
+import subprocess
 import tempfile
 import numpy as np
 from osgeo import gdal, ogr, osr, gdalconst
@@ -61,9 +63,32 @@ def img2csv(sample, tmp_csv_path, flag):
     :return:
     """
     basename = os.path.splitext(os.path.basename(sample))[0]
-    iflag_name = basename.split('-')[-1]
-    iflag = flag[iflag_name]
-
+    iflag_name = basename.split('-')
+    iflag = flag[iflag_name[-1]]
+    # 拼接该样本的csv的文件
+    sample_csv = os.path.join(tmp_csv_path, basename) + '.csv'
+    # 打开影像处理样本，当所有像元点不为0时按照要求输出
+    sample_ds = gdal.Open(sample)
+    sample_arr = sample_ds.ReadAsArray()
+    xsize = sample_ds.RasterXSize
+    ysize = sample_ds.RasterYSize
+    bandnum = sample_ds.RasterCount
+    dtype = sample_arr.dtype
+    sample_list = []
+    for irow in range(ysize):
+        for icol in range(xsize):
+            point = list(sample_arr[:, irow, icol])
+            if np.sum(point) == 0:
+                continue
+            point.append(iflag)
+            sample_list.append(point)
+    # 将结果转为np矩阵存储为csv
+    sample_list = np.array(sample_list).astype(dtype=dtype)
+    # 存储为csv
+    if 'int' in str(dtype):
+        np.savetxt(sample_csv, sample_list, fmt='%d', delimiter=',')
+    else:
+        np.savetxt(sample_csv, sample_list, fmt='%.3f', delimiter=',')
     return None
 
 
@@ -76,7 +101,17 @@ def main(flag_file, sample_file, out_csv):
     tmp_csv_path = tempfile.mkdtemp(dir=os.path.dirname(out_csv))
     for isample in sample_list:
         img2csv(isample, tmp_csv_path, flag_dict)
-        pass
+    # 将所有样本csv合并为一个
+    sys_str = platform.system()
+    if (sys_str == 'Windows'):
+        cmd_str = r'copy /b *.csv %s' % (out_csv)
+        # 不打印列表
+        subprocess.call(cmd_str, shell=True, stdout=open(os.devnull, 'w'), cwd=tmp_csv_path)
+
+    elif (sys_str == 'Linux'):
+        cmd_str = r'cat *.csv > %s' % (out_csv)
+        # 不打印列表
+        subprocess.call(cmd_str, shell=True, stdout=open(os.devnull, 'w'), cwd=tmp_csv_path)
     return None
 
 
@@ -90,9 +125,9 @@ if __name__ == '__main__':
     # 注册所有gdal驱动
     gdal.AllRegister()
     start_time = time.time()
-    flag_file = r"F:\test_data\dengfeng\flag.csv"
-    sample_file = r"F:\test_data\dengfeng\out"
-    out_csv = r"F:\test_data\dengfeng\sample.csv"
+    flag_file = r"/mnt/e/dengfeng/flag.csv"
+    sample_file = r"/mnt/e/dengfeng/out"
+    out_csv = r"/mnt/e/dengfeng/sample.csv"
     main(flag_file, sample_file, out_csv)
     end_time = time.time()
     print("time: %.4f secs." % (end_time - start_time))
