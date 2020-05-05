@@ -21,6 +21,7 @@ import time
 import fnmatch
 import subprocess
 import tempfile
+import shutil
 import numpy as np
 from osgeo import gdal, ogr, osr, gdalconst
 
@@ -112,6 +113,8 @@ def main(flag_file, sample_file, out_csv):
         cmd_str = r'cat *.csv > %s' % (out_csv)
         # 不打印列表
         subprocess.call(cmd_str, shell=True, stdout=open(os.devnull, 'w'), cwd=tmp_csv_path)
+    # 删除临时文件
+    shutil.rmtree(tmp_csv_path, ignore_errors=True)
     return None
 
 
