@@ -73,7 +73,6 @@ def img2csv(sample, tmp_csv_path, flag):
     sample_arr = sample_ds.ReadAsArray()
     xsize = sample_ds.RasterXSize
     ysize = sample_ds.RasterYSize
-    bandnum = sample_ds.RasterCount
     dtype = sample_arr.dtype
     sample_list = []
     for irow in range(ysize):
@@ -90,6 +89,7 @@ def img2csv(sample, tmp_csv_path, flag):
         np.savetxt(sample_csv, sample_list, fmt='%d', delimiter=',')
     else:
         np.savetxt(sample_csv, sample_list, fmt='%.3f', delimiter=',')
+    sample_ds = None
     return None
 
 
