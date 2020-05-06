@@ -251,21 +251,22 @@ def save_model(trees_result, trees_feature, model_file, feature_file):
     return None
 
 
-def main(sample_file, model_file, feature_file):
+def main(sample_file, verify_file, model_file, feature_file):
     # 导入数据
     print("--------------------load data---------------------")
-    data_train = np.loadtxt(sample_file)
+    data_train = np.loadtxt(sample_file, delimiter=',')
+    data_verify = np.loadtxt(verify_file, delimiter=',')
     # 训练random forest 模型
     print("---------------random forest training-------------")
-    trees_result, trees_feature = random_forest_training(data_train, 5)
+    trees_result, trees_feature = random_forest_training(data_train, 10)
     # with open(model_file, 'rb') as f:
     #     trees_result = pickle.load(f)
     # with open(feature_file, 'rb') as f:
     #     trees_feature = pickle.load(f)
     # 得到训练的准确性
     print("---------------get prediction correct rate--------")
-    result = get_predict(trees_result, trees_feature, data_train)
-    corr_rate = cal_corr_rate(data_train, result)
+    result = get_predict(trees_result, trees_feature, data_verify)
+    corr_rate = cal_corr_rate(data_verify, result)
     print(corr_rate)
     print("--------------------save model---------------------")
     save_model(trees_result, trees_feature, model_file, feature_file)
@@ -282,10 +283,11 @@ if __name__ == '__main__':
     # 注册所有gdal驱动
     gdal.AllRegister()
     start_time = time.time()
-    txtfile = r"E:\MNIST_dataset\data.txt"
+    samplefile = r"F:\test_data\dengfeng\newsample.csv"
+    varifyfile = r"F:\test_data\dengfeng\newverify.csv"
     result_file = r"E:\MNIST_dataset\model.pkl"
     feature_file = r"E:\MNIST_dataset\feature.pkl"
 
-    main(txtfile, result_file, feature_file)
+    main(samplefile, varifyfile, result_file, feature_file)
     end_time = time.time()
     print("time: %.4f secs." % (end_time - start_time))
