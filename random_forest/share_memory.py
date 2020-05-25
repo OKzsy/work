@@ -1,4 +1,4 @@
-import multiprocessing
+import multiprocessing as mp
 import time
 import numpy as np
 
@@ -18,22 +18,20 @@ def worker(i):
     end_time = time.time()
     print("time: %.4f secs." % (end_time - start_time))
     time.sleep(1)  # some other operations
-    return new_arr[i, 0, 0]
+    return new_arr[i, 10, 10]
 
 
 if __name__ == '__main__':
-    imgtype2ctype = {1: ['b', 'byte'], 2: ['H', 'uint16'], 3: ['h', 'int16'], 4: ['L', 'uint32'], 5: ['l', 'int32'],
+    imgtype2ctype = {1: ['b', 'byte'], 2: ['H', 'uint16'], 3: ['h', 'int16'], 4: ['I', 'uint32'], 5: ['i', 'int32'],
                      6: ['f', 'float32'], 7: ['d', 'float64']}
-    typecode = 1
+    typecode = 4
     dt = np.dtype(imgtype2ctype[typecode][1])
-    SHAPE = (3, 10, 10)
+    SHAPE = (7, 100, 100)
     arr = np.random.randint(low=1000, size=SHAPE).astype(dt)
-    print(arr)
-    arr_shared = multiprocessing.RawArray(imgtype2ctype[typecode][0], arr.ravel())
-    # arr_shared = multiprocessing.RawArray('q', arr.ravel())
+    arr_shared = mp.RawArray(imgtype2ctype[typecode][0], arr.ravel())
     arr = None
-    with multiprocessing.Pool(processes=3, initializer=init_pool,
+    with mp.Pool(processes=7, initializer=init_pool,
                               initargs=(arr_shared, SHAPE, dt)) as pool:  # initargs传入tuple
-        for result in pool.map(worker, [0, 1, 2]):
+        for result in pool.map(worker, [0, 1, 2, 3, 4, 5, 6]):
             print(result)
     arr_shared = None

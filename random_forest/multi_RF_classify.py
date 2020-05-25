@@ -20,6 +20,7 @@ import time
 import pickle
 import fnmatch
 import numpy as np
+import multiprocessing as mp
 from osgeo import gdal, ogr, osr, gdalconst
 
 from datablock import DataBlock
@@ -97,7 +98,25 @@ def get_predict(trees_result, trees_feature, in_data, out_data):
     return out_data
 
 
+def init_pool(arr_shared, shape, dt):
+    """
+    多进程准备函数
+    :param arr_shared: 共享内存指针
+    :param shape: 形状
+    :param dt: 类型
+    :return:
+    """
+    global global_arr_shared
+    global SHAPE
+    global dtype
+    global_arr_shared = arr_shared
+    SHAPE = shape
+    dtype = dt
+
+
 def main(model, feature, image, out):
+    imgtype2ctype = {1: ['b', 'byte'], 2: ['H', 'uint16'], 3: ['h', 'int16'], 4: ['I', 'uint32'], 5: ['i', 'int32'],
+                     6: ['f', 'float32'], 7: ['d', 'float64']}
     #  加载模型
     with open(model, 'rb') as f:
         trees_result = pickle.load(f)
@@ -115,11 +134,10 @@ def main(model, feature, image, out):
     out_ds = tif_driver.Create(out, xsize, ysize, 1, gdal.GDT_Byte)
     out_ds.SetProjection(rpj)
     out_ds.SetGeoTransform(geo)
-
-
-    
     # 为下一版的使用共享内存，多线程留下思路和接口
     out_arr = np.zeros((ysize, xsize), dtype=np.byte) + 200
+    # 为结果创建共享内存
+    out_share = mp.RawArray('b', out_arr.ravel())
     # 进行分类
     out_arr = get_predict(trees_result, trees_feature, oridata, out_arr)
     # 写出结果
