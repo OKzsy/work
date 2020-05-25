@@ -19,10 +19,11 @@ def download_img(url, img_save_path):
     header = {
         'Referer': 'https://himawari.asia/',
         'Sec-Fetch-Dest': 'image',
+        'Connection': 'close',
         'User-Agent':
             'Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36(KHTML, like Gecko) Chrome/80.0.3987.163 Safari/537.36'
     }
-    img = requests.get(url, headers=header)
+    img = requests.get(url, headers=header, verify=False)
     with open(img_save_path, "wb") as fwi:
         fwi.write(img.content)
         print(img_save_path + "图片下载成功")
@@ -38,13 +39,12 @@ def fill_img(img, img_save_path):
 
 def dl_main():
     # 获取当前系统时间
-    utc_today = datetime.datetime.utcnow() - datetime.timedelta(minutes=70)  # 获取GMT时间并减去70分钟
+    utc_today = datetime.datetime.utcnow() - datetime.timedelta(minutes=30)  # 获取GMT时间并减去70分钟
     delat_utc_today = utc_today.strftime("%Y/%m/%d/%H%M")  # 时间格式化
     # 分钟向下取整
     delat_utc_today_list = list(delat_utc_today)
     delat_utc_today_list[-1] = "0"
     delat_utc_today = "".join(delat_utc_today_list)
-    # 整合为链接 格式为：http://himawari8-dl.nict.go.jp/himawari8/img/D531106/1d/550/2018/09/25/065000_0_0.png
     img_url = "https://himawari8-dl.nict.go.jp/himawari.asia/img/D531106/thumbnail/550/" + delat_utc_today + "00_0_0.png"
     name = delat_utc_today.replace("/", "_") + "00_0_0.png"  # 获取图片名字
     # 图片保存路径
