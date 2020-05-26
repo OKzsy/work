@@ -70,7 +70,7 @@ def predict(sample, tree):
         return predict(sample, branch)
 
 
-def get_predict(trees_result, trees_feature, in_data, out_data):
+def get_predict(trees_result, trees_feature, img_block, IDblock):
     """
     利用训练好的随机森林模型对样本进行预测
     :param trees_result: 训练好的随机森林模型
@@ -78,6 +78,13 @@ def get_predict(trees_result, trees_feature, in_data, out_data):
     :param data_train: 待分类影像
     :return: 对样本的预测结果
     """
+    # 从共享内存中提取数据
+    share_in_data = np.frombuffer(global_in_share, in_dtype).reshape(IN_SHAPE)
+    share_out_data = np.frombuffer(global_out_share, out_dtype).reshape(OUT_SHAPE)
+    dims_get, dims_put = img_block.block(IDblock)
+    in_data = share_in_data[:, dims_get[1]: dims_get[1] + dims_get[3], dims_get[0]: dims_get[0] + dims_get[2]]
+    out_data = share_out_data[dims_get[1]: dims_get[1] + dims_get[3], dims_get[0]: dims_get[0] + dims_get[2]]
+    # 分类
     m_tree = len(trees_result)
     rows = in_data.shape[1]
     cols = in_data.shape[2]
@@ -94,28 +101,39 @@ def get_predict(trees_result, trees_feature, in_data, out_data):
                 result_i.append(predict(data, clf))
             u, c = np.unique(np.array(result_i), return_counts=True)
             out_data[irow, icol] = u[np.argmax(c)]
-    in_data = None
-    return out_data
+    # 将分类的数据放回共享内存中
+    share_out_data[dims_put[3]:dims_put[3] + dims_put[1], dims_put[2]: dims_put[2] + dims_get[2]] = out_data
+    in_data = out_data = None
+    return 1
 
 
-def init_pool(arr_shared, shape, dt):
+def init_pool(in_shared, out_share, in_shape, out_shape, in_dt, out_dt):
     """
-    多进程准备函数
-    :param arr_shared: 共享内存指针
-    :param shape: 形状
-    :param dt: 类型
+    多线程准备函数
+    :param in_shared: 原始数据
+    :param out_share: 输出数据
+    :param in_shape: 原始数据形状
+    :param out_shape: 输出数据形状
+    :param in_dt: 原始数据类型
+    :param out_dt: 输出数据类型
     :return:
     """
-    global global_arr_shared
-    global SHAPE
-    global dtype
-    global_arr_shared = arr_shared
-    SHAPE = shape
-    dtype = dt
+    global global_in_share
+    global global_out_share
+    global IN_SHAPE
+    global OUT_SHAPE
+    global in_dtype
+    global out_dtype
+    global_in_share = in_shared
+    global_out_share = out_share
+    IN_SHAPE = in_shape
+    OUT_SHAPE = out_shape
+    in_dtype = in_dt
+    out_dtype = out_dt
 
 
 def main(model, feature, image, out):
-    imgtype2ctype = {1: ['b', 'byte'], 2: ['H', 'uint16'], 3: ['h', 'int16'], 4: ['I', 'uint32'], 5: ['i', 'int32'],
+    imgtype2ctype = {1: ['B', 'uint8'], 2: ['H', 'uint16'], 3: ['h', 'int16'], 4: ['I', 'uint32'], 5: ['i', 'int32'],
                      6: ['f', 'float32'], 7: ['d', 'float64']}
     #  加载模型
     with open(model, 'rb') as f:
@@ -128,21 +146,45 @@ def main(model, feature, image, out):
     geo = in_ds.GetGeoTransform()
     xsize = in_ds.RasterXSize
     ysize = in_ds.RasterYSize
-    oridata = in_ds.ReadAsArray()
     # 创建分类结果
     tif_driver = gdal.GetDriverByName('GTiff')
     out_ds = tif_driver.Create(out, xsize, ysize, 1, gdal.GDT_Byte)
     out_ds.SetProjection(rpj)
     out_ds.SetGeoTransform(geo)
-    # 为下一版的使用共享内存，多线程留下思路和接口
-    out_arr = np.zeros((ysize, xsize), dtype=np.byte) + 200
+    # 将原始数据放进共享内存
+    oridata = in_ds.ReadAsArray()
+    typecode = in_ds.GetRasterBand(1).DataType
+    in_dt = np.dtype(imgtype2ctype[typecode][1])
+    in_shape = oridata.shape
+    ori_share = mp.RawArray(imgtype2ctype[typecode][0], oridata.ravel())
+    oridata = None
     # 为结果创建共享内存
-    out_share = mp.RawArray('b', out_arr.ravel())
+    typecode = out_ds.GetRasterBand(1).DataType
+    out_dt = np.dtype(imgtype2ctype[typecode][1])
+    out_arr = np.zeros((ysize, xsize), dtype=out_dt) + 200
+    out_shape = out_arr.shape
+    out_share = mp.RawArray(imgtype2ctype[typecode][0], out_arr.ravel())
+    out_arr = None
+    # 数据进行分块
+    # 引用DataBlock类
+    img_block = DataBlock(xsize, ysize, 100, 0)
+    numsblocks = img_block.numsblocks
+    # 进行多线程分类
+    # 确定进程数量
+    cpu_count = os.cpu_count()
+    tasks = cpu_count - 1 if cpu_count <= numsblocks else numsblocks
+    # 创建线程池
+    pool = mp.Pool(processes=tasks, initializer=init_pool, initargs=(ori_share, out_share, in_shape, out_shape, in_dt, out_dt))
     # 进行分类
-    out_arr = get_predict(trees_result, trees_feature, oridata, out_arr)
+    for itask in range(numsblocks):
+        pool.apply_async(get_predict, args=(trees_result, trees_feature, img_block, itask))
+    pool.close()
+    pool.join()
     # 写出结果
+    # 从共享内存获取结果
+    out_arr = np.frombuffer(out_share, out_dt).reshape(out_shape)
     out_ds.GetRasterBand(1).WriteArray(out_arr)
-    out_ds = None
+    out_ds = ori_share = out_share = out_arr = None
     return None
 
 
