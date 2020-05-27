@@ -58,9 +58,7 @@ def cal_gini_index(data):
     # 统计样本中不同标签的个数
     label_counts = np.unique(data, return_counts=True)
     # 计算gini系数
-    gini = 0
-    for label in label_counts[1]:
-        gini += label * label
+    gini = np.sum(label_counts[1] * label_counts[1])
     gini = 1 - gini / (total_sample * total_sample)
     return gini
 
@@ -97,6 +95,8 @@ def build_tree(data):
             index2 = np.where(tmp_feature < value)
             size2 = index2[0].size
             set2 = data[index2[0], :]
+            if size1 * size2 == 0:
+                continue
             # 计算拆分后的gini指数
             nowgini = (size1 * cal_gini_index(set1[:, -1]) + size2 * cal_gini_index(set2[:, -1])) / data.shape[0]
             # 计算gini指数增加量
