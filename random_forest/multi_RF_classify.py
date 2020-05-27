@@ -31,24 +31,6 @@ except:
     progress = gdal.TermProgress
 
 
-class node:
-    """
-    cart树的节点类
-    """
-
-    def __init__(self, fea=-1, value=None, results=None, right=None, left=None):
-        # 用于切分数据集属性的索引
-        self.fea = fea
-        # 设置划分的值
-        self.value = value
-        # 存储叶节点所属的类别
-        self.results = results
-        # 右子树
-        self.right = right
-        # 左子树
-        self.left = left
-
-
 def predict(sample, tree):
     """
     对每一个样本进行预测
@@ -57,16 +39,16 @@ def predict(sample, tree):
     :return: 所属类别
     """
     # 只有树根
-    if tree.results != None:
-        return tree.results[0][0]
+    if tree['results'] != None:
+        return tree['results'][0][0]
     else:
         # 有左右子树
-        val_sample = sample[tree.fea]
+        val_sample = sample[tree['fea']]
         branch = None
-        if val_sample >= tree.value:
-            branch = tree.right
+        if val_sample >= tree['value']:
+            branch = tree['right']
         else:
-            branch = tree.left
+            branch = tree['left']
         return predict(sample, branch)
 
 
@@ -167,14 +149,15 @@ def main(model, feature, image, out):
     out_arr = None
     # 数据进行分块
     # 引用DataBlock类
-    img_block = DataBlock(xsize, ysize, 100, 0)
+    img_block = DataBlock(xsize, ysize, 150, 0)
     numsblocks = img_block.numsblocks
     # 进行多线程分类
     # 确定进程数量
     cpu_count = os.cpu_count()
     tasks = cpu_count - 1 if cpu_count <= numsblocks else numsblocks
     # 创建线程池
-    pool = mp.Pool(processes=tasks, initializer=init_pool, initargs=(ori_share, out_share, in_shape, out_shape, in_dt, out_dt))
+    pool = mp.Pool(processes=tasks, initializer=init_pool,
+                   initargs=(ori_share, out_share, in_shape, out_shape, in_dt, out_dt))
     # 进行分类
     for itask in range(numsblocks):
         pool.apply_async(get_predict, args=(trees_result, trees_feature, img_block, itask))
