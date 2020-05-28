@@ -37,16 +37,13 @@ def cal_gini_index(data):
     :param data: numpy array 数据集
     :return: Gini指数
     """
-    # 样本总个数
     total_sample = len(data)
     if total_sample == 0:
         return 0
     # 统计样本中不同标签的个数
     label_counts = np.unique(data, return_counts=True)
     # 计算gini系数
-    gini = 0
-    for label in label_counts[1]:
-        gini += label * label
+    gini = np.sum(label_counts[1] * label_counts[1])
     gini = 1 - gini / (total_sample * total_sample)
     return gini
 
@@ -79,16 +76,20 @@ def build_tree(data):
             # 根据fea特征中的值将数据集划分为左右子树
             index1 = np.where(tmp_feature >= value)
             size1 = index1[0].size
+            if size1 == 0:
+                continue
             set1 = data[index1[0], :]
             index2 = np.where(tmp_feature < value)
             size2 = index2[0].size
+            if size2 == 0:
+                continue
             set2 = data[index2[0], :]
             # 计算拆分后的gini指数
             nowgini = (size1 * cal_gini_index(set1[:, -1]) + size2 * cal_gini_index(set2[:, -1])) / data.shape[0]
             # 计算gini指数增加量
             gain = currentgini - nowgini
             # 判断此划分是否比当前划分更好
-            if gain > bestgini and size1 > 0 and size2 > 0:
+            if gain > bestgini:
                 bestgini = gain
                 bestcriteria = (fea, value)
                 bestsets = (set1, set2)
@@ -194,8 +195,9 @@ def predict(sample, tree):
         return predict(sample, branch)
 
 
-def multi_predict(trees_result, trees_feature, data_train, isample):
+def multi_predict(trees_result, trees_feature, isample):
     # 包含标签
+    data_train = np.frombuffer(global_in_share, in_dtype).reshape(IN_SHAPE)
     m_tree = len(trees_result)
     data_sample = data_train[isample, :]
     result_i = []
@@ -208,6 +210,22 @@ def multi_predict(trees_result, trees_feature, data_train, isample):
     return (isample, u[np.argmax(c)])
 
 
+def init_pool(in_shared, in_shape, in_dt):
+    """
+    多线程准备函数
+    :param in_shared: 原始数据
+    :param in_shape: 原始数据形状
+    :param in_dt: 原始数据类型
+    :return:
+    """
+    global global_in_share
+    global IN_SHAPE
+    global in_dtype
+    global_in_share = in_shared
+    IN_SHAPE = in_shape
+    in_dtype = in_dt
+
+
 def get_predict(trees_result, trees_feature, data_train):
     """
     利用训练好的随机森林模型对样本进行预测
@@ -216,20 +234,29 @@ def get_predict(trees_result, trees_feature, data_train):
     :param data_train: 训练样本
     :return: 对样本的预测结果
     """
+    type2ctype = {'uint8': 'B', 'uint16': 'H', 'int16': 'h', 'uint32': 'I', 'int32': 'i',
+                  'float32': 'f', 'float64': 'd'}
     m = data_train.shape[0]
     # 遍历所有训练好的树，并对应选择建立该树时使用的特征，根据特征从原始数据集中挑选出子数据集
     # ---------------------------------------------------------------------------
     # 结合影像数据量大的特点，采用对对每一个像元遍历所有决策树，然后统计结果
     # ---------------------------------------------------------------------------
     # 实验程序采用样例算法的统计方式
+    # 为测试数据创建共享内存，不在进程之间拷贝数据
+    typecode = data_train.dtype.name
+    dt = data_train.dtype
+    shape = data_train.shape
+    train_share = mp.RawArray(type2ctype[typecode], data_train.ravel())
+    data_train = None
     tasks = os.cpu_count()
-    pool = mp.Pool(processes=tasks)
+    pool = mp.Pool(processes=tasks, initializer=init_pool, initargs=(train_share, shape, dt))
     result_i = []
     for isample in range(m):
-        result_i.append(pool.apply_async(multi_predict, args=(trees_result, trees_feature, data_train, isample)))
+        result_i.append(pool.apply_async(multi_predict, args=(trees_result, trees_feature, isample)))
     pool.close()
     pool.join()
     result = [rr[1] for rr in sorted([r.get() for r in result_i], key=itemgetter(0))]
+    train_share = None
     return np.array(result)
 
 
@@ -265,8 +292,8 @@ def save_model(trees_result, trees_feature, model_file, feature_file):
 def main(sample_file, verify_file, model_file, feature_file):
     # 导入数据
     print("--------------------load data---------------------")
-    data_train = np.loadtxt(sample_file, delimiter=',')
-    data_verify = np.loadtxt(verify_file, delimiter=',')
+    data_train = np.loadtxt(sample_file, delimiter=',', dtype=np.int32)
+    data_verify = np.loadtxt(verify_file, delimiter=',', dtype=np.int32)
     # 训练random forest 模型
     print("---------------random forest training-------------")
     trees_result, trees_feature = random_forest_training(data_train, 10)
@@ -291,7 +318,7 @@ if __name__ == '__main__':
     gdal.AllRegister()
     start_time = time.time()
     samplefile = r"F:\test_data\dengfeng\newsample.csv"
-    varifyfile = r"F:\test_data\dengfeng\newverify.csv"
+    varifyfile = r"F:\test_data\dengfeng\newsample.csv"
     result_file = r"F:\test_data\dengfeng\model.pkl"
     feature_file = r"F:\test_data\dengfeng\feature.pkl"
 
