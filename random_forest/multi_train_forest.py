@@ -157,7 +157,7 @@ def random_forest_training(data_train, trees_num):
     else:
         k = 1
     # 多线程训练
-    tasks = os.cpu_count()
+    tasks = trees_num < os.cpu_count() and trees_num or os.cpu_count()
     pool = mp.Pool(processes=tasks)
     res = []
     # 开始构建每一颗树
@@ -243,10 +243,10 @@ def get_predict(trees_result, trees_feature, data_train):
     dt = data_train.dtype
     shape = data_train.shape
     train_share = mp.RawArray(type2ctype[typecode], data_train.ravel())
-    data_train = None
-    tasks = os.cpu_count()
-    pool = mp.Pool(processes=tasks, initializer=init_pool, initargs=(train_share, shape, dt))
     m_tree = len(trees_feature)
+    data_train = None
+    tasks = m_tree < os.cpu_count() and m_tree or os.cpu_count()
+    pool = mp.Pool(processes=tasks, initializer=init_pool, initargs=(train_share, shape, dt))
     m = shape[0]
     result_i = []
     for itree in range(m_tree):
