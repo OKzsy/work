@@ -65,29 +65,27 @@ def get_predict(trees_result, trees_feature, img_block, IDblock):
     share_out_data = np.frombuffer(global_out_share, out_dtype).reshape(OUT_SHAPE)
     dims_get, dims_put = img_block.block(IDblock)
     in_data = share_in_data[:, dims_get[1]: dims_get[1] + dims_get[3], dims_get[0]: dims_get[0] + dims_get[2]]
+    out_data = share_out_data[dims_get[1]: dims_get[1] + dims_get[3], dims_get[0]: dims_get[0] + dims_get[2]]
     # 分类
     m_tree = len(trees_result)
     rows = in_data.shape[1]
     cols = in_data.shape[2]
-    all_cols = rows * cols
-    tmp_res = np.zeros((m_tree, all_cols), np.uint8)
-    for itree in range(m_tree):
-        clf = trees_result[itree]
-        feature = trees_feature[itree]
-        for irow in range(rows):
-            for icol in range(cols):
-                data_point = in_data[feature, irow, icol]
-                if np.sum(data_point) == 0:
-                    continue
-                tmp_res[itree, icol + irow * cols] = predict(data_point, clf)
-    out_data = np.zeros(all_cols, np.uint8) + 200
-    tmp_res = tmp_res.T
-    for iline in range(all_cols):
-        out_data[iline] = np.argmax(np.bincount(tmp_res[iline, :]))
-    out_data = out_data.reshape(rows, cols)
+    for irow in range(rows):
+        for icol in range(cols):
+            data_point = in_data[:, irow, icol]
+            if np.sum(data_point) == 0:
+                continue
+            result_i = []
+            for itree in range(m_tree):
+                clf = trees_result[itree]
+                feature = trees_feature[itree]
+                data = data_point[feature]
+                result_i.append(predict(data, clf))
+            u, c = np.unique(np.array(result_i), return_counts=True)
+            out_data[irow, icol] = u[np.argmax(c)]
     # 将分类的数据放回共享内存中
     share_out_data[dims_put[3]:dims_put[3] + dims_put[1], dims_put[2]: dims_put[2] + dims_get[2]] = out_data
-    in_data = out_data = tmp_res = None
+    in_data = out_data = None
     return 1
 
 
@@ -156,7 +154,7 @@ def main(model, feature, image, out):
     # 进行多线程分类
     # 确定进程数量
     cpu_count = os.cpu_count()
-    tasks = cpu_count - 1 if cpu_count <= numsblocks else numsblocks
+    tasks = cpu_count if cpu_count <= numsblocks else numsblocks
     # 创建线程池
     pool = mp.Pool(processes=tasks, initializer=init_pool,
                    initargs=(ori_share, out_share, in_shape, out_shape, in_dt, out_dt))
