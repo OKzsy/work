@@ -195,19 +195,16 @@ def predict(sample, tree):
         return predict(sample, branch)
 
 
-def multi_predict(trees_result, trees_feature, isample):
+def multi_predict(trees_result, trees_feature, itree, m):
     # 包含标签
     data_train = np.frombuffer(global_in_share, in_dtype).reshape(IN_SHAPE)
-    m_tree = len(trees_result)
-    data_sample = data_train[isample, :]
+    clf = trees_result[itree]
+    feature = trees_feature[itree]
+    data = data_train[:, feature]
     result_i = []
-    for itree in range(m_tree):
-        clf = trees_result[itree]
-        feature = trees_feature[itree]
-        data = data_sample[feature]
-        result_i.append(predict(data, clf))
-    u, c = np.unique(np.array(result_i), return_counts=True)
-    return (isample, u[np.argmax(c)])
+    for isample in range(m):
+        result_i.append(predict(data[isample], clf))
+    return result_i
 
 
 def init_pool(in_shared, in_shape, in_dt):
@@ -236,7 +233,6 @@ def get_predict(trees_result, trees_feature, data_train):
     """
     type2ctype = {'uint8': 'B', 'uint16': 'H', 'int16': 'h', 'uint32': 'I', 'int32': 'i',
                   'float32': 'f', 'float64': 'd'}
-    m = data_train.shape[0]
     # 遍历所有训练好的树，并对应选择建立该树时使用的特征，根据特征从原始数据集中挑选出子数据集
     # ---------------------------------------------------------------------------
     # 结合影像数据量大的特点，采用对对每一个像元遍历所有决策树，然后统计结果
@@ -250,13 +246,17 @@ def get_predict(trees_result, trees_feature, data_train):
     data_train = None
     tasks = os.cpu_count()
     pool = mp.Pool(processes=tasks, initializer=init_pool, initargs=(train_share, shape, dt))
+    m_tree = len(trees_feature)
+    m = shape[0]
     result_i = []
-    for isample in range(m):
-        result_i.append(pool.apply_async(multi_predict, args=(trees_result, trees_feature, isample)))
+    for itree in range(m_tree):
+        result_i.append(pool.apply_async(multi_predict, args=(trees_result, trees_feature, itree, m)))
     pool.close()
     pool.join()
-    result = [rr[1] for rr in sorted([r.get() for r in result_i], key=itemgetter(0))]
-    train_share = None
+    result_arr = np.array([r.get() for r in result_i]).T
+    result = []
+    for line in result_arr:
+        result.append(np.argmax(np.bincount(line)))
     return np.array(result)
 
 
@@ -318,7 +318,7 @@ if __name__ == '__main__':
     gdal.AllRegister()
     start_time = time.time()
     samplefile = r"F:\test_data\dengfeng\newsample.csv"
-    varifyfile = r"F:\test_data\dengfeng\newsample.csv"
+    varifyfile = r"F:\test_data\dengfeng\newverify.csv"
     result_file = r"F:\test_data\dengfeng\model.pkl"
     feature_file = r"F:\test_data\dengfeng\feature.pkl"
 
