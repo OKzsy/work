@@ -82,8 +82,8 @@ def main(src, dst, connect):
         raise ('The size of SE is wrong!')
     extend_src_data = Extend(win_size, win_size, src_data)
     filter_img = img_filtering(int(win_size), int(win_size), xsize, ysize, kernel, extend_src_data)
-    filter_img = np.where(filter_img == int(connect), 0, filter_img)
-    filter_img *= 255
+    filter_img = np.where(filter_img == 0, src_data, 1)
+    # filter_img *= 255
     dst_ds.GetRasterBand(1).WriteArray(filter_img)
     dst_ds = None
     return None
@@ -99,10 +99,10 @@ if __name__ == '__main__':
     # 注册所有gdal驱动
     gdal.AllRegister()
     start_time = time.time()
-    connect = 8
+    connect = 4
     # 学习linux命令行替代工具
-    src_file = r"/home/zss/DIP3E_CH09_Original_Images/Fig0905(a)(wirebond-mask).tif"
-    dst_file = r"/home/zss/DIP3E_out/Fig0905(a)(wirebond-mask).tif"
+    src_file = r"F:\DIP3E\DIP3E_Original_Images_CH09\Fig0905(a)(wirebond-mask).tif"
+    dst_file = r"F:\test_data\DIP3E_out\Fig0905(a)(wirebond-mask)_tmp2.tif"
     main(src_file, dst_file, connect)
     end_time = time.time()
     print("time: %.4f secs." % (end_time - start_time))
