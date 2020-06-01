@@ -19,6 +19,7 @@ import sys
 import shutil
 import zipfile
 import subprocess
+import tempfile
 from functools import partial
 import multiprocessing.dummy as mp
 from threading import Thread
@@ -139,7 +140,7 @@ def dn2ref(out_dir, zip_file):
     zip_dir = os.path.dirname(zip_file)
     zip_name = os.path.splitext(os.path.basename(zip_file))[0]
     zip_file_name = zip_name
-    temp_dir = os.path.normpath(os.path.join(out_dir, zip_name + '_un_zip'))
+    temp_dir = tempfile.mkdtemp(dir=out_dir, suffix='_un_zip')
     if not os.path.isdir(temp_dir):
         os.mkdir(temp_dir)
     zip_value = un_zip(zip_file, temp_dir)
@@ -216,7 +217,7 @@ def main(in_dir, out_dir):
     if zip_files == []:
         sys.exit('no zip file')
     # 建立多个进程
-    pool = mp.Pool(processes=4)
+    pool = mp.Pool(processes=6)
     func = partial(dn2ref, out_dir)
     for izip in zip_files:
         res = pool.apply_async(func, args=(izip,))
@@ -230,13 +231,13 @@ def main(in_dir, out_dir):
     #
     #     thread_list = []
     #     for izip in sub_zip_list:
-    #         # dn2ref(out_dir, izip)
-    #         thread = Thread(target=dn2ref, args=(out_dir, izip,))
-    #         thread.start()
-    #         thread_list.append(thread)
-    #
-    #     for it in thread_list:
-    #         it.join()
+    #         dn2ref(out_dir, izip)
+    #     #     thread = Thread(target=dn2ref, args=(out_dir, izip,))
+    #     #     thread.start()
+    #     #     thread_list.append(thread)
+    #     #
+    #     # for it in thread_list:
+    #     #     it.join()
 
 
 if __name__ == '__main__':
@@ -248,8 +249,8 @@ if __name__ == '__main__':
     # in_dir = sys.argv[1]
     # out_dir = sys.argv[2]
     #
-    in_dir = r"F:\wenxian\new"
-    out_dir = r"F:\wenxian\out"
+    in_dir = r"F:\test\01_raw"
+    out_dir = r"\\192.168.0.234\nydsj\user\YXZ\13_forcast\02_atm"
     main(in_dir, out_dir)
 
     end_time = time.time()
