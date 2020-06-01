@@ -248,12 +248,12 @@ def get_predict(trees_result, trees_feature, data_train):
     tasks = m_tree < os.cpu_count() and m_tree or os.cpu_count()
     pool = mp.Pool(processes=tasks, initializer=init_pool, initargs=(train_share, shape, dt))
     m = shape[0]
-    result_i = []
+    result_itree = []
     for itree in range(m_tree):
-        result_i.append(pool.apply_async(multi_predict, args=(trees_result, trees_feature, itree, m)))
+        result_itree.append(pool.apply_async(multi_predict, args=(trees_result, trees_feature, itree, m)))
     pool.close()
     pool.join()
-    result_arr = np.array([r.get() for r in result_i]).T
+    result_arr = np.array([r.get() for r in result_itree]).T
     result = []
     for line in result_arr:
         result.append(np.argmax(np.bincount(line)))
@@ -317,10 +317,10 @@ if __name__ == '__main__':
     # 注册所有gdal驱动
     gdal.AllRegister()
     start_time = time.time()
-    samplefile = r"F:\test_data\dengfeng\newsample.csv"
-    varifyfile = r"F:\test_data\dengfeng\newverify.csv"
-    result_file = r"F:\test_data\dengfeng\model.pkl"
-    feature_file = r"F:\test_data\dengfeng\feature.pkl"
+    samplefile = r"/mnt/ipsan/project/37.2019全省小麦监测/2.vector/4.csv/sample_clip_tif.csv"
+    varifyfile = r"/mnt/ipsan/project/37.2019全省小麦监测/2.vector/4.csv/sample_clip_tif.csv"
+    result_file = r"/mnt/ipsan/user/ZSS/dengfeng/s2_model/model.pkl"
+    feature_file = r"/mnt/ipsan/user/ZSS/dengfeng/s2_model/feature.pkl"
 
     main(samplefile, varifyfile, result_file, feature_file)
     end_time = time.time()
