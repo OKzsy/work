@@ -123,13 +123,15 @@ def sieve(in_file, dst_dir, th, co):
     SE = {4: np.array([0, 1, 0, 1, 1, 1, 0, 1, 0]),
           8: np.array([1, 1, 1, 1, 1, 1, 1, 1, 1])}
     basename = os.path.splitext(os.path.basename(in_file))[0]
+    dst_file = os.path.join(dst_dir, basename) + '_sieve.tif'
+    if os.path.exists(dst_file):
+        return None
     in_ds = gdal.Open(in_file)
     xsize = in_ds.RasterXSize
     ysize = in_ds.RasterYSize
     prj = in_ds.GetProjection()
     geo = in_ds.GetGeoTransform()
     srcband = in_ds.GetRasterBand(1)
-    dst_file = os.path.join(dst_dir, basename) + '_sieve.tif'
     drv = gdal.GetDriverByName('GTiff')
     dst_ds = drv.Create(dst_file, xsize, ysize, 1, gdal.GDT_Byte)
     dst_ds.SetProjection(prj)
