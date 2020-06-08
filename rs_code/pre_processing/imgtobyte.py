@@ -68,6 +68,10 @@ def Liner(ds, band_index):
     zero_index = np.where(band_data == band_data[0][0])
     # 计算ratio(2%)点
     min_gray, max_gray = hist(band_data, 2)
+    tmp = {0: (28, 896),
+           1: (116, 1089),
+           2: (186, 1449)}
+    min_gray, max_gray = tmp[band_index]
     # 将直方图中ratio以外的值统一为min_gray和max_gray
     norm_min_data = np.where(band_data <= min_gray, min_gray, band_data)
     stretch_img = np.where(norm_min_data >= max_gray, max_gray, norm_min_data)
@@ -93,7 +97,7 @@ def main(in_dir, out_dir, partfileinfo='*'):
     # 循环处理文件
     for ifile in Pending_images:
         basename = os.path.splitext(os.path.basename(ifile))[0]
-        stretched_img_name = basename + '-strect.tiff'
+        stretched_img_name = basename + '_strect.tif'
         # 打开影像
         data_ds = gdal.Open(ifile)
         # 获取影像的基本信息
@@ -121,13 +125,13 @@ def main(in_dir, out_dir, partfileinfo='*'):
 
 if __name__ == '__main__':
     # 支持中文路径
-    gdal.SetConfigOption("GDAL_FILENAME_IS_UTF8", "NO")
+    gdal.SetConfigOption("GDAL_FILENAME_IS_UTF8", "YES")
     # 注册所有gdal驱动
     gdal.AllRegister()
     start_time = time.clock()
-    in_path = r"\\192.168.0.234\nydsj\user\ZSS\testaera"
-    out_path = r"\\192.168.0.234\nydsj\user\ZSS\testaera"
-    partfileinfo = "*L1A0002985953_sha.tif"
+    in_path = r"\\192.168.0.234\nydsj\project\37.2019全省小麦监测\1.data\1.S2\3.xzqh_clip"
+    out_path = r"\\192.168.0.234\nydsj\user\LC\随机森林\strect"
+    partfileinfo = "*T49SET_A024425_20200225T032326*.tif"
     main(in_path, out_path, partfileinfo=partfileinfo)
     end_time = time.clock()
 
