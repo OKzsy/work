@@ -152,25 +152,31 @@ def main(model, feature, in_dir, out_dir):
         geo = in_ds.GetGeoTransform()
         xsize = in_ds.RasterXSize
         ysize = in_ds.RasterYSize
+        bandnum = in_ds.RasterCount
+        # 将原始数据放进共享内存
+        typecode = in_ds.GetRasterBand(1).DataType
+        in_dt = np.dtype(imgtype2ctype[typecode][1])
+        in_shape = (bandnum, ysize, xsize)
+        pixel_len = int(np.prod(np.array(in_shape)))
+        ori_share = mp.RawArray(imgtype2ctype[typecode][0], pixel_len)
+        ori_share_arr = np.frombuffer(ori_share, in_dt).reshape(in_shape)
+        for iband in range(bandnum):
+            ori_share_arr[iband, :, :] = in_ds.GetRasterBand(iband + 1).ReadAsArray()
         # 创建分类结果
         out = os.path.join(out_dir, basename) + '_class.tif'
         tif_driver = gdal.GetDriverByName('GTiff')
         out_ds = tif_driver.Create(out, xsize, ysize, 1, gdal.GDT_Byte)
         out_ds.SetProjection(rpj)
         out_ds.SetGeoTransform(geo)
-        # 将原始数据放进共享内存
-        oridata = in_ds.ReadAsArray()
-        typecode = in_ds.GetRasterBand(1).DataType
-        in_dt = np.dtype(imgtype2ctype[typecode][1])
-        in_shape = oridata.shape
-        ori_share = mp.RawArray(imgtype2ctype[typecode][0], oridata.ravel())
-        oridata = None
         # 为结果创建共享内存
         typecode = out_ds.GetRasterBand(1).DataType
         out_dt = np.dtype(imgtype2ctype[typecode][1])
         out_arr = np.zeros((ysize, xsize), dtype=out_dt) + 200
         out_shape = out_arr.shape
-        out_share = mp.RawArray(imgtype2ctype[typecode][0], out_arr.ravel())
+        pixel_len = int(np.prod(np.array(out_shape)))
+        out_share = mp.RawArray(imgtype2ctype[typecode][0], pixel_len)
+        out_share_arr = np.frombuffer(out_share, out_dt).reshape(out_shape)
+        out_share_arr[:, :] = out_arr
         out_arr = None
         # 数据进行分块
         # 引用DataBlock类
