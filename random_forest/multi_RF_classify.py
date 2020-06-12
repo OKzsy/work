@@ -31,6 +31,15 @@ except:
     progress = gdal.TermProgress
 
 
+class Bar():
+    """用于多线程显示进度条"""
+    members = 0
+
+    def __init__(self, num, total):
+        Bar.members += num
+        progress(Bar.members / total)
+
+
 def predict(sample, tree):
     """
     对每一个样本进行预测
@@ -164,9 +173,11 @@ def main(model, feature, image, out):
     # 创建线程池
     pool = mp.Pool(processes=tasks, initializer=init_pool,
                    initargs=(ori_share, out_share, in_shape, out_shape, in_dt, out_dt))
+    # 定义进度条
+    update = lambda args: Bar(args, numsblocks)
     # 进行分类
     for itask in range(numsblocks):
-        pool.apply_async(get_predict, args=(trees_result, trees_feature, img_block, itask))
+        pool.apply_async(get_predict, args=(trees_result, trees_feature, img_block, itask), callback=update)
     pool.close()
     pool.join()
     # 写出结果
@@ -190,7 +201,7 @@ if __name__ == '__main__':
     model_file = r"F:\test_data\dengfeng\model.pkl"
     feature_file = r"F:\test_data\dengfeng\feature.pkl"
     img_file = r"F:\test_data\dengfeng\S2\L2A_20200318_dengfeng_with_veg_index.tif"
-    out_file = r"F:\test_data\dengfeng\class\L2A_20200318_dengfeng_class3.tif"
+    out_file = r"F:\test_data\dengfeng\class\L2A_20200318_dengfeng_class5.tif"
     main(model_file, feature_file, img_file, out_file)
     end_time = time.time()
     print("time: %.4f secs." % (end_time - start_time))

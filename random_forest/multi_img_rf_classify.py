@@ -51,6 +51,15 @@ def searchfiles(dirpath, partfileinfo='*', recursive=False):
     return filelist
 
 
+class Bar():
+    """用于多线程显示进度条"""
+    members = 0
+
+    def __init__(self, num, total):
+        Bar.members += num
+        progress(Bar.members / total)
+
+
 def predict(sample, tree):
     """
     对每一个样本进行预测
@@ -189,9 +198,11 @@ def main(model, feature, in_dir, out_dir):
         # 创建线程池
         pool = mp.Pool(processes=tasks, initializer=init_pool,
                        initargs=(ori_share, out_share, in_shape, out_shape, in_dt, out_dt))
+        # 定义进度条
+        update = lambda args: Bar(args, numsblocks)
         # 进行分类
         for itask in range(numsblocks):
-            pool.apply_async(get_predict, args=(trees_result, trees_feature, img_block, itask))
+            pool.apply_async(get_predict, args=(trees_result, trees_feature, img_block, itask), callback=update)
         pool.close()
         pool.join()
         # 写出结果

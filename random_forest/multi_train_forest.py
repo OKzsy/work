@@ -31,6 +31,15 @@ except:
     progress = gdal.TermProgress
 
 
+class Bar():
+    """用于多线程显示进度条"""
+    members = 0
+
+    def __init__(self, num, total):
+        Bar.members += num
+        progress(Bar.members / total)
+
+
 def cal_gini_index(data):
     """
     计算给定数据集的gini指数
@@ -249,8 +258,10 @@ def get_predict(trees_result, trees_feature, data_train):
     pool = mp.Pool(processes=tasks, initializer=init_pool, initargs=(train_share, shape, dt))
     m = shape[0]
     result_itree = []
+    # 定义进度条
+    update = lambda args: Bar(args, m_tree)
     for itree in range(m_tree):
-        result_itree.append(pool.apply_async(multi_predict, args=(trees_result, trees_feature, itree, m)))
+        result_itree.append(pool.apply_async(multi_predict, args=(trees_result, trees_feature, itree, m), callback=update))
     pool.close()
     pool.join()
     result_arr = np.array([r.get() for r in result_itree]).T
