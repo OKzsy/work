@@ -35,9 +35,12 @@ class Bar():
     """用于多线程显示进度条"""
     members = 0
 
-    def __init__(self, num, total):
-        Bar.members += num
-        progress(Bar.members / total)
+    def __init__(self, total):
+        self.total = total
+
+    def update(self):
+        Bar.members += 1
+        progress(Bar.members / self.total)
 
 
 def cal_gini_index(data):
@@ -169,9 +172,12 @@ def random_forest_training(data_train, trees_num):
     tasks = trees_num < os.cpu_count() and trees_num or os.cpu_count()
     pool = mp.Pool(processes=tasks)
     res = []
+    # 定义进度条
+    bar = Bar(trees_num)
+    update = lambda args: bar.update()
     # 开始构建每一颗树
     for i in range(trees_num):
-        res.append(pool.apply_async(multi_build_tree, args=(data_train, k)))
+        res.append(pool.apply_async(multi_build_tree, args=(data_train, k), callback=update))
     pool.close()
     pool.join()
     for r in res:
@@ -258,10 +264,8 @@ def get_predict(trees_result, trees_feature, data_train):
     pool = mp.Pool(processes=tasks, initializer=init_pool, initargs=(train_share, shape, dt))
     m = shape[0]
     result_itree = []
-    # 定义进度条
-    update = lambda args: Bar(args, m_tree)
     for itree in range(m_tree):
-        result_itree.append(pool.apply_async(multi_predict, args=(trees_result, trees_feature, itree, m), callback=update))
+        result_itree.append(pool.apply_async(multi_predict, args=(trees_result, trees_feature, itree, m)))
     pool.close()
     pool.join()
     result_arr = np.array([r.get() for r in result_itree]).T
@@ -331,9 +335,9 @@ if __name__ == '__main__':
     # 注册所有gdal驱动
     gdal.AllRegister()
     start_time = time.time()
-    samplefile = r"/mnt/ipsan/project/37.2019全省小麦监测/2.vector/4.csv/sample_clip_tif.csv"
-    result_file = r"/mnt/ipsan/user/ZSS/dengfeng/s2_model/model.pkl"
-    feature_file = r"/mnt/ipsan/user/ZSS/dengfeng/s2_model/feature.pkl"
+    samplefile = r"/mnt/e/dengfeng/sample.csv"
+    result_file = r"/mnt/e/dengfeng/model.pkl"
+    feature_file = r"/mnt/e/dengfeng/feature.pkl"
 
     main(samplefile, result_file, feature_file)
     end_time = time.time()
