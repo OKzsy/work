@@ -35,9 +35,15 @@ class Bar():
     """用于多线程显示进度条"""
     members = 0
 
-    def __init__(self, num, total):
-        Bar.members += num
-        progress(Bar.members / total)
+    def __init__(self, total):
+        self.total = total
+
+    def update(self):
+        Bar.members += 1
+        progress(Bar.members / self.total)
+
+    def shutdown(self):
+        Bar.members = 0
 
 
 def cal_gini_index(data):
@@ -94,7 +100,9 @@ def build_tree(data):
                 continue
             set2 = data[index2[0], :]
             # 计算拆分后的gini指数
-            nowgini = (size1 * cal_gini_index(set1[:, -1]) + size2 * cal_gini_index(set2[:, -1])) / data.shape[0]
+            nowgini = (size1 * cal_gini_index(
+                set1[:, -1]) + size2 * cal_gini_index(set2[:, -1])) / \
+                      data.shape[0]
             # 计算gini指数增加量
             gain = currentgini - nowgini
             # 判断此划分是否比当前划分更好
@@ -128,13 +136,15 @@ def choose_sample(data, k):
     sample_num = data.shape[0]
     feature_num = data.shape[1] - 1
     # 先随机算出m个样本，有放回的抽取（m = sample_num)
-    random_sample_index = np.random.choice(sample_num, size=sample_num, replace=True)
+    random_sample_index = np.random.choice(sample_num, size=sample_num,
+                                           replace=True)
     random_sample = data[random_sample_index, :]
     random_sample_index = None
     # 选取k个特征，无放回的选取（k <= feature_num)
     feature_index = np.random.choice(feature_num, size=k, replace=False)
     random_sample_feature = random_sample[:, feature_index]
-    data_samples = np.insert(random_sample_feature, k, values=random_sample[:, -1], axis=1)
+    data_samples = np.insert(random_sample_feature, k,
+                             values=random_sample[:, -1], axis=1)
     random_sample = None
     return data_samples, feature_index
 
@@ -169,11 +179,16 @@ def random_forest_training(data_train, trees_num):
     tasks = trees_num < os.cpu_count() and trees_num or os.cpu_count()
     pool = mp.Pool(processes=tasks)
     res = []
+    # 定义进度条
+    bar = Bar(trees_num)
+    update = lambda args: bar.update()
     # 开始构建每一颗树
     for i in range(trees_num):
-        res.append(pool.apply_async(multi_build_tree, args=(data_train, k)))
+        res.append(pool.apply_async(multi_build_tree, args=(data_train, k),
+                                    callback=update))
     pool.close()
     pool.join()
+    bar.shutdown()
     for r in res:
         tree, feature = r.get()
         # 保存训练好的分类树
@@ -240,7 +255,8 @@ def get_predict(trees_result, trees_feature, data_train):
     :param data_train: 训练样本
     :return: 对样本的预测结果
     """
-    type2ctype = {'uint8': 'B', 'uint16': 'H', 'int16': 'h', 'uint32': 'I', 'int32': 'i',
+    type2ctype = {'uint8': 'B', 'uint16': 'H', 'int16': 'h', 'uint32': 'I',
+                  'int32': 'i',
                   'float32': 'f', 'float64': 'd'}
     # 遍历所有训练好的树，并对应选择建立该树时使用的特征，根据特征从原始数据集中挑选出子数据集
     # ---------------------------------------------------------------------------
@@ -255,15 +271,19 @@ def get_predict(trees_result, trees_feature, data_train):
     m_tree = len(trees_feature)
     data_train = None
     tasks = m_tree < os.cpu_count() and m_tree or os.cpu_count()
-    pool = mp.Pool(processes=tasks, initializer=init_pool, initargs=(train_share, shape, dt))
+    pool = mp.Pool(processes=tasks, initializer=init_pool,
+                   initargs=(train_share, shape, dt))
     m = shape[0]
     result_itree = []
     # 定义进度条
-    update = lambda args: Bar(args, m_tree)
+    bar = Bar(m_tree)
+    update = lambda args: bar.update()
     for itree in range(m_tree):
-        result_itree.append(pool.apply_async(multi_predict, args=(trees_result, trees_feature, itree, m), callback=update))
+        result_itree.append(pool.apply_async(multi_predict, args=(
+        trees_result, trees_feature, itree, m), callback=update))
     pool.close()
     pool.join()
+    bar.shutdown()
     result_arr = np.array([r.get() for r in result_itree]).T
     result = []
     for line in result_arr:

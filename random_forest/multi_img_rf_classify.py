@@ -55,9 +55,15 @@ class Bar():
     """用于多线程显示进度条"""
     members = 0
 
-    def __init__(self, num, total):
-        Bar.members += num
-        progress(Bar.members / total)
+    def __init__(self, total):
+        self.total = total
+
+    def update(self):
+        Bar.members += 1
+        progress(Bar.members / self.total)
+
+    def shutdown(self):
+        Bar.members = 0
 
 
 def predict(sample, tree):
@@ -91,10 +97,13 @@ def get_predict(trees_result, trees_feature, img_block, IDblock):
     """
     # 从共享内存中提取数据
     share_in_data = np.frombuffer(global_in_share, in_dtype).reshape(IN_SHAPE)
-    share_out_data = np.frombuffer(global_out_share, out_dtype).reshape(OUT_SHAPE)
+    share_out_data = np.frombuffer(global_out_share, out_dtype).reshape(
+        OUT_SHAPE)
     dims_get, dims_put = img_block.block(IDblock)
-    in_data = share_in_data[:, dims_get[1]: dims_get[1] + dims_get[3], dims_get[0]: dims_get[0] + dims_get[2]]
-    out_data = share_out_data[dims_get[1]: dims_get[1] + dims_get[3], dims_get[0]: dims_get[0] + dims_get[2]]
+    in_data = share_in_data[:, dims_get[1]: dims_get[1] + dims_get[3],
+              dims_get[0]: dims_get[0] + dims_get[2]]
+    out_data = share_out_data[dims_get[1]: dims_get[1] + dims_get[3],
+               dims_get[0]: dims_get[0] + dims_get[2]]
     # 分类
     m_tree = len(trees_result)
     rows = in_data.shape[1]
@@ -113,7 +122,8 @@ def get_predict(trees_result, trees_feature, img_block, IDblock):
             u, c = np.unique(np.array(result_i), return_counts=True)
             out_data[irow, icol] = u[np.argmax(c)]
     # 将分类的数据放回共享内存中
-    share_out_data[dims_put[3]:dims_put[3] + dims_put[1], dims_put[2]: dims_put[2] + dims_get[2]] = out_data
+    share_out_data[dims_put[3]:dims_put[3] + dims_put[1],
+    dims_put[2]: dims_put[2] + dims_get[2]] = out_data
     in_data = out_data = None
     return 1
 
@@ -144,7 +154,8 @@ def init_pool(in_shared, out_share, in_shape, out_shape, in_dt, out_dt):
 
 
 def main(model, feature, in_dir, out_dir):
-    imgtype2ctype = {1: ['B', 'uint8'], 2: ['H', 'uint16'], 3: ['h', 'int16'], 4: ['I', 'uint32'], 5: ['i', 'int32'],
+    imgtype2ctype = {1: ['B', 'uint8'], 2: ['H', 'uint16'], 3: ['h', 'int16'],
+                     4: ['I', 'uint32'], 5: ['i', 'int32'],
                      6: ['f', 'float32'], 7: ['d', 'float64']}
     #  加载模型
     with open(model, 'rb') as f:
@@ -170,7 +181,8 @@ def main(model, feature, in_dir, out_dir):
         ori_share = mp.RawArray(imgtype2ctype[typecode][0], pixel_len)
         ori_share_arr = np.frombuffer(ori_share, in_dt).reshape(in_shape)
         for iband in range(bandnum):
-            ori_share_arr[iband, :, :] = in_ds.GetRasterBand(iband + 1).ReadAsArray()
+            ori_share_arr[iband, :, :] = in_ds.GetRasterBand(
+                iband + 1).ReadAsArray()
         # 创建分类结果
         out = os.path.join(out_dir, basename) + '_class.tif'
         tif_driver = gdal.GetDriverByName('GTiff')
@@ -197,14 +209,19 @@ def main(model, feature, in_dir, out_dir):
         tasks = cpu_count if cpu_count <= numsblocks else numsblocks
         # 创建线程池
         pool = mp.Pool(processes=tasks, initializer=init_pool,
-                       initargs=(ori_share, out_share, in_shape, out_shape, in_dt, out_dt))
+                       initargs=(
+                       ori_share, out_share, in_shape, out_shape, in_dt,
+                       out_dt))
         # 定义进度条
-        update = lambda args: Bar(args, numsblocks)
+        bar = Bar(numsblocks)
+        update = lambda args: bar.update()
         # 进行分类
         for itask in range(numsblocks):
-            pool.apply_async(get_predict, args=(trees_result, trees_feature, img_block, itask), callback=update)
+            pool.apply_async(get_predict, args=(
+            trees_result, trees_feature, img_block, itask), callback=update)
         pool.close()
         pool.join()
+        bar.shutdown()
         # 写出结果
         # 从共享内存获取结果
         out_arr = np.frombuffer(out_share, out_dt).reshape(out_shape)
