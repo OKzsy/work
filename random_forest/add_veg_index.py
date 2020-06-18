@@ -27,6 +27,26 @@ except:
     progress = gdal.TermProgress
 
 
+def add_msavi(blue=None, green=None, red=None, red_edge1=None, red_edge2=None, red_edge3=None, inf=None):
+    """
+    针对含有红边波段的哨兵数据添加msavi指数
+    :param blue:
+    :param green:
+    :param red:
+    :param red_edge1:
+    :param red_edge2:
+    :param red_edge3:
+    :param inf:
+    :return:
+    """
+    red = red.astype(np.float32) / 10000
+    inf = inf.astype(np.float32) / 10000
+    msavi = (inf + 0.5 - np.sqrt((inf + 0.5) * (inf + 0.5) - 2 * (inf - red))) * 1000
+    msavi = msavi.astype(np.int16)
+    red = inf = None
+    return msavi
+
+
 def add_mtci(blue=None, green=None, red=None, red_edge1=None, red_edge2=None, red_edge3=None, inf=None):
     """
     针对含有红边波段的哨兵数据添加mtci指数
@@ -75,7 +95,7 @@ def main(infile, outfile):
     bandnum = in_ds.RasterCount
     # 获取数据
     oridata = in_ds.ReadAsArray()
-    index_list = [add_ndvi, add_mtci]
+    index_list = [add_ndvi, add_mtci, add_msavi]
     index_num = len(index_list)
     index_arr = np.zeros((index_num, ysize, xsize))
     for ifunc in range(index_num):
@@ -125,8 +145,8 @@ if __name__ == '__main__':
     # 注册所有gdal驱动
     gdal.AllRegister()
     start_time = time.time()
-    infile = r"\\192.168.0.234\nydsj\user\ZSS\dengfeng\S2\L2A_20200318_dengfeng.tif"
-    outfile = r"\\192.168.0.234\nydsj\user\ZSS\dengfeng\S2\L2A_20200318_dengfeng_index.tif"
+    infile = r"F:\test_data\veg_index\out\GF2_20180718_L1A0003330733_sha_clip.tif"
+    outfile = r"F:\test_data\veg_index\out\GF2_20180718_L1A0003330733_sha_clip_index.tif"
     main(infile, outfile)
     end_time = time.time()
     print("time: %.4f secs." % (end_time - start_time))
