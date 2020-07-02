@@ -24,10 +24,7 @@ from functools import partial
 import multiprocessing.dummy as mp
 from threading import Thread
 
-try:
-    from osgeo import gdal
-except ImportError:
-    import gdal
+from osgeo import gdal, ogr, osr, gdalconst
 
 try:
     progress = gdal.TermProgress_nocb
@@ -37,12 +34,6 @@ except:
 
 def un_zip(zip_file, out_dir):
     try:
-        # with zipfile.ZipFile(zip_file, 'r') as zip:
-        #     for file in zip.filelist:
-        #         if os.path.exists(os.path.join(out_dir, file.filename)):
-        #             continue
-        #         else:
-        #             zip.extract(file, out_dir)
         zip = zipfile.ZipFile(zip_file, 'r')
         for name in zip.namelist():
             if os.path.exists(os.path.join(out_dir, name)):
@@ -145,7 +136,7 @@ def dn2ref(out_dir, zip_file):
         os.mkdir(temp_dir)
     zip_value = un_zip(zip_file, temp_dir)
     if zip_value == 0:
-        shutil.rmtree(temp_dir)
+        shutil.rmtree(temp_dir, ignore_errors=True)
         return
     # 增加用于兼容不同网站下载的Sen2数据
     tag = zip_name[0:3]
@@ -164,7 +155,6 @@ def dn2ref(out_dir, zip_file):
     L2_dir_name = '_'.join(L2_dir_list)
 
     L2_dir = os.path.join(temp_dir, '%s.SAFE' % L2_dir_name)
-
     L2_data_dir = os.path.join(L2_dir, 'GRANULE')
 
     xml_files = search_file(L2_data_dir, '.xml')
@@ -187,11 +177,30 @@ def dn2ref(out_dir, zip_file):
         # 增加红边波段
         jp2_10_files[3:3] = jp2_20_files[3:6]
         vrt_10_file = os.path.join(safe_dir, '%s_10m.vrt' % xml_name)
-        # vrt_options = gdal.BuildVRTOptions(resampleAlg='nearest')
-        vrt_10_dataset = gdal.BuildVRT(vrt_10_file, jp2_10_files, resolution='user', xRes=10, yRes=10, separate=True,
-                                       options=['resampleAlg=nearest'])
+        # 设置输出投影
+        osrs = osr.SpatialReference()
+        osrs.ImportFromEPSG(4326)
+        str_osrs = osrs.ExportToWkt()
+        vrt_options = gdal.BuildVRTOptions(resolution='user', xRes=10, yRes=10, separate=True,
+                                           resampleAlg='bilinear',
+                                           outputSRS=str_osrs)
+        vrt_10_dataset = gdal.BuildVRT(vrt_10_file, jp2_10_files, options=vrt_options)
+        # 依据新投影转换6参数
+        src_ds = gdal.Open(jp2_10_files[0])
+        src_prj = src_ds.GetProjection()
+        src_ds = None
+        vrt_geo = list(vrt_10_dataset.GetGeoTransform())
+        osrc = osr.SpatialReference()
+        osrc.ImportFromWkt(src_prj)
+        osrc.SetTOWGS84(0, 0, 0)
+        tx = osr.CoordinateTransformation(osrc, osrs)
+        (new_ulx, new_uly, new_ulz) = tx.TransformPoint(vrt_geo[0], vrt_geo[3], 0)
+        vrt_geo[0], vrt_geo[3] = new_ulx, new_uly
+        vrt_geo[1] = 0.0001
+        vrt_geo[5] = -0.0001
+        vrt_10_dataset.SetGeoTransform(vrt_geo)
         vrt_10_dataset.FlushCache()
-        vrt_10_dataset = None
+
 
         isub_ref_dir = os.path.join(out_dir, zip_file_name)
         if not os.path.isdir(isub_ref_dir):
@@ -199,12 +208,12 @@ def dn2ref(out_dir, zip_file):
 
         out_driver = gdal.GetDriverByName('GTiff')
         out_10_file = os.path.join(isub_ref_dir, '%s_ref_10m.tif' % xml_name)
-        print("Start exporting images at 10 meters resolution")
-        out_10_sds = out_driver.CreateCopy(out_10_file, gdal.Open(vrt_10_file), callback=progress)
+        print("Start exporting images at 10 meters resolution", flush=True)
+        out_10_sds = out_driver.CreateCopy(out_10_file, vrt_10_dataset, callback=progress)
 
-        out_10_sds = None
+        vrt_10_dataset = out_10_sds = None
 
-        shutil.rmtree(temp_dir)
+        shutil.rmtree(temp_dir, ignore_errors=True)
 
 
 def main(in_dir, out_dir):
@@ -217,7 +226,8 @@ def main(in_dir, out_dir):
     if zip_files == []:
         sys.exit('no zip file')
     # 建立多个进程
-    pool = mp.Pool(processes=6)
+    jobs = os.cpu_count() if os.cpu_count() < len(zip_files) else len(zip_files)
+    pool = mp.Pool(processes=jobs)
     func = partial(dn2ref, out_dir)
     for izip in zip_files:
         res = pool.apply_async(func, args=(izip,))
@@ -249,8 +259,8 @@ if __name__ == '__main__':
     # in_dir = sys.argv[1]
     # out_dir = sys.argv[2]
     #
-    in_dir = r"F:\test\01_raw"
-    out_dir = r"\\192.168.0.234\nydsj\user\YXZ\13_forcast\02_atm"
+    in_dir = r"\\192.168.0.234\nydsj\user\ZSS\2019qiu\old"
+    out_dir = r"\\192.168.0.234\nydsj\user\ZSS\2019qiu\test_out"
     main(in_dir, out_dir)
 
     end_time = time.time()
