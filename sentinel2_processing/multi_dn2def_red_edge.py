@@ -20,9 +20,7 @@ import shutil
 import zipfile
 import subprocess
 import tempfile
-from functools import partial
 import multiprocessing.dummy as mp
-from threading import Thread
 
 from osgeo import gdal, ogr, osr, gdalconst
 
@@ -88,42 +86,93 @@ def search_file(folder_path, file_extension):
     return search_files
 
 
-def reproj_resample(in_file, match_file, out_file):
-    source_dataset = gdal.Open(in_file)
-    if source_dataset is None:
-        sys.exit('Problem opening file %s !' % in_file)
+def corner_to_geo(sample, line, dataset):
+    """
+    :param sample: 列号
+    :param line:   行号
+    :param dataset: 所在影像的数据集
+    :return: 指定行列号的经纬度
+    """
+    # 计算指定行,列号的地理坐标
+    Geo_t = dataset.GetGeoTransform()
+    # 计算地理坐标
+    geoX = Geo_t[0] + sample * Geo_t[1]
+    geoY = Geo_t[3] + line * Geo_t[5]
+    return geoX, geoY
 
-    # 获取数据基本信息
-    num_band = source_dataset.RasterCount
-    data_type = source_dataset.GetRasterBand(1).DataType
-    in_proj = source_dataset.GetProjectionRef()
 
-    match_dataset = gdal.Open(match_file)
-    match_proj = match_dataset.GetProjection()
-    match_geo = match_dataset.GetGeoTransform()
-    out_xsize = match_dataset.RasterXSize
-    out_ysize = match_dataset.RasterYSize
+def reproject_dataset(src_ds):
+    """
+    :param src_ds: 待重采样影像的数据集
+    :return: 调用ReprojectImage对影像进行重采样，重采样后影像的分辨率为原始影像分辨率，
+    投影信息为WGS84。
+    """
+    # 定义目标投影
+    oSRS = osr.SpatialReference()
+    oSRS.SetWellKnownGeogCS("WGS84")
+    # 获取原始投影
+    src_prj = src_ds.GetProjection()
+    oSRC = osr.SpatialReference()
+    oSRC.ImportFromWkt(src_prj)
+    # 测试投影转换
+    oSRC.SetTOWGS84(0, 0, 0)
+    tx = osr.CoordinateTransformation(oSRC, oSRS)
 
-    driver = gdal.GetDriverByName('GTiff')
-    out_dataset = driver.Create(out_file, out_xsize, out_ysize, num_band, data_type)
-    out_dataset.SetGeoTransform(match_geo)
-    out_dataset.SetProjection(match_proj)
+    # 获取原始影像的放射变换参数
+    geo_t = src_ds.GetGeoTransform()
+    x_size = src_ds.RasterXSize
+    y_size = src_ds.RasterYSize
+    bandCount = src_ds.RasterCount
+    dataType = src_ds.GetRasterBand(1).DataType
+    if oSRC.GetAttrValue("UNIT") == "metre":
+        new_x_size = geo_t[1] * 10 ** (-5)
+        new_y_size = geo_t[5] * 10 ** (-5)
+    else:
+        new_x_size = geo_t[1]
+        new_y_size = geo_t[5]
+    # 获取影像的四个角点地理坐标
+    # 左上
+    old_ulx, old_uly = corner_to_geo(0, 0, src_ds)
+    # 右上
+    old_urx, old_ury = corner_to_geo(x_size, 0, src_ds)
+    # 左下
+    old_dlx, old_dly = corner_to_geo(0, y_size, src_ds)
+    # 右下
+    old_drx, old_dry = corner_to_geo(x_size, y_size, src_ds)
 
-    for i in range(num_band):
-
-        band = source_dataset.GetRasterBand(i + 1)
-
-        if band.GetNoDataValue() is None:
-            no_data = 0
-        else:
-            no_data = band.GetNoDataValue()
-        out_band = out_dataset.GetRasterBand(i + 1)
-        out_band.SetNoDataValue(no_data)
-
-    gdal.ReprojectImage(source_dataset, out_dataset, in_proj, match_proj, gdal.GRA_Bilinear)
-
-    source_dataset = None
-    out_dataset = None
+    # 计算出新影像的边界
+    # 左上
+    (new_ulx, new_uly, new_ulz) = tx.TransformPoint(old_ulx, old_uly, 0)
+    # 右上
+    (new_urx, new_ury, new_urz) = tx.TransformPoint(old_urx, old_ury, 0)
+    # 左下
+    (new_dlx, new_dly, new_dlz) = tx.TransformPoint(old_dlx, old_dly, 0)
+    # 右下
+    (new_drx, new_dry, new_drz) = tx.TransformPoint(old_drx, old_dry, 0)
+    # 统计出新影像的范围
+    # 左上经度
+    ulx = min(new_ulx, new_dlx)
+    # 左上纬度
+    uly = max(new_uly, new_ury)
+    # 右下经度
+    lrx = max(new_urx, new_drx)
+    # 右下纬度
+    lry = min(new_dly, new_dry)
+    # 创建重投影后新影像的存储位置
+    mem_drv = gdal.GetDriverByName('MEM')
+    # 根据计算的参数创建存储空间
+    dest = mem_drv.Create('', int((lrx - ulx) / new_x_size),
+                          int((uly - lry) / -new_y_size), bandCount, dataType)
+    # 计算新的放射变换参数
+    new_geo = (ulx, new_x_size, geo_t[2], uly, geo_t[4], new_y_size)
+    # 为重投影结果设置空间参考
+    dest.SetGeoTransform(new_geo)
+    dest.SetProjection(oSRS.ExportToWkt())
+    # 执行重投影和重采样
+    res = gdal.ReprojectImage(src_ds, dest,
+                              src_prj, oSRS.ExportToWkt(),
+                              gdal.GRA_NearestNeighbour)
+    return dest
 
 
 def dn2ref(out_dir, zip_file):
@@ -177,30 +226,11 @@ def dn2ref(out_dir, zip_file):
         # 增加红边波段
         jp2_10_files[3:3] = jp2_20_files[3:6]
         vrt_10_file = os.path.join(safe_dir, '%s_10m.vrt' % xml_name)
-        # 设置输出投影
-        osrs = osr.SpatialReference()
-        osrs.ImportFromEPSG(4326)
-        str_osrs = osrs.ExportToWkt()
         vrt_options = gdal.BuildVRTOptions(resolution='user', xRes=10, yRes=10, separate=True,
-                                           resampleAlg='bilinear',
-                                           outputSRS=str_osrs)
+                                           resampleAlg='near')
         vrt_10_dataset = gdal.BuildVRT(vrt_10_file, jp2_10_files, options=vrt_options)
-        # 依据新投影转换6参数
-        src_ds = gdal.Open(jp2_10_files[0])
-        src_prj = src_ds.GetProjection()
-        src_ds = None
-        vrt_geo = list(vrt_10_dataset.GetGeoTransform())
-        osrc = osr.SpatialReference()
-        osrc.ImportFromWkt(src_prj)
-        osrc.SetTOWGS84(0, 0, 0)
-        tx = osr.CoordinateTransformation(osrc, osrs)
-        (new_ulx, new_uly, new_ulz) = tx.TransformPoint(vrt_geo[0], vrt_geo[3], 0)
-        vrt_geo[0], vrt_geo[3] = new_ulx, new_uly
-        vrt_geo[1] = 0.0001
-        vrt_geo[5] = -0.0001
-        vrt_10_dataset.SetGeoTransform(vrt_geo)
-        vrt_10_dataset.FlushCache()
-
+        # 重投影
+        dst = reproject_dataset(vrt_10_dataset)
 
         isub_ref_dir = os.path.join(out_dir, zip_file_name)
         if not os.path.isdir(isub_ref_dir):
@@ -209,9 +239,9 @@ def dn2ref(out_dir, zip_file):
         out_driver = gdal.GetDriverByName('GTiff')
         out_10_file = os.path.join(isub_ref_dir, '%s_ref_10m.tif' % xml_name)
         print("Start exporting images at 10 meters resolution", flush=True)
-        out_10_sds = out_driver.CreateCopy(out_10_file, vrt_10_dataset, callback=progress)
+        out_10_sds = out_driver.CreateCopy(out_10_file, dst, callback=progress)
 
-        vrt_10_dataset = out_10_sds = None
+        vrt_10_dataset = dest = out_10_sds = None
 
         shutil.rmtree(temp_dir, ignore_errors=True)
 
@@ -228,26 +258,11 @@ def main(in_dir, out_dir):
     # 建立多个进程
     jobs = os.cpu_count() if os.cpu_count() < len(zip_files) else len(zip_files)
     pool = mp.Pool(processes=jobs)
-    func = partial(dn2ref, out_dir)
     for izip in zip_files:
-        res = pool.apply_async(func, args=(izip,))
+        # dn2ref(out_dir, izip)
+        pool.apply_async(dn2ref, args=(out_dir, izip,))
     pool.close()
     pool.join()
-    # 建立多个进程
-    # num_proc = min(8, len(zip_files))
-    # for zip in range(0, len(zip_files), num_proc):
-    #
-    #     sub_zip_list = zip_files[zip: num_proc + zip]
-    #
-    #     thread_list = []
-    #     for izip in sub_zip_list:
-    #         dn2ref(out_dir, izip)
-    #     #     thread = Thread(target=dn2ref, args=(out_dir, izip,))
-    #     #     thread.start()
-    #     #     thread_list.append(thread)
-    #     #
-    #     # for it in thread_list:
-    #     #     it.join()
 
 
 if __name__ == '__main__':
