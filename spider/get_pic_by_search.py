@@ -106,8 +106,8 @@ def main(url):
     global pic_dir
     # 获取网页上所有的一级标签
     links, names = get_tag(url)
-    nums_links = int(len(links) / 2)
-    for ialb in np.random.randint(0, len(links) - 1, nums_links):
+    nums_links = 1 if int(len(links) / 2) < 1 else int(len(links) / 2)
+    for ialb in np.random.randint(len(links), size=nums_links):
         # 随机获取某一个相册，共获取10个相册
         print("Now begin to get the {} album, whose link is: {}".format(names[ialb], links[ialb]))
         # 开始抓取主题内的图片
@@ -121,6 +121,6 @@ if __name__ == "__main__":
     if not os.path.exists(pic_dir):
         os.makedirs(pic_dir)
     # 通过标签下载图片
-    source_url = "https://www.mzitu.com/search/头/"
+    source_url = "https://www.mzitu.com/search/真空/"
     main(source_url)
     pass
