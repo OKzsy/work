@@ -99,13 +99,13 @@ def sync(source, dest, m):
         else:
             try:
                 if not os.path.exists(path):
-                    print('downloading: ', path)
-                    print('url: ', url)
+                    print('downloading: ', path, flush=True)
+                    print('url: ', url, flush=True)
                     req = requests.get(url, headers=headers)
                     with open(path, 'w+b') as fh:
                         fh.write(req.content)
                 else:
-                    print('skipping: ', path)
+                    print('skipping: ', path, flush=True)
             except exceptions.Timeout as e:
                 print('请求超时：' + str(e.strerror))
                 sys.exit(-1)
@@ -144,7 +144,7 @@ def hdf2tiff(date, latlng, save_path, stitch_path, aod_dir):
     # 获取所有hdf文件列表
     hdf_files = searchfiles(save_path, partfileinfo="*.hdf")
     # 定义参数文件
-    stitch_txt = os.path.join(stitch_path, '6SV', "stitch.prm")
+    stitch_txt = os.path.join(stitch_path, "stitch.prm")
     if os.path.exists(stitch_txt):
         os.remove(stitch_txt)
     if not os.path.exists(aod_dir):
@@ -188,10 +188,10 @@ def hdf2tiff(date, latlng, save_path, stitch_path, aod_dir):
     return None
 
 
-def main(date, latlng, aod_dir):
+def main(date, latlng, aod_dir, hdf_dir):
     # 获取当前工作路径
     function_position = os.path.dirname(os.path.abspath(sys.argv[0]))
-    hdf_path = os.path.join(function_position, '6SV', date.replace("-", ""))
+    hdf_path = os.path.join(hdf_dir, date.replace("-", ""))
     instance = Nasa(date=date, latlng=latlng, save_path=hdf_path)
     # 爬取符合要求的modis产品名称和数据路径
     modis_product = instance.spider()
@@ -199,7 +199,7 @@ def main(date, latlng, aod_dir):
     status = sync(source=modis_product, dest=hdf_path, m=instance.mm)
     if status != 1:
         sys.exit("文件没有下载完全，请重新下载")
-    hdf2tiff(date, latlng, hdf_path, function_position, aod_dir)
+    hdf2tiff(date, latlng, hdf_path, hdf_dir, aod_dir)
     return None
 
 
@@ -222,23 +222,22 @@ if __name__ == '__main__':
     last_date_str = '-'.join([last_date[0:4], last_date[4:6], last_date[6:8]])
     last_date_dt = datetime.strptime(last_date_str, "%Y-%m-%d")
     now_dt = datetime.strptime((datetime.now() - timedelta(days=1)).strftime("%Y-%m-%d"), "%Y-%m-%d")
+    for root, dirs, files in os.walk(hdf_dir):
+        for f_name in files:
+            f_path = os.path.join(root, f_name)
+            os.remove(f_path)
+        break
     for iday in range((now_dt - last_date_dt).days):
         new_dt = last_date_dt + timedelta(iday + 1)
         day = new_dt.strftime("%Y-%m-%d")
         aod_path = os.path.join(aod_dir, day.replace("-", "")) + '.tif'
         if os.path.exists(aod_path):
-            print('The file of {} already have!'.format(aod_path))
+            print('The file of {} already have!'.format(aod_path), flush=True)
             continue
         else:
             aod_hdf_path = os.path.join(hdf_dir, day.replace("-", ""))
             if os.path.exists(aod_hdf_path):
                 shutil.rmtree(aod_hdf_path)
-            else:
-                continue
-            for f_name in os.listdir(aod_hdf_path):
-                if os.path.isfile(f_name):
-                    f_path = os.path.join(aod_hdf_path, f_name)
-                    os.remove(f_path)
-        main(date=day, latlng=latlng, aod_dir=aod_dir)
+        main(date=day, latlng=latlng, aod_dir=aod_dir, hdf_dir=hdf_dir)
     end_time = time.time()
     print("time: %.4f secs." % (end_time - start_time))
