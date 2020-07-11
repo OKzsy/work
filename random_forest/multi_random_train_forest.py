@@ -336,6 +336,9 @@ def main(sample_file, model_file, feature_file):
     result = get_predict(trees_result, trees_feature, data_verify)
     corr_rate = cal_corr_rate(data_verify, result)
     print(corr_rate)
+    corr_rate = str(round(corr_rate, 4))
+    model_file = model_file + '_' +corr_rate +'.pkl'
+    feature_file = feature_file + '_' +corr_rate +'.pkl'
     print("--------------------save model---------------------")
     save_model(trees_result, trees_feature, model_file, feature_file)
     return None
@@ -352,8 +355,8 @@ if __name__ == '__main__':
     gdal.AllRegister()
     start_time = time.time()
     samplefile = r"/mnt/e/dengfeng/sample.csv"
-    result_file = r"/mnt/e/dengfeng/model.pkl"
-    feature_file = r"/mnt/e/dengfeng/feature.pkl"
+    result_file = r"/mnt/e/dengfeng/model"
+    feature_file = r"/mnt/e/dengfeng/feature"
 
     main(samplefile, result_file, feature_file)
     end_time = time.time()

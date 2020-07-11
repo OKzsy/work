@@ -333,6 +333,9 @@ def main(sample_file, verify_file, model_file, feature_file):
     result = get_predict(trees_result, trees_feature, data_verify)
     corr_rate = cal_corr_rate(data_verify, result)
     print(corr_rate)
+    corr_rate = str(round(corr_rate, 4))
+    model_file = model_file + '_' +corr_rate +'.pkl'
+    feature_file = feature_file + '_' +corr_rate +'.pkl'
     print("--------------------save model---------------------")
     save_model(trees_result, trees_feature, model_file, feature_file)
     return None
@@ -350,8 +353,8 @@ if __name__ == '__main__':
     start_time = time.time()
     samplefile = r"/mnt/ipsan/project/37.2019全省小麦监测/2.vector/4.csv/sample_clip_tif.csv"
     varifyfile = r"/mnt/ipsan/project/37.2019全省小麦监测/2.vector/4.csv/sample_clip_tif.csv"
-    result_file = r"/mnt/ipsan/user/ZSS/dengfeng/s2_model/model.pkl"
-    feature_file = r"/mnt/ipsan/user/ZSS/dengfeng/s2_model/feature.pkl"
+    result_file = r"/mnt/ipsan/user/ZSS/dengfeng/s2_model/model"
+    feature_file = r"/mnt/ipsan/user/ZSS/dengfeng/s2_model/feature"
 
     main(samplefile, varifyfile, result_file, feature_file)
     end_time = time.time()
