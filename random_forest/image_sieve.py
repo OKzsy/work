@@ -153,7 +153,10 @@ def sieve(in_file, dst_dir, th, co):
 
 
 def main(in_dir, out_dir, threshold, connect):
-    files = searchfiles(in_dir, partfileinfo='*.tif')
+    if os.path.isdir(in_dir):
+        files = searchfiles(in_dir, partfileinfo='*.tif')
+    else:
+        files = [in_dir]
     jobs = os.cpu_count() - 1 if os.cpu_count() < len(files) else len(files)
     pool = mp.Pool(processes=jobs)
     for ifile in files:
