@@ -74,6 +74,10 @@ def build_tree(data):
         return node
     # 计算当前的gini指数
     currentgini = cal_gini_index(data[:, -1])
+    # 如果对数据集的划分结果达到要求直接返回结果
+    if currentgini == 0:
+        node['results'] = np.unique(data[:, -1], return_counts=True)
+        return node
     bestgini = 0.0
     # 最佳切分属性以及最佳切分点
     bestcriteria = None
