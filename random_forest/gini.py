@@ -72,11 +72,25 @@ def build_tree(data):
     # 构建决策树，函数返回该决策树的根节点
     if data.shape[0] == 0:
         return node()
+    # 增加模糊度判断过程
+    threshold = 0.95
+    lable_jugdment = np.unique(data[:, -1], return_counts=True)
+    # 判断剩余标签种类个数
+    lable_cate = lable_jugdment[0]
+    lable_count = lable_jugdment[1]
+    max_lable_rate = lable_count.max() / lable_count.sum()
+    # 如果对数据集的划分结果达到要求直接返回结果
+    if max_lable_rate >= threshold:
+        if lable_cate.shape[0] == 1:
+            return node(results=lable_jugdment)
+        else:
+            lable_count_argsort = np.argsort(lable_count)[::-1]
+            lable_cate = lable_cate[lable_count_argsort]
+            lable_count = lable_count[lable_count_argsort]
+            lable_jugdment = (lable_cate, lable_count)
+            return node(results=lable_jugdment)
     # 计算当前的gini指数
     currentgini = cal_gini_index(data[:, -1])
-    # 如果对数据集的划分结果达到要求直接返回结果
-    if currentgini == 0:
-        return node(results=np.unique(data[:, -1], return_counts=True))
     bestgini = 0.0
     # 最佳切分属性以及最佳切分点
     bestcriteria = None
@@ -141,8 +155,9 @@ def predict(sample, tree):
 
 
 def main():
-    # ls = [[1, 1, 1], [1, 1, 1], [1, 0, 0], [0, 1, 0], [0, 1, 0]]
-    ls = [[1, 1, 1], [1, 1, 1], [1, 0, 1], [0, 1, 1], [0, 1, 1]]
+    ls = [[1, 1, 1], [1, 1, 1], [1, 0, 0], [0, 1, 0], [0, 1, 0]]
+    # ls = [[1, 1, 1], [1, 1, 1], [1, 0, 1], [0, 1, 1], [0, 1, 1]]
+    # ls = [[1, 1, 1], [1, 1, 1], [1, 0, 1], [0, 1, 1], [0, 1, 2], [1, 1, 2], [1, 1, 3], [1, 1, 3], [1, 1, 4], [1, 1, 5]]
     label_ar = np.array(ls)
     tree = build_tree(label_ar)
     sample = np.array([[[0, 1, 1], [1, 0, 0], [1, 0, 0]], [[0, 0, 1], [1, 1, 0], [1, 1, 0]]])
