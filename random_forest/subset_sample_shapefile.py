@@ -193,7 +193,7 @@ def main(rasters, shp, out, fieldName='Name'):
             outdir = out
             outpath = os.path.join(
                 outdir, raster_basename + '_' + feat.GetField(fieldName) + '.tif')
-            print(os.path.basename(outpath))
+            # print(os.path.basename(outpath))
             # 要素提取为图层
             feat_ds, feat_lyr = Feature_memory_shp(feat, raster_srs)
             # 要素裁剪
@@ -224,7 +224,7 @@ if __name__ == '__main__':
     # 注册所有gdal驱动
     gdal.AllRegister()
 
-    start_time = time.clock()
+    start_time = time.time()
     # if len(sys.argv[1:]) < 3
     #     sys.exit('Problem reading input')
     # main(sys.argv[1], sys.argv[2], sys.argv[3])
@@ -232,6 +232,6 @@ if __name__ == '__main__':
     shpfile = r"F:\test_data\dengfeng\sample\land_L2A_20200318_dengfeng.shp"
     outfile = r"F:\test_data\dengfeng\out"
     main(in_files, shpfile, outfile)
-    end_time = time.clock()
+    end_time = time.time()
 
     print("time: %.4f secs." % (end_time - start_time))
