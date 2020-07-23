@@ -364,7 +364,7 @@ if __name__ == '__main__':
     model_name = 's2_0706_25_nea.pkl'
     for tree_num in range(10, 31, 5):
         for iround in range(3):
-            print('Start the {} round of training for {} trees'.format(str(iround), str(tree_num)))
+            print('Start the {} round of training for {} trees'.format(str(iround + 1), str(tree_num)))
             main(samplefile, model_dir, model_name, tree_num)
     end_time = time.time()
     print("time: %.4f secs." % (end_time - start_time))
