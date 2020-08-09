@@ -46,6 +46,70 @@ def searchfiles(dirpath, partfileinfo='*', recursive=False):
     return filelist
 
 
+def add_ARVI(blue=None, green=None, red=None, red_edge1=None, red_edge2=None, red_edge3=None, inf=None):
+    """
+    增加VI4指数
+    :param blue:
+    :param green:
+    :param red:
+    :param red_edge1:
+    :param red_edge2:
+    :param red_edge3:
+    :param inf:
+    :return:
+    """
+    blue = blue.astype(np.float32) / 10000
+    green = green.astype(np.float32) / 10000
+    red = red.astype(np.float32) / 10000
+    inf = inf.astype(np.float32) / 10000
+    ARVI = (inf - 2 * red + blue) / (inf + 2 * red - blue + 0.000001)
+    ARVI = (ARVI * 1000).astype(np.int16)
+    blue = green = red = inf = None
+    return ARVI
+
+
+def add_VI7(blue=None, green=None, red=None, red_edge1=None, red_edge2=None, red_edge3=None, inf=None):
+    """
+    增加VI4指数
+    :param blue:
+    :param green:
+    :param red:
+    :param red_edge1:
+    :param red_edge2:
+    :param red_edge3:
+    :param inf:
+    :return:
+    """
+    blue = blue.astype(np.float32) / 10000
+    green = green.astype(np.float32) / 10000
+    red = red.astype(np.float32) / 10000
+    inf = inf.astype(np.float32) / 10000
+    VI7 = (blue + green + red) * (inf + red) / (inf - red + 0.000001)
+    VI7 = (VI7 * 1000).astype(np.int16)
+    blue = green = red = inf = None
+    return VI7
+
+
+def add_VI4(blue=None, green=None, red=None, red_edge1=None, red_edge2=None, red_edge3=None, inf=None):
+    """
+    增加VI4指数
+    :param blue:
+    :param green:
+    :param red:
+    :param red_edge1:
+    :param red_edge2:
+    :param red_edge3:
+    :param inf:
+    :return:
+    """
+    blue = blue.astype(np.int16)
+    green = green.astype(np.int16)
+    red = red.astype(np.int16)
+    VI4 = blue + green + red
+    blue = green = red = None
+    return VI4
+
+
 def add_msavi(blue=None, green=None, red=None, red_edge1=None, red_edge2=None, red_edge3=None, inf=None):
     """
     针对含有红边波段的哨兵数据添加msavi指数
