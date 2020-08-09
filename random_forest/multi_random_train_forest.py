@@ -325,7 +325,7 @@ def save_model(trees_result, trees_feature, model_file, feature_file):
     return None
 
 
-def main(sample_file, model_file, feature_file):
+def main(sample_file, model_dir, model_name, tree_num):
     # 导入数据
     print("--------------------load data---------------------")
     data = np.loadtxt(sample_file, delimiter=',', dtype=np.int32)
@@ -335,15 +335,16 @@ def main(sample_file, model_file, feature_file):
     data = None
     # 训练random forest 模型
     print("---------------random forest training-------------")
-    trees_result, trees_feature = random_forest_training(data_train, 10)
+    trees_result, trees_feature = random_forest_training(data_train, tree_num)
     # 得到训练的准确性
     print("---------------get prediction correct rate--------")
     result = get_predict(trees_result, trees_feature, data_verify)
     corr_rate = cal_corr_rate(data_verify, result)
     print(corr_rate)
     corr_rate = str(round(corr_rate, 4))
-    model_file = model_file + '_' +corr_rate +'.pkl'
-    feature_file = feature_file + '_' +corr_rate +'.pkl'
+    model_name = os.path.splitext(os.path.basename(model_name))[0]
+    model_file = os.path.join(model_dir, model_name) + '_' + str(tree_num) + '_' +corr_rate + '_mdl.pkl'
+    feature_file = os.path.join(model_dir, model_name) + '_' + str(tree_num) + '_' +corr_rate + '_fea.pkl'
     print("--------------------save model---------------------")
     save_model(trees_result, trees_feature, model_file, feature_file)
     return None
@@ -360,9 +361,11 @@ if __name__ == '__main__':
     gdal.AllRegister()
     start_time = time.time()
     samplefile = r"/mnt/e/dengfeng/sample.csv"
-    result_file = r"/mnt/e/dengfeng/model"
-    feature_file = r"/mnt/e/dengfeng/feature"
-
-    main(samplefile, result_file, feature_file)
+    model_dir = r"/mnt/e/dengfeng/model"
+    model_name = 's2_0706_25_nea.pkl'
+    for tree_num in range(10, 31, 5):
+        for iround in range(3):
+            print('Start the {} round of training for {} trees'.format(str(iround + 1), str(tree_num)))
+            main(samplefile, model_dir, model_name, tree_num)
     end_time = time.time()
     print("time: %.4f secs." % (end_time - start_time))
