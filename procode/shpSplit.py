@@ -24,6 +24,54 @@ except:
     progress = gdal.TermProgress
 
 
+def filter_spatial_disk_shp(vec_lyr, out_dir, filter_lyr, fieldName):
+    """
+    根据空间范围裁剪另一个矢量
+    :param vec_lyr:
+    :param out_dir:
+    :param filter_lyr:
+    :param fieldName:
+    :return:
+    """
+    for feat in filter_lyr:
+        geom = feat.geometry().Clone()
+        out_path = os.path.join(out_dir, feat.GetField(fieldName)) + '.shp'
+        # 创建输出矢量
+        driver = ogr.GetDriverByName('ESRI Shapefile')
+        out_ds = driver.CreateDataSource(out_path)
+        vec_lyr.SetSpatialFilter(geom)
+        out_ds.CopyLayer(vec_lyr, 'new_layer')
+        out_ds.SyncToDisk()
+        vec_lyr.SetSpatialFilter(None)
+    return None
+
+
+def export_fea_memory_shp(vec_lyr, Fid):
+    """将geometry导出为内存中单独的shpfile,并保留原来的属性"""
+    feat = vec_lyr.GetFeature(Fid)
+    fid = feat.GetFID()
+    # 在内存中创建临时的矢量文件，用以存储单独的要素
+    # 创建临时矢量文件
+    mem_dri = ogr.GetDriverByName('Memory')
+    mem_ds = mem_dri.CreateDataSource(' ')
+    outLayer = mem_ds.CreateLayer(' ', geom_type=vec_lyr.GetGeomType(),
+                                  srs=vec_lyr.GetSpatialRef())
+    # 给图层中创建字段用以标识原来的FID
+    coor_fld = ogr.FieldDefn(vec_lyr.schema)
+    outLayer.CreateField(coor_fld)
+    # 创建虚拟要素，用以填充原始要素
+    out_defn = outLayer.GetLayerDefn()
+    out_feat = ogr.Feature(out_defn)
+    # 对字段填充值
+    for i in range(feat.GetFieldCount()):
+        value = feat.GetField(i)
+        out_feat.SetField(i, value)
+    # 填充要素
+    out_feat.SetGeometry(feat.geometry())
+    outLayer.CreateFeature(out_feat)
+    return mem_ds, outLayer
+
+
 def filter_attri_disk_shp(vec_lyr, out_path, filter_str):
     """
     将指定属性的面导出为磁盘中的shpfile
@@ -42,7 +90,7 @@ def filter_attri_disk_shp(vec_lyr, out_path, filter_str):
     out_ds.SyncToDisk()
 
 
-def Feature_disk_shp(vec_lyr, out_path, Fid):
+def Feature_disk_shp(vec_lyr, out_shp, Fid):
     """将指定的geometry导出为磁盘中单独的shpfile"""
     # 创建输出矢量
     driver = ogr.GetDriverByName('ESRI Shapefile')
@@ -85,22 +133,26 @@ def Feature_memory_shp(vec_lyr, Fid):
     return mem_ds, outLayer
 
 
-def main(in_vec, out_vec, fid):
+def main(in_vec, out_dir):
     # 打开原始矢量数据
+    filter_shp = r"\\192.168.0.234\nydsj\project\2.zhiyan\3.2020\1.vector\1.xzqh\镇\洛阳\伊川县.shp"
     in_vec_ds = ogr.Open(in_vec)
     in_lyr = in_vec_ds.GetLayer(0)
+    filter_ds = ogr.Open(filter_shp)
+    filter_lyr = filter_ds.GetLayer(0)
     # out_ds, out_lyr = Feature_memory_shp(in_lyr, fid)
     # driver = in_vec_ds.GetDriver()
     # driver.CopyDataSource(out_ds, out_vec)
     # del out_ds
     # Feature_disk_shp(in_lyr, out_vec, fid)
     # filter_str = '\"{}\" = {}'.format('分区', "'" + '实验区' + "'")
-    filter_str = '\"{}\" > {}'.format('num', 2.2)
-    filter_attri_disk_shp(in_lyr, out_vec, filter_str)
+    # filter_str = '\"{}\" > {}'.format('num', 2.2)
+    # filter_attri_disk_shp(in_lyr, out_vec, filter_str)
+    filter_spatial_disk_shp(in_lyr, out_dir, filter_lyr, 'name')
 
 if __name__ == '__main__':
     # 支持中文路径
-    gdal.SetConfigOption("GDAL_FILENAME_IS_UTF8", "NO")
+    gdal.SetConfigOption("GDAL_FILENAME_IS_UTF8", "YES")
     # 支持中文属性字段
     gdal.SetConfigOption("SHAPE_ENCODING", "gb2312")
     # 注册所有ogr驱动
@@ -108,10 +160,9 @@ if __name__ == '__main__':
 
     start_time = time.clock()
 
-    shp_path = r"F:\test_data\boundary\wuyiling\wuyiling.shp"
-    out_shp = r"F:\test_data\vector\test_out.shp"
-    FID = 10
-    main(shp_path, out_shp, FID)
+    src_shp = r"\\192.168.0.234\nydsj\user\LXX\烟草2020\dk\yichuan.shp"
+    dst_shp = r"\\192.168.0.234\nydsj\shp"
+    main(src_shp, dst_shp)
     end_time = time.clock()
 
     print("time: %.4f secs." % (end_time - start_time))
