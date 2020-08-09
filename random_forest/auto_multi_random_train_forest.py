@@ -303,6 +303,14 @@ def cal_corr_rate(data_train, final_predict):
     :return: 准确性
     """
     m = final_predict.size
+    # 分别计算精度
+    flags = np.unique(data_train[:, -1], return_counts=True)
+    print('{:^10}{:^10}'.format('flag', 'accurate'))
+    for flag in flags[0]:
+        index = np.where(data_train[:, -1] == flag)
+        contrast = data_train[:, -1][index] - final_predict[index]
+        accurate = np.where(contrast == 0)[0].shape[0]
+        print('{:^10d}{:^10.4f}'.format(flag, accurate / index[0].size))
     contrast = data_train[:, -1] - final_predict
     accurate = np.where(contrast == 0)[0].shape[0]
     return accurate / m
@@ -339,7 +347,7 @@ def main(sample_file, model_dir, model_name, tree_num):
     print("---------------get prediction correct rate--------")
     result = get_predict(trees_result, trees_feature, data_verify)
     corr_rate = cal_corr_rate(data_verify, result)
-    print(corr_rate)
+    print('{:^10}{:^10.4f}'.format('total', corr_rate))
     corr_rate = str(round(corr_rate, 4))
     model_name = os.path.splitext(os.path.basename(model_name))[0]
     model_file = os.path.join(model_dir, model_name) + '_' + str(tree_num) + '_' +corr_rate + '_mdl.pkl'
@@ -359,9 +367,9 @@ if __name__ == '__main__':
     # 注册所有gdal驱动
     gdal.AllRegister()
     start_time = time.time()
-    samplefile = r"/mnt/e/dengfeng/sample.csv"
-    model_dir = r"/mnt/e/dengfeng/model"
-    model_name = 's2_0706_25_nea.pkl'
+    samplefile = r"F:\test_data\dengfeng\sample.csv"
+    model_dir = r"E:\MNIST_dataset"
+    model_name = 's2_0706.pkl'
     for tree_num in range(10, 31, 5):
         for iround in range(3):
             print('Start the {} round of training for {} trees'.format(str(iround + 1), str(tree_num)))
