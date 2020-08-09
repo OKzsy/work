@@ -228,10 +228,16 @@ if __name__ == '__main__':
     # if len(sys.argv[1:]) < 3
     #     sys.exit('Problem reading input')
     # main(sys.argv[1], sys.argv[2], sys.argv[3])
-    in_files = [r"F:\test_data\dengfeng\S2\L2A_20200318_dengfeng.tif"]
-    shpfile = r"F:\test_data\dengfeng\sample\land_L2A_20200318_dengfeng.shp"
-    outfile = r"F:\test_data\dengfeng\out"
-    main(in_files, shpfile, outfile)
+    in_files = [r"\\192.168.0.234\nydsj\user\LXX\烟草2020\GF数据\待分类影像\GF1_20200720_L1A0004939259_sha_clip.tif",
+                r"\\192.168.0.234\nydsj\user\LXX\烟草2020\GF数据\待分类影像\GF1_20200720_L1A0004939273_sha_clip.tif",
+                r"\\192.168.0.234\nydsj\user\LXX\烟草2020\GF数据\待分类影像\GF1_20200720_L1A0004939275_sha_clip.tif",
+                r"\\192.168.0.234\nydsj\user\LXX\烟草2020\GF数据\待分类影像\GF1_20200720_L1A0004939349_sha_clip.tif",
+                r"\\192.168.0.234\nydsj\user\LXX\烟草2020\GF数据\待分类影像\GF1_20200720_L1A0004939350_sha_clip.tif",
+                r"\\192.168.0.234\nydsj\user\LXX\烟草2020\GF数据\待分类影像\GF1_20200720_L1A0004939354_sha_clip.tif"]
+    shpfile = r"\\192.168.0.234\nydsj\project\2.zhiyan\3.2020\1.vector\5.裁剪面\洛阳GF覆盖镇\GF覆盖镇.shp"
+    outfile = r"\\192.168.0.234\nydsj\clip"
+    filename = "name"
+    main(in_files, shpfile, outfile, fieldName=filename)
     end_time = time.time()
 
     print("time: %.4f secs." % (end_time - start_time))
