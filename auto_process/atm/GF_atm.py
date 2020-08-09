@@ -214,7 +214,7 @@ def reproject_dataset(src_ds, new_x_size, new_y_size):
     print('Begin to reprojection and resample!')
     res = gdal.ReprojectImage(src_ds, dest, \
                               src_prj, oSRS.ExportToWkt(), \
-                              gdal.GRA_NearestNeighbour, callback=progress)
+                              gdal.GRA_Bilinear, callback=progress)
     return dest
 
 
@@ -556,10 +556,10 @@ def main(file_path, out_path, partfileinfo='*.tif'):
 
 if __name__ == '__main__':
     start_time = time.clock()
-    file_path = r'\\192.168.0.234\nydsj\user\ZSS\农保项目\GF6\1.source'
+    file_path = r'\\192.168.0.234\nydsj\user\LXX\烟草2020\GF数据\rpc'
     # ID = ['5896', '5893', '5752']
-    out = r"\\192.168.0.234\nydsj\user\ZSS\农保项目\GF6\out"
-    partfileinfo = 'GF*.img'
+    out = r"\\192.168.0.234\nydsj\user\LXX\烟草2020\GF数据\atm"
+    partfileinfo = 'GF?_*.tiff'
     print('The program starts running!')
     main(file_path, out, partfileinfo)
     end_time = time.clock()
