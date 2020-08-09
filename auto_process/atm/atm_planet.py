@@ -166,7 +166,7 @@ def reproject_dataset(src_ds, new_x_size, new_y_size):
     print('Begin to reprojection and resample!')
     res = gdal.ReprojectImage(src_ds, dest, \
                               src_prj, oSRS.ExportToWkt(), \
-                              gdal.GRA_NearestNeighbour, callback=progress)
+                              gdal.GRA_Bilinear, callback=progress)
     return dest
 
 
@@ -284,8 +284,8 @@ def get_aod(oDocument, aod_file):
     numbers = columns * rows
     spec_num = np.where(aod == -9999)[0].shape[0]
     if spec_num == numbers:
-        mean_aod = 0.6
-        # mean_aod = 0.1696
+        # mean_aod = 0.6
+        mean_aod = 0.1696
     else:
         mean_aod = np.mean(aod[np.where(aod != -9999)]) * 0.001
     aod_ds = None
@@ -428,8 +428,8 @@ def main(file_path, out_path, partfileinfo='*AnalyticMS.tif'):
 
 if __name__ == '__main__':
     start_time = time.clock()
-    file_path = r"\\192.168.0.234\nydsj\project\2.zhiyan\2.2019\2.data\4.planet\1.source\yancao\planet_order_372841_洛阳\planet_order_372841\20190726_025124_1010"
-    out = r"\\192.168.0.234\nydsj\user\ZSS\20190810"
+    file_path = r"\\192.168.0.234\nydsj\user\ZSS\2020yancao\Planet\source\Biyang-20200803-MS_PSScene4Band_Explorer"
+    out = r"\\192.168.0.234\nydsj\user\ZSS\2020yancao\Planet\atm"
     partfileinfo = '*AnalyticMS.tif'
     print('The program starts running!')
     main(file_path=file_path, out_path=out, partfileinfo=partfileinfo)
