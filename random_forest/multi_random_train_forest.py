@@ -77,7 +77,6 @@ def build_tree(data):
     # 如果对数据集的划分结果达到要求直接返回结果
     if currentgini == 0:
         node['results'] = np.unique(data[:, -1], return_counts=True)
-        node['results'] = np.sort(data[:, -1], return_counts=True)
         return node
     bestgini = 0.0
     # 最佳切分属性以及最佳切分点
@@ -303,10 +302,54 @@ def cal_corr_rate(data_train, final_predict):
     :param final_predict: 预测结果
     :return: 准确性
     """
-    m = final_predict.size
-    contrast = data_train[:, -1] - final_predict
-    accurate = np.where(contrast == 0)[0].shape[0]
-    return accurate / m
+    # 分别计算精度
+    flags = np.unique(data_train[:, -1])
+    mat = np.zeros([flags.size, flags.size])
+    for ipre in range(len(flags)):
+        pre_index = np.where(final_predict == flags[ipre])
+        tr_value = data_train[:, -1][pre_index]
+        for itr in range(len(flags)):
+            tr_flag = flags[itr]
+            mat[ipre, itr] = np.where(tr_value == tr_flag)[0].shape[0]
+    # 计算混淆矩阵
+    # 精度（Precision）代表多分进来，即不属于该标签，被误分为该标签。不要多分，即精度必须高，
+    # 保证分为该类的，其可信度较高，但会有本应该分为该类的分为其他类
+    # 灵敏度（Sensitivity）代表少分，即本应应该数据该标签，结果部分分为其他标签，不要少分，
+    # 即灵敏度必须高，保证是该类的尽量部分为其他类，结果是分为该类的中，有部分本应该是其他类的。
+    micro_ppv = np.zeros(len(flags))
+    micro_trp = np.zeros(len(flags))
+    for iflag in range(len(flags)):
+        Tp = mat[iflag, iflag]
+        Fp = np.sum(mat[iflag, :]) - Tp
+        Fn = np.sum(mat[:, iflag]) - Tp
+        Tn = np.sum(mat) - Tp - Fp - Fn
+
+        ppv = Tp / (Tp + Fp)
+        micro_ppv[iflag] = ppv
+        trp = Tp / (Tp + Fn)
+        micro_trp[iflag] = trp
+        tnr = Tn / (Fp + Tn)
+        F1Score = 2 * ppv * trp / (ppv + trp)
+        print('The flag is: {}'.format(flags[iflag]))
+        print('The Precision is: {:<5.4}'.format(ppv))
+        print('The Sensitivity is: {:<5.4}'.format(trp))
+        print('The Specificity is: {:<5.4}'.format(tnr))
+        print('The F1-Score is: {:<5.4}'.format(F1Score))
+    micro_p = np.average(micro_ppv)
+    micro_t = np.average(micro_trp)
+    micro_f1 = 2 * micro_p * micro_t / (micro_p + micro_t)
+    print('The Micro-F1-Score is: {:<5.4}'.format(micro_f1))
+    acc = np.trace(mat) / np.sum(mat)
+    print('The Accuracy is: {:<5.4}'.format(acc))
+    # 计算kappa系数
+    pe_rows = np.sum(mat, axis=0)
+    pe_cols = np.sum(mat, axis=1)
+    sum_total = sum(pe_cols)
+    pe = np.dot(pe_rows, pe_cols) / float(sum_total ** 2)
+    po = np.trace(mat) / float(sum_total)
+    kappa = (po - pe) / (1 - pe)
+    print('The Kappa is: {:<5.4}'.format(kappa))
+    return micro_f1
 
 
 def save_model(trees_result, trees_feature, model_file, feature_file):
@@ -360,8 +403,8 @@ if __name__ == '__main__':
     # 注册所有gdal驱动
     gdal.AllRegister()
     start_time = time.time()
-    samplefile = r"/mnt/e/dengfeng/sample.csv"
-    model_dir = r"/mnt/e/dengfeng/model"
+    samplefile = r"F:\test_data\dengfeng\sample.csv"
+    model_dir = r"E:\MNIST_dataset"
     model_name = 's2_0706_25_nea.pkl'
     for tree_num in range(10, 31, 5):
         for iround in range(3):
