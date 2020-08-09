@@ -63,12 +63,14 @@ def cal_gini_index(data):
     return gini
 
 
-def build_tree(data):
+def build_tree(data, depth=1):
     node = {'fea': -1,
             'value': None,
             'results': None,
             'right': None,
             'left': None}
+    # 增加树的深度变量
+    depth += 1
     # 构建决策树，函数返回该决策树的根节点
     if data.shape[0] == 0:
         return node
@@ -79,18 +81,18 @@ def build_tree(data):
     lable_cate = lable_jugdment[0]
     lable_count = lable_jugdment[1]
     max_lable_rate = lable_count.max() / lable_count.sum()
+    # 如果数据集中的标签只有一种，直接返回结果
+    if lable_cate.shape[0] == 1:
+        node['results'] = lable_jugdment
+        return node
     # 如果对数据集的划分结果达到要求直接返回结果
-    if max_lable_rate >= threshold:
-        if lable_cate.shape[0] == 1:
-            node['results'] = lable_jugdment
-            return node
-        else:
-            lable_count_argsort = np.argsort(lable_count)[::-1]
-            lable_cate = lable_cate[lable_count_argsort]
-            lable_count = lable_count[lable_count_argsort]
-            lable_jugdment = (lable_cate, lable_count)
-            node['results'] = lable_jugdment
-            return node
+    if (max_lable_rate >= threshold) and (depth >= 4):
+        lable_count_argsort = np.argsort(lable_count)[::-1]
+        lable_cate = lable_cate[lable_count_argsort]
+        lable_count = lable_count[lable_count_argsort]
+        lable_jugdment = (lable_cate, lable_count)
+        node['results'] = lable_jugdment
+        return node
     # 计算当前的gini指数
     currentgini = cal_gini_index(data[:, -1])
     bestgini = 0.0
@@ -131,8 +133,8 @@ def build_tree(data):
                 bestsets = (set1, set2)
     # 判断划分是否结束
     if bestgini > 0:
-        right = build_tree(bestsets[0])
-        left = build_tree(bestsets[1])
+        right = build_tree(bestsets[0], depth=depth)
+        left = build_tree(bestsets[1], depth=depth)
         node['fea'] = bestcriteria[0]
         node['value'] = bestcriteria[1]
         node['right'] = right
