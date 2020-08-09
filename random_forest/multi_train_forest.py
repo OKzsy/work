@@ -303,6 +303,14 @@ def cal_corr_rate(data_train, final_predict):
     :return: 准确性
     """
     m = final_predict.size
+    # 分别计算精度
+    flags = np.unique(data_train[:, -1], return_counts=True)
+    print('{:^10}{:^10}'.format('flag', 'accurate'))
+    for flag in flags[0]:
+        index = np.where(data_train[:, -1] == flag)
+        contrast = data_train[:, -1][index] - final_predict[index]
+        accurate = np.where(contrast == 0)[0].shape[0]
+        print('{:^10d}{:^10.4f}'.format(flag, accurate / index[0].size))
     contrast = data_train[:, -1] - final_predict
     accurate = np.where(contrast == 0)[0].shape[0]
     return accurate / m
@@ -355,10 +363,10 @@ if __name__ == '__main__':
     # 注册所有gdal驱动
     gdal.AllRegister()
     start_time = time.time()
-    samplefile = r"/mnt/ipsan/project/37.2019全省小麦监测/2.vector/4.csv/sample_clip_tif.csv"
-    varifyfile = r"/mnt/ipsan/project/37.2019全省小麦监测/2.vector/4.csv/sample_clip_tif.csv"
-    result_file = r"/mnt/ipsan/user/ZSS/dengfeng/s2_model/model"
-    feature_file = r"/mnt/ipsan/user/ZSS/dengfeng/s2_model/feature"
+    samplefile = r"F:\test_data\dengfeng\sample.csv"
+    varifyfile = r"F:\test_data\dengfeng\sample.csv"
+    result_file = r"E:\MNIST_dataset\model.pkl"
+    feature_file = r"E:\MNIST_dataset\feature.pkl"
 
     main(samplefile, varifyfile, result_file, feature_file)
     end_time = time.time()
