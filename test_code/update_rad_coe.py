@@ -32,25 +32,25 @@ def main(file):
         with open(file) as f_obj:
             rad_coe_dict = json.load(f_obj)
     satellite_prompt = "Please input the satellite ID, "
-    satellite_prompt += "\nEnter 'quit' to end the program: "
+    satellite_prompt += "\nEnter 'Q' to end the program: "
     sate_active = True
     while sate_active:
         sateID = input(satellite_prompt)
         if sateID.upper() == 'Q':
             sate_active = False
         else:
-            sateID_value = {}
+            sateID_value = rad_coe_dict[sateID] if sateID in rad_coe_dict.keys() else {}
             year_prompt = "Please input the year, "
-            year_prompt += "\nEnter 'quit' to end the program: "
+            year_prompt += "\nEnter 'Q' to end the program: "
             year_active = True
             while year_active:
                 yearID = input(year_prompt)
                 if yearID.upper() == 'Q':
                     year_active = False
                 else:
-                    yearID_value = {}
+                    yearID_value = {} if yearID not in sateID_value.keys() else sateID_value[yearID]
                     sensor_prompt = "Please input the sensor ID, "
-                    sensor_prompt += "\nEnter 'quit' to end the program: "
+                    sensor_prompt += "\nEnter 'Q' to end the program: "
                     sensor_active = True
                     while sensor_active:
                         sensorID = input(sensor_prompt)
@@ -59,7 +59,7 @@ def main(file):
                         else:
                             sensorID_value = []
                             rad_prompt = "Please input the radiation coefficient, "
-                            rad_prompt += "\nEnter 'quit' to end the program: "
+                            rad_prompt += "\nEnter 'Q' to end the program: "
                             rad_active = True
                             while rad_active:
                                 rad_coe = input(rad_prompt)
@@ -77,7 +77,7 @@ def main(file):
 
 if __name__ == '__main__':
     start_time = time.clock()
-    json_file = r"F:\test_data\rad_coe.json"
+    json_file = r"E:\mypycode\auto_process\atm\6SV\rad_coe.json"
     main(json_file)
     end_time = time.clock()
 
