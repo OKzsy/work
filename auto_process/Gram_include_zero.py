@@ -130,7 +130,7 @@ def modify_pan_stat(pan_dataset, simulated_pan_dataset, coordinate):
     # 获取模拟全色的有效数据区域
     offset = geo_to_corner(coordinate, tmp_dst)
     simulated_array = tmp_dst.ReadAsArray(offset[0], offset[1], coordinate[4], coordinate[5])
-    tmp_pan_mss_arr = np.bitwise_and(pan_array, simulated_array)
+    tmp_pan_mss_arr = np.logical_and(pan_array, simulated_array)
     zero_index = np.where(tmp_pan_mss_arr == 0)
 
     simu_mean = np.mean(simulated_array, dtype=np.float64)
@@ -366,7 +366,7 @@ def main(in_dir, out_dir, partfileinfo=None):
 if __name__ == '__main__':
     start_time = time.time()
     in_dir = r"F:\test_data\new_test\newtest"
-    out_dir = r"F:\test_data\new_test\newtest"
+    out_dir = r"F:\test_data\new_test\newtest\tmp"
     partfileinfo = "*MSS*.tif"
     # in_dir = sys.argv[1]
     # out_dir = sys.argv[2]
