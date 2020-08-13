@@ -32,15 +32,17 @@ except:
     progress = gdal.TermProgress
 
 
-def simulatedPan(mss_dataset):
+def simulatedPan(mss_dataset, coordinate):
+    # 获取数据有效区域
+    offset = geo_to_corner(coordinate, mss_dataset)
     # 获取有效数据区域
-    mss_arrays = mss_dataset.ReadAsArray()
-    xsize = mss_dataset.RasterXSize
-    ysize = mss_dataset.RasterYSize
+    mss_arrays = mss_dataset.ReadAsArray(offset[0], offset[1], coordinate[4], coordinate[5])
+    # xsize = mss_dataset.RasterXSize
+    # ysize = mss_dataset.RasterYSize
     # 模拟低分辨率全色影像
     simulated_array = np.mean(mss_arrays, axis=0, dtype=np.uint16)
     # 创建输出影像
-    simulated_pan_ds = gdal.GetDriverByName('MEM').Create("", xsize, ysize, 1,
+    simulated_pan_ds = gdal.GetDriverByName('MEM').Create("", coordinate[4], coordinate[5], 1,
                                                           gdal.GDT_UInt16)
     simulated_pan_ds.SetProjection(mss_dataset.GetProjection())
     simulated_pan_ds.SetGeoTransform(mss_dataset.GetGeoTransform())
@@ -65,7 +67,9 @@ def phi(mss_band, gst_band, mean):
     return phi_value
 
 
-def Gram_Schmidt_Transform(simulated_pan_dataset, mss_dataset, GST_img_path):
+def Gram_Schmidt_Transform(simulated_pan_dataset, mss_dataset, coordinate, GST_img_path):
+    # 获取数据有效区域
+    offset = geo_to_corner(coordinate, mss_dataset)
     # 创建经GS变换后的矩阵
     xsize = simulated_pan_dataset.RasterXSize
     ysize = simulated_pan_dataset.RasterYSize
@@ -79,7 +83,7 @@ def Gram_Schmidt_Transform(simulated_pan_dataset, mss_dataset, GST_img_path):
     # 保存融合系数
     transform_cofficient = np.zeros((bandcount, bandcount-1), dtype=np.float64)
     for iband in range(1, bandcount):
-        mss_array = mss_dataset.GetRasterBand(iband).ReadAsArray()
+        mss_array = mss_dataset.GetRasterBand(iband).ReadAsArray(offset[0], offset[1], coordinate[4], coordinate[5])
         mss_mean = np.mean(mss_array, dtype=np.float64)
         transform_cofficient[0, iband - 1] = mss_mean
         for iGSband in range(iband):
@@ -114,9 +118,21 @@ def Gram_Schmidt_Transform(simulated_pan_dataset, mss_dataset, GST_img_path):
 def modify_pan_stat(pan_dataset, simulated_pan_dataset, coordinate):
     # 获取数据有效区域
     offset = geo_to_corner(coordinate, pan_dataset)
-    simulated_array = simulated_pan_dataset.ReadAsArray()
     pan_array = pan_dataset.ReadAsArray(offset[0], offset[1], coordinate[2], coordinate[3])
-    zero_index = np.where(pan_array == 0)
+    # 增加获取多波段的无效值,按照全色进行重采样后获取
+    # pan_geo = pan_dataset.GetGeoTransform()
+    # simulated_array = simulated_pan_dataset.ReadAsArray()
+    tmp_simulate_path = r'/vsimem/tmp_dst_simulate.tif'
+    resize_tif(pan_dataset, simulated_pan_dataset, tmp_simulate_path)
+    tmp_dst = gdal.Open(tmp_simulate_path)
+    gdal.Unlink(tmp_simulate_path)
+    gc.collect()
+    # 获取模拟全色的有效数据区域
+    offset = geo_to_corner(coordinate, tmp_dst)
+    simulated_array = tmp_dst.ReadAsArray(offset[0], offset[1], coordinate[4], coordinate[5])
+    tmp_pan_mss_arr = np.bitwise_and(pan_array, simulated_array)
+    zero_index = np.where(tmp_pan_mss_arr == 0)
+
     simu_mean = np.mean(simulated_array, dtype=np.float64)
     pan_mean = np.mean(pan_array, dtype=np.float64)
     simu_sigma = np.std(simulated_array, dtype=np.float64)
@@ -231,6 +247,7 @@ def corner_to_geo(sample, line, dataset):
 def min_rect(pan_ds, mss_file):
     # 打开重采样后的多光谱影像，获取其左上和右下交点坐标
     mss_ds = gdal.Open(mss_file)
+    mss_geo = mss_ds.GetGeoTransform()
     mss_xsize = mss_ds.RasterXSize
     mss_ysize = mss_ds.RasterYSize
     mss_ulx, mss_uly = corner_to_geo(0, 0, mss_ds)
@@ -246,10 +263,13 @@ def min_rect(pan_ds, mss_file):
     uly = min(pan_uly, mss_uly)
     drx = min(pan_drx, mss_drx)
     dry = max(pan_dry, mss_dry)
-    # 计算重叠的行列数
-    col = round((drx - ulx) / pan_geo[1])
-    raw = round((dry - uly) / pan_geo[5])
-    return [ulx, uly, col, raw]
+    # 计算重叠的全色行列数
+    pan_col = round((drx - ulx) / pan_geo[1])
+    pan_row = round((dry - uly) / pan_geo[5])
+    # 计算重叠的多光谱行列数
+    mss_col = round((drx - ulx) / mss_geo[1])
+    mss_row = round((dry - uly) / mss_geo[5])
+    return [ulx, uly, pan_col, pan_row, mss_col, mss_row]
 
 
 def searchfiles(dirpath, partfileinfo='*', recursive=False):
@@ -312,12 +332,14 @@ def main(in_dir, out_dir, partfileinfo=None):
             os.makedirs(temp_dir)
         # 创建本次处理时临时文件
         temp_directory = tempfile.mkdtemp(dir=temp_dir, prefix="GS_" + pan_file_name + "_")
+        # 获取全色和原始多光谱的最小重叠矩形
+        coordinate = min_rect(pan_ds, mss)
         # 打开多光谱影像应以模拟低分辨率全色影像
-        simulated_pan_ds = simulatedPan(mss_ds)
+        simulated_pan_ds = simulatedPan(mss_ds, coordinate)
         # 进行GST变换
         gc.collect()
         GST_file_path = tempfile.mktemp(dir=temp_directory, prefix="GS_GST_without_GST1_", suffix=".tiff")
-        transform_cofficient = Gram_Schmidt_Transform(simulated_pan_ds, mss_ds, GST_file_path)
+        transform_cofficient = Gram_Schmidt_Transform(simulated_pan_ds, mss_ds, coordinate, GST_file_path)
         mss_ds = None
         gc.collect()
         # 对GST变换后的分量进行重采样，使其具有和全色相同的分辨率
@@ -344,7 +366,7 @@ def main(in_dir, out_dir, partfileinfo=None):
 if __name__ == '__main__':
     start_time = time.time()
     in_dir = r"F:\test_data\new_test\newtest"
-    out_dir = r"F:\test_data\new_test\newtest\out"
+    out_dir = r"F:\test_data\new_test\newtest"
     partfileinfo = "*MSS*.tif"
     # in_dir = sys.argv[1]
     # out_dir = sys.argv[2]
