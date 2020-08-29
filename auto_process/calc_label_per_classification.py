@@ -206,6 +206,8 @@ def main(file, shp, flags, out):
             flags_pre.append(flag_pre)
         real_overlap = None
         max_pre = max(flags_pre)
+        if max_pre == 0:
+            continue
         out_feat.SetGeometry(feat.geometry().Clone())
         out_feat.SetField('percent', max_pre)
         out_lyr.CreateFeature(out_feat)
@@ -229,9 +231,9 @@ if __name__ == '__main__':
     # 注册所有gdal驱动
     gdal.AllRegister()
     start_time = time.time()
-    in_file = r"\\192.168.0.234\nydsj\user\ZSS\2020yancao\xinan\class\GF2_20200707_L1A0004910789_sha_class1.tif"
-    in_shp = r"\\192.168.0.234\nydsj\user\ZSS\2020yancao\xinan\shp\青要山乡.shp"
-    outpath = r"\\192.168.0.234\nydsj\user\ZSS\2020yancao\xinan\shp\result.shp"
+    in_file = r"\\192.168.0.234\nydsj\user\ZSS\2020yancao\S2\平顶山3镇\class\L2A_T49SFT_20200810_平顶山3镇_class.tif"
+    in_shp = r"\\192.168.0.234\nydsj\user\ZSS\2020yancao\S2\平顶山3镇\DK\dk_pds_wgs84.shp"
+    outpath = r"\\192.168.0.234\nydsj\user\ZSS\2020yancao\S2\平顶山3镇\DK_res\pingdingshan.shp"
     category_flags = [0]
     main(in_file, in_shp, category_flags, outpath)
 
