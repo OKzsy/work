@@ -103,7 +103,7 @@ def gray_dilate(win_size, kernel, src_data):
     return dst_img
 
 
-def opening(win_size, kernel, src_data):
+def opening(win_size, kernel, thr, src_data):
     """
     先腐蚀后膨胀，光滑目标轮廓，消除小目标（如去掉毛刺和孤立点），在纤细出分离物体，常用于去除小颗粒噪声以及断开目标之间的粘连
     :param win_size:
@@ -113,12 +113,14 @@ def opening(win_size, kernel, src_data):
     :param src_data:
     :return:
     """
-    filter_img = gray_erode(win_size, kernel, src_data)
-    filter_img = gray_dilate(win_size, kernel, filter_img)
-    return filter_img
+    for _ in range(thr):
+        src_data = gray_dilate(win_size, kernel, src_data)
+    for _ in range(thr):
+        src_data = gray_erode(win_size, kernel, src_data)
+    return src_data
 
 
-def sieve(in_file, dst_dir, th, co):
+def sieve(in_file, dst_dir, th, op, co):
     # 定义结构元
     SE = {4: np.array([0, 1, 0, 1, 1, 1, 0, 1, 0]),
           8: np.array([1, 1, 1, 1, 1, 1, 1, 1, 1])}
@@ -132,27 +134,36 @@ def sieve(in_file, dst_dir, th, co):
     prj = in_ds.GetProjection()
     geo = in_ds.GetGeoTransform()
     srcband = in_ds.GetRasterBand(1)
+    # 进行开操作，平滑边缘
+    kernel = SE[co]
+    win_size = np.sqrt(kernel.size)
+    src_data = srcband.ReadAsArray()
+    if not win_size % 1 == 0:
+        raise ('The size of SE is wrong!')
+    filter_img = opening(win_size, kernel, op, src_data)
+    # 创建临时文件存放开运算后的结果
+    drv = gdal.GetDriverByName('MEM')
+    tmp_ds = drv.Create('', xsize, ysize, 1, gdal.GDT_Byte)
+    tmp_ds.SetProjection(prj)
+    tmp_ds.SetGeoTransform(geo)
+    tmpband = tmp_ds.GetRasterBand(1)
+    tmpband.WriteArray(filter_img)
+    tmpband.FlushCache()
+    # 创建输出文件，存放经开运算和填孔洞后的结果
     drv = gdal.GetDriverByName('GTiff')
     dst_ds = drv.Create(dst_file, xsize, ysize, 1, gdal.GDT_Byte)
     dst_ds.SetProjection(prj)
     dst_ds.SetGeoTransform(geo)
     dstband = dst_ds.GetRasterBand(1)
     maskband = None
-    result = gdal.SieveFilter(srcband, maskband, dstband,
+    result = gdal.SieveFilter(tmpband, maskband, dstband,
                               th, co, callback=None)
-    # 进行开操作，平滑边缘
-    kernel = SE[co]
-    win_size = np.sqrt(kernel.size)
-    src_data = dstband.ReadAsArray()
-    if not win_size % 1 == 0:
-        raise ('The size of SE is wrong!')
-    filter_img = opening(win_size, kernel, src_data)
-    dstband.WriteArray(filter_img)
-    in_ds = srcband = dst_ds = dstband = filter_img = None
+    dstband.FlushCache()
+    in_ds = srcband = dst_ds = dstband = filter_img = tmp_ds = None
     return None
 
 
-def main(in_dir, out_dir, threshold, connect):
+def main(in_dir, out_dir, threshold, open_num, connect):
     if os.path.isdir(in_dir):
         files = searchfiles(in_dir, partfileinfo='*.tif')
     else:
@@ -160,7 +171,7 @@ def main(in_dir, out_dir, threshold, connect):
     jobs = os.cpu_count() - 1 if os.cpu_count() < len(files) else len(files)
     pool = mp.Pool(processes=jobs)
     for ifile in files:
-        pool.apply_async(sieve, args=(ifile, out_dir, threshold, connect))
+        pool.apply_async(sieve, args=(ifile, out_dir, threshold, open_num, connect))
     pool.close()
     pool.join()
     return None
@@ -176,10 +187,11 @@ if __name__ == '__main__':
     # 注册所有gdal驱动
     gdal.AllRegister()
     start_time = time.time()
-    in_dir = r"\\192.168.0.234\nydsj\user\LC\随机森林\class"
-    out_dir = r"\\192.168.0.234\nydsj\user\LC\随机森林\sieve"
-    threshold = 6
+    in_dir = r"\\192.168.0.234\nydsj\user\ZSS\2020yancao\GF_S2融合\class\class"
+    out_dir = r"\\192.168.0.234\nydsj\user\ZSS\2020yancao\GF_S2融合\class\sieve"
+    threshold = 5
+    open_num = 3
     connectedness = 8
-    main(in_dir, out_dir, threshold, connectedness)
+    main(in_dir, out_dir, threshold, open_num, connectedness)
     end_time = time.time()
     print("time: %.4f secs." % (end_time - start_time))
