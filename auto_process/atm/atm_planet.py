@@ -79,7 +79,7 @@ def GET_XMLELEMENTS(oDocument, IDtxt):
         return strDT
 
 
-def SECTRUM(wlinf, wlsup, band, fun_path, sat_id):
+def SECTRUM(wlinf, wlsup, band, fun_path, shortname, sat_id):
     # 对光谱进行插值
     wlinf = wlinf * 1000
     wlsup = wlsup * 1000
@@ -87,7 +87,7 @@ def SECTRUM(wlinf, wlsup, band, fun_path, sat_id):
     num = math.ceil((wlsup - wlinf) * 1. / step) + 1
     xout = np.arange(num, dtype='float64') * step + wlinf  # 类似于idl中的make_array中使用/index和INCREMENT=step功能
     xout = xout * 1. / 1000
-    ori_spec = fun_path + os.sep + '6SV' + os.sep + 'spec' + os.sep + sat_id + '.txt'
+    ori_spec = os.path.join(fun_path, '6SV', 'spec', shortname, sat_id) + '.txt'
     # 将光谱度如矩阵用于插值
     spec_lib = np.loadtxt(ori_spec)
     wave = spec_lib[:, 0]
@@ -180,6 +180,17 @@ def ATM_CORRECT(img_in_path, img_out_path, atm_coe, oDocument):
     # Planet定标系数
     ID = 'ps:radiometricScaleFactor'
     ref_coe = np.array(GET_XMLELEMENTS(oDocument, ID), dtype='float16')
+    # PSB.SD转PS2光谱匹配系数
+    ID = 'eop:shortName'  # 卫星名称简写
+    shortName = GET_XMLELEMENTS(oDocument, ID)[1]
+
+    if shortName in ['PSB.SD', 'PS2.SD']:
+        band_coe = []
+        ID = 'ps:bandCoefficients'
+        str_coe = [coe for coe in [str_coe.split() for str_coe in GET_XMLELEMENTS(oDocument, ID)]]
+        for istr_coe in str_coe:
+            band_coe.append([float(ce) for ce in istr_coe])
+        bandCoe = np.array(band_coe, dtype='float16')
     # 大气校正系数
     # xa, xb, xc
     # y = xa * (measured radiance) - xb
@@ -206,11 +217,17 @@ def ATM_CORRECT(img_in_path, img_out_path, atm_coe, oDocument):
     if Blue_band.max() == 0 or Green_band.max() == 0 or Red_band.max() == 0 or Inf_band.max() == 0:
         print('The {} file has no inf band'.format('basename'))
         return
-    # 辐射定标至表观反射率
-    Blue_ref = Blue_band * ref_coe[0]
-    Green_ref = Green_band * ref_coe[1]
-    Red_ref = Red_band * ref_coe[2]
-    Inf_ref = Inf_band * ref_coe[3]
+    # 辐射定标至表观辐亮度
+    if shortName in ['PSB.SD', 'PS2.SD']:
+        Blue_ref = Blue_band * ref_coe[0] * band_coe[0][0]
+        Green_ref = Green_band * ref_coe[1] * band_coe[2][1]
+        Red_ref = Red_band * ref_coe[2] * band_coe[4][2]
+        Inf_ref = Inf_band * ref_coe[3] * band_coe[6][3]
+    else:
+        Blue_ref = Blue_band * ref_coe[0]
+        Green_ref = Green_band * ref_coe[1]
+        Red_ref = Red_band * ref_coe[2]
+        Inf_ref = Inf_band * ref_coe[3]
     # 大气校正
     # Blue
     y = atm_coe[0, 0] * Blue_ref - atm_coe[0, 1]
@@ -241,8 +258,8 @@ def ATM_CORRECT(img_in_path, img_out_path, atm_coe, oDocument):
     atm_ds.GetRasterBand(3).WriteArray(Red_suf_ref)
     atm_ds.GetRasterBand(4).WriteArray(Inf_suf_ref)
     # 进行重投影和重采样
-    new_xs = 0.00004
-    new_ys = 0.00004
+    new_xs = 0.00003
+    new_ys = 0.00003
     dest = reproject_dataset(atm_ds, new_xs, new_ys)
     # 存储经重投影和重采样后的大气校正结果
     print('Store atmospheric correction results after re-projection and re-sampling!')
@@ -302,7 +319,9 @@ def main(file_path, out_path, partfileinfo='*AnalyticMS.tif'):
     original_dir_path = file_path
     original_imgs = searchfiles(original_dir_path, partfileinfo, recursive=True)
     # 定义卫星通道参数，单位微米
-    w = [[0.455, 0.515], [0.50, 0.59], [0.59, 0.67], [0.76, 0.86]]
+    bandWidth = {'PS2': [[0.455, 0.515], [0.50, 0.59], [0.59, 0.67], [0.78, 0.86]],
+                 'PS2.SD': [[0.464, 0.519], [0.547, 0.587], [0.650, 0.682], [0.846, 0.888]],
+                 'PSB.SD': [[0.465, 0.515], [0.513, 0.549], [0.65, 0.68], [0.845, 0.885]]}
     deg2radian = math.pi / 180.0
     for num_file in range(len(original_imgs)):
         # 开始循环单个文件处理
@@ -311,6 +330,10 @@ def main(file_path, out_path, partfileinfo='*AnalyticMS.tif'):
         file_dir = os.path.dirname(input)
         # 文件名
         basename = file_basename(input, '.tif')
+        out_file_name = basename
+        out_file = os.path.join(out_path, out_file_name) + '-atm.tif'
+        if os.path.exists(out_file):
+            continue
         # 获取影像元数据路径
         # xml路径
         xmlpath = file_dir + os.sep + basename + '_metadata.xml'
@@ -319,6 +342,8 @@ def main(file_path, out_path, partfileinfo='*AnalyticMS.tif'):
             continue
         # 打开xml文件
         oDocument = xml.dom.minidom.parse(xmlpath).documentElement
+        ID = 'eop:shortName'  # 卫星名称简写
+        shortName = GET_XMLELEMENTS(oDocument, ID)[1]
         ID = 'eop:serialIdentifier'  # 卫星id
         sat_id = GET_XMLELEMENTS(oDocument, ID)
         sat_id = sat_id[0:2]
@@ -335,6 +360,8 @@ def main(file_path, out_path, partfileinfo='*AnalyticMS.tif'):
         zsat = math.asin(((6371 + 475) / 6371) * math.sin(float(view_angle) * deg2radian)) / deg2radian  # 卫星天顶角
         ID = 'ps:azimuthAngle'
         asat = float(GET_XMLELEMENTS(oDocument, ID))  # 卫星方位角
+        if asat < 0:
+            asat += 360
         ID = 'ps:acquisitionDateTime'
         acqtime = GET_XMLELEMENTS(oDocument, ID)
         year = acqtime[0:4]  # 年份
@@ -368,6 +395,8 @@ def main(file_path, out_path, partfileinfo='*AnalyticMS.tif'):
         # 打开辐射校正系数文件用于写入辐射校正系数
         lun_coe = open(outcoe, 'w', newline=None)
         coearr = np.full((4, 3), -999.0, dtype='float16')
+        # 获取该卫星对应的波段宽度
+        w = bandWidth[shortName]
         for a in range(4):  # 循环处理各个波段
             band = ['Blue', 'Green', 'Red', 'Ninf']
             txtname = 'in.txt'
@@ -385,7 +414,7 @@ def main(file_path, out_path, partfileinfo='*AnalyticMS.tif'):
             lun.write('{:<3d} {} {}'.format(xpp, '(sensor level)', '\n'))
             lun.write('{:<3d} {} {}'.format(iwave, "User's defined filtered function", '\n'))
             lun.write('{:<7.3} {:<7.3} {}'.format(w[a][0], w[a][1], '\n'))
-            res = SECTRUM(w[a][0], w[a][1], a, function_position, sat_id)
+            res = SECTRUM(w[a][0], w[a][1], a, function_position, shortName, sat_id)
             for spec_value in res:
                 lun.write('{:<10.6f} {}'.format(spec_value, '\n'))
             lun.write('{:<3d} {} {}'.format(inhomo, 'Homogeneous surface', '\n'))
@@ -409,15 +438,7 @@ def main(file_path, out_path, partfileinfo='*AnalyticMS.tif'):
             os.remove(txtname)
         # 关闭文件
         lun_coe.close()
-        # # 对影像进行大气校正
-        # out_file_name = basename
-        # out_path = file_dir + os.sep + 'outimg'
-        # if not os.path.isdir(out_path):
-        #     os.makedirs(out_path)
-        # out_file = out_path + os.sep + out_file_name + '-atm.tif'
         # 对影像进行大气校正
-        out_file_name = basename
-        out_file = os.path.join(out_path, out_file_name) + '-atm.tif'
         ATM_CORRECT(input, out_file, coearr, oDocument)
         gc.collect()
         # 输出大气校正影像的相关信息
@@ -428,8 +449,8 @@ def main(file_path, out_path, partfileinfo='*AnalyticMS.tif'):
 
 if __name__ == '__main__':
     start_time = time.clock()
-    file_path = r"\\192.168.0.234\nydsj\user\ZSS\2020yancao\Planet\source\Biyang-20200803-MS_PSScene4Band_Explorer"
-    out = r"\\192.168.0.234\nydsj\user\ZSS\2020yancao\Planet\atm"
+    file_path = r"\\192.168.0.234\nydsj\user\ZSS\2020yancao\Planet\20200828-7\mian7-20200827_PSScene4Band_Explorer"
+    out = r"\\192.168.0.234\nydsj\user\ZSS\2020yancao\Planet\mian_7"
     partfileinfo = '*AnalyticMS.tif'
     print('The program starts running!')
     main(file_path=file_path, out_path=out, partfileinfo=partfileinfo)
