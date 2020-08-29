@@ -33,14 +33,14 @@ except:
     progress = gdal.TermProgress
 
 
-def main(in_files, out_file):
-
+def main(in_files, out_file, **keywords):
     vrt_file = os.path.join(tempfile.gettempdir(), '%s_vrt.vrt' % os.path.splitext(os.path.basename(out_file))[0])
     if os.path.exists(vrt_file):
         os.remove(vrt_file)
 
     # gdal.BuildVRT(vrt_file, str(in_files).split(','), srcNodata = srcNodata, VRTNodata = VRTNodata)
-    gdal.BuildVRT(vrt_file, str(in_files).split(','), srcNodata = srcNodata, VRTNodata = VRTNodata)
+    gdal.BuildVRT(vrt_file, str(in_files).split(','), srcNodata=keywords['srcNodata'], VRTNodata=keywords['VRTNodata'],
+                  hideNodata=True)
     # gdal.BuildVRT(vrt_file, str(in_files).split(','))
     progress(0.25)
     out_driver = gdal.GetDriverByName("GTiff")
@@ -58,28 +58,27 @@ def main(in_files, out_file):
     progress(1)
 
 
-
 if __name__ == '__main__':
     start_time = time.time()
 
     #
-    if len(sys.argv[1:]) == 3:
-        srcNodata = float(sys.argv[3])
-        VRTNodata = float(sys.argv[3])
-    if len(sys.argv[1:]) == 2:
-        srcNodata = 0
-        VRTNodata = 0
-    if len(sys.argv[1:]) < 2:
-        sys.exit('Problem reading input')
+    # if len(sys.argv[1:]) == 3:
+    #     srcNodata = float(sys.argv[3])
+    #     VRTNodata = float(sys.argv[3])
+    # if len(sys.argv[1:]) == 2:
+    #     srcNodata = 0
+    #     VRTNodata = 0
+    # if len(sys.argv[1:]) < 2:
+    #     sys.exit('Problem reading input')
 
-    main(sys.argv[1], sys.argv[2])
+    # main(sys.argv[1], sys.argv[2])
 
-    # in_files = r'D:\Data\Test_data\out_s2_luoyang\Sub_ref\S2A_MSIL2A_20180725T031541_N0206_R118_T49SET_20180725T061658\L2A_T49SET_A016131_20180725T032152_ref_10m.tif,' \
-    #            r'D:\Data\Test_data\out_s2_luoyang\Sub_ref\S2A_MSIL2A_20180725T031541_N0206_R118_T49SEU_20180725T061658\L2A_T49SEU_A016131_20180725T032152_ref_10m.tif'
-    # out_file = r"D:\Data\Test_data\mosaic_20180908\in_file_list_txt_mosaic.tif"
-    # srcNodata = 0
-    # VRTNodata = 0
-    # main(in_files, out_file)
+    in_files = r'\\192.168.0.234\nydsj\user\ZSS\2020yancao\S2_0810\luoyang\class1\待填地块分类结果\L2A_T49SFT_A026813_20200810T031409_ref_10m_葛寨乡_vi_class.tif,' \
+               r'\\192.168.0.234\nydsj\user\ZSS\2020yancao\S2_0810\luoyang\class1\待填地块分类结果\L2A_T49SFU_A026813_20200810T031409_ref_10m_葛寨乡_vi_class.tif'
+    out_file = r"\\192.168.0.234\nydsj\user\ZSS\2020yancao\S2_0810\luoyang\class1\待填地块分类结果\葛寨乡.tif"
+    srcNodata = 200
+    VRTNodata = 200
+    main(in_files, out_file, srcNodata=srcNodata, VRTNodata=VRTNodata)
 
     end_time = time.time()
     print("time: %.2f min." % ((end_time - start_time) / 60))
