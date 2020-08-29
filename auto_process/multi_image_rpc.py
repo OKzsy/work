@@ -6,7 +6,7 @@
 # @FileName: multi_image_rpc.py
 # @Email   : zhaoshaoshuai@hnnydsj.com
 Description:
-
+    批量进行rpc校正
 
 Parameters
 
@@ -98,12 +98,13 @@ def rpc(in_file, out_file, dem_file):
         shutil.copy(json_file[0], out_json_file)
 
 
-def main(in_dir, out_dir, dem_file):
+def main(in_dir, out_dir, dem_dir):
     # 搜索待处理影像
-    files = searchfiles(in_dir, partfileinfo="*.tiff")
+    files = searchfiles(in_dir, partfileinfo="*.tiff", recursive=True)
+    dem_file = searchfiles(dem_dir, partfileinfo="*.tif", recursive=True)[0]
     for file in files:
         basename = os.path.splitext(os.path.basename(file))[0]
-        outpath = os.path.join(out_dir, basename) + "-rpc.tiff"
+        outpath = os.path.join(out_dir, basename) + "_ort.tiff"
         rpc(file, outpath, dem_file)
     return None
 
@@ -112,9 +113,9 @@ if __name__ == "__main__":
     gdal.AllRegister()
     gdal.SetConfigOption("GDAL_FILENAME_IS_UTF8", "YES")
     start_time = time.time()
-    in_file = r"\\192.168.0.234\nydsj\project\13.重庆江津区花椒\2.data\4.GF2_2018\1.source"
-    out_file = r"\\192.168.0.234\nydsj\user\ZSS\chonqinghuajiao\GF2"
-    dem_file = r"\\192.168.0.234\nydsj\project\13.重庆江津区花椒\2.data\1.google\1.DEM\GF2范围\GF2范围.tif"
+    in_file = r"\\192.168.0.234\nydsj\project\2.zhiyan\3.2020\2.data\5.GF\1.source\GF1CD_6\GF1D_PMS_E114.2_N33.0_20200815_L1A1256786993.tar"
+    out_file = r"\\192.168.0.234\nydsj\user\ZSS\2020yancao\GF1CD_6\ort"
+    dem_file = r"\\192.168.0.234\nydsj\user\ZSS\2020yancao\GF1CD_6\DEM\DEM_GF1D_20200815_6786993"
     main(in_file, out_file, dem_file)
 
     # if len(sys.argv[1:]) < 3:
