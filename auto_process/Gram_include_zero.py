@@ -37,15 +37,16 @@ def simulatedPan(mss_dataset, coordinate):
     offset = geo_to_corner(coordinate, mss_dataset)
     # 获取有效数据区域
     mss_arrays = mss_dataset.ReadAsArray(offset[0], offset[1], coordinate[4], coordinate[5])
-    # xsize = mss_dataset.RasterXSize
-    # ysize = mss_dataset.RasterYSize
     # 模拟低分辨率全色影像
     simulated_array = np.mean(mss_arrays, axis=0, dtype=np.uint16)
     # 创建输出影像
     simulated_pan_ds = gdal.GetDriverByName('MEM').Create("", coordinate[4], coordinate[5], 1,
                                                           gdal.GDT_UInt16)
     simulated_pan_ds.SetProjection(mss_dataset.GetProjection())
-    simulated_pan_ds.SetGeoTransform(mss_dataset.GetGeoTransform())
+    mss_geo = list(mss_dataset.GetGeoTransform())
+    mss_geo[0] = coordinate[0]
+    mss_geo[3] = coordinate[1]
+    simulated_pan_ds.SetGeoTransform(mss_geo)
     simulated_pan_ds.GetRasterBand(1).WriteArray(simulated_array)
     mss_arrays = None
     simulated_array = None
@@ -81,7 +82,7 @@ def Gram_Schmidt_Transform(simulated_pan_dataset, mss_dataset, coordinate, GST_i
     # 第一分量保持不变
     simulated_pan_array = simulated_pan_dataset.ReadAsArray()
     # 保存融合系数
-    transform_cofficient = np.zeros((bandcount, bandcount-1), dtype=np.float64)
+    transform_cofficient = np.zeros((bandcount, bandcount - 1), dtype=np.float64)
     for iband in range(1, bandcount):
         mss_array = mss_dataset.GetRasterBand(iband).ReadAsArray(offset[0], offset[1], coordinate[4], coordinate[5])
         mss_mean = np.mean(mss_array, dtype=np.float64)
@@ -106,6 +107,9 @@ def Gram_Schmidt_Transform(simulated_pan_dataset, mss_dataset, coordinate, GST_i
     tiff_driver = gdal.GetDriverByName("GTiff")
     GST_ds = tiff_driver.Create(GST_img_path, xsize, ysize, bandcount - 1, gdal.GDT_Float32)
     GST_ds.SetProjection(simulateed_pan_prj)
+    simulateed_pan_geo = list(simulateed_pan_geo)
+    simulateed_pan_geo[0] = coordinate[0]
+    simulateed_pan_geo[3] = coordinate[1]
     GST_ds.SetGeoTransform(simulateed_pan_geo)
     for iGSTband in range(bandcount - 1):
         GST_ds.GetRasterBand(iGSTband + 1).WriteArray(GST[iGSTband, :, :])
@@ -120,8 +124,6 @@ def modify_pan_stat(pan_dataset, simulated_pan_dataset, coordinate):
     offset = geo_to_corner(coordinate, pan_dataset)
     pan_array = pan_dataset.ReadAsArray(offset[0], offset[1], coordinate[2], coordinate[3])
     # 增加获取多波段的无效值,按照全色进行重采样后获取
-    # pan_geo = pan_dataset.GetGeoTransform()
-    # simulated_array = simulated_pan_dataset.ReadAsArray()
     tmp_simulate_path = r'/vsimem/tmp_dst_simulate.tif'
     resize_tif(pan_dataset, simulated_pan_dataset, tmp_simulate_path)
     tmp_dst = gdal.Open(tmp_simulate_path)
@@ -137,7 +139,6 @@ def modify_pan_stat(pan_dataset, simulated_pan_dataset, coordinate):
     pan_mean = np.mean(pan_array, dtype=np.float64)
     simu_sigma = np.std(simulated_array, dtype=np.float64)
     pan_sigma = np.std(pan_array, dtype=np.float64)
-
     gain = simu_sigma / pan_sigma  # 增益
     bias = simu_mean - (gain * pan_mean)  # 偏移
     M_P = pan_array * gain + bias
@@ -365,14 +366,13 @@ def main(in_dir, out_dir, partfileinfo=None):
 
 if __name__ == '__main__':
     start_time = time.time()
-    in_dir = r"F:\test_data\new_test\newtest"
-    out_dir = r"F:\test_data\new_test\newtest\tmp"
+    in_dir = r"\\192.168.0.234\nydsj\user\ZSS\2020yancao\GF_S2融合\img\326"
+    out_dir = r"\\192.168.0.234\nydsj\user\ZSS\2020yancao\GF_S2融合\img\326"
     partfileinfo = "*MSS*.tif"
     # in_dir = sys.argv[1]
     # out_dir = sys.argv[2]
     # partfileinfo = None
     main(in_dir=in_dir, out_dir=out_dir, partfileinfo=partfileinfo)
     end_time = time.time()
-
 
     print("time: %.4f secs." % (end_time - start_time))
