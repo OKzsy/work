@@ -190,7 +190,7 @@ def main(raster, shp, out, nodata=None):
     xsize = int(offset[2])
     block_size = 300
     count = 1
-    total_block = int(int(offset[3]) / block_size)
+    total_block = max(int(int(offset[3]) / block_size), 1)
     for y in range(int(offset[1]), ysize, block_size):
         if y + block_size < ysize:
             rows = block_size
@@ -224,10 +224,10 @@ if __name__ == '__main__':
     # 注册所有gdal驱动
     gdal.AllRegister()
     start_time = time.clock()
-    in_file = r"F:\kuihua\H08_20200311_0420_L2WLFbet_FLDK.06001_06001.tif"
-    shpfile = r"F:\kuihua\guojie\bou1_4p.shp"
-    outfile = r"F:\kuihua\base\H08_20200311_0420_L2WLFbet_FLDK.06001_06001.tif"
-    nodata = 0
+    in_file = r"\\192.168.0.234\nydsj\user\ZSS\2020yancao\luoyang_new\class1\GF2_20200707_910792_910794_高村乡_vi_class.tif"
+    shpfile = r"\\192.168.0.234\nydsj\user\ZSS\2020yancao\test\test_sieve\test_sieve_GF2.shp"
+    outfile = r"\\192.168.0.234\nydsj\user\ZSS\2020yancao\test\test_sieve\class\GF2_20200707_910792_910794_class.tif"
+    nodata = 200
 
     print('The program starts running!')
 
