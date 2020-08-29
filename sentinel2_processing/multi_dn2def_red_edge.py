@@ -171,7 +171,7 @@ def reproject_dataset(src_ds):
     # 执行重投影和重采样
     res = gdal.ReprojectImage(src_ds, dest,
                               src_prj, oSRS.ExportToWkt(),
-                              gdal.GRA_NearestNeighbour)
+                              gdal.GRA_Bilinear)
     return dest
 
 
@@ -227,7 +227,7 @@ def dn2ref(out_dir, zip_file):
         jp2_10_files[3:3] = jp2_20_files[3:6]
         vrt_10_file = os.path.join(safe_dir, '%s_10m.vrt' % xml_name)
         vrt_options = gdal.BuildVRTOptions(resolution='user', xRes=10, yRes=10, separate=True,
-                                           resampleAlg='near')
+                                           resampleAlg='bilinear')
         vrt_10_dataset = gdal.BuildVRT(vrt_10_file, jp2_10_files, options=vrt_options)
         # 重投影
         dst = reproject_dataset(vrt_10_dataset)
