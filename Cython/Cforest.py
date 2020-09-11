@@ -184,6 +184,24 @@ def cal_gini(data):
 
 
 @njit()
+def nwhere(data, value):
+    # 样本总个数
+    total_sample = data.shape[0]
+    ge_index = np.zeros(total_sample, dtype=np.uint32)
+    lt_index = np.zeros(total_sample, dtype=np.uint32)
+    ge_count = 0
+    lt_count = 0
+    for i in range(total_sample):
+        if min(data[i], value) == value:
+            ge_index[ge_count] = i
+            ge_count += 1
+        else:
+            lt_index[lt_count] = i
+            lt_count += 1
+    return ge_index[0:ge_count], ge_count, lt_index[0:lt_count], lt_count
+
+
+@njit()
 def cal_per_value(currentgini, data):
     bestgini = 0.0
     # 样本中的可用特征个数
@@ -194,17 +212,30 @@ def cal_per_value(currentgini, data):
         # 获取所在fea特征所有可能取得的值
         tmp_feature = data[:, fea]
         feature_values = cyunique(tmp_feature)
+        # py_feature_values = np.unique(tmp_feature, return_counts=True)
+        # if np.logical_or(np.sum(feature_values[0] - py_feature_values[0]), np.sum(feature_values[1] - py_feature_values[1])):
+        #     sys.exit("求取唯一值和个数时不统一")
         # 对每一个可能的值进行数据集划分，并计算gini指数
         for value in feature_values[0]:
+            # py_index1 = np.where(tmp_feature >= value)
+            # py_size1 = py_index1[0].size
+            # py_index2 = np.where(tmp_feature < value)
+            # py_size2 = py_index2[0].size
             # 根据fea特征中的值将数据集划分为左右子树
-            index1 = np.where(tmp_feature >= value)
-            size1 = index1[0].size
-            set1 = data[index1[0], :]
-            index2 = np.where(tmp_feature < value)
-            size2 = index2[0].size
-            set2 = data[index2[0], :]
+            index1, size1, index2, size2 = nwhere(tmp_feature, value)
+            # if np.logical_or(np.sum(index1 - py_index1), np.sum(index2 - py_index2)):
+            #     sys.exit("求取索引时位置不一致")
+            # if np.logical_or((size1 - py_size1), (size2 - py_size2)):
+            #     sys.exit("求取索引时个数不一致")
+            set1 = data[index1, :]
+            set2 = data[index2, :]
             # 计算拆分后的gini指数
+            # py_nowgini = (size1 * cal_gini_index(
+            #     set1[:, -1]) + size2 * cal_gini_index(set2[:, -1])) / \
+            #           data.shape[0]
             nowgini = (size1 * cal_gini(set1[:, -1]) + size2 * cal_gini(set2[:, -1])) / total_sample
+            # if (nowgini - py_nowgini) != 0:
+            #     sys.exit("基尼指数计算不一致")
             # 计算gini指数增加量
             gain = currentgini - nowgini
             # 判断此划分是否比当前划分更好
@@ -214,7 +245,13 @@ def cal_per_value(currentgini, data):
                 bestcriteria = [fea, value]
                 # 存储切分后的两个数据集
                 bestsets = [set1, set2]
-    return bestgini, bestcriteria, bestsets
+    if bestgini == 0.0:
+        bestcriteria = [-1, -1]
+        tmp_set = np.zeros((3, 3), dtype=data.dtype)
+        bestsets = [tmp_set, tmp_set]
+        return bestgini, bestcriteria, bestsets
+    else:
+        return bestgini, bestcriteria, bestsets
 
 
 def build_tree(data):
