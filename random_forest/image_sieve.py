@@ -134,21 +134,6 @@ def sieve(in_file, dst_dir, th, op, co):
     prj = in_ds.GetProjection()
     geo = in_ds.GetGeoTransform()
     srcband = in_ds.GetRasterBand(1)
-    # 进行开操作，平滑边缘
-    kernel = SE[co]
-    win_size = np.sqrt(kernel.size)
-    src_data = srcband.ReadAsArray()
-    if not win_size % 1 == 0:
-        raise ('The size of SE is wrong!')
-    filter_img = opening(win_size, kernel, op, src_data)
-    # 创建临时文件存放开运算后的结果
-    drv = gdal.GetDriverByName('MEM')
-    tmp_ds = drv.Create('', xsize, ysize, 1, gdal.GDT_Byte)
-    tmp_ds.SetProjection(prj)
-    tmp_ds.SetGeoTransform(geo)
-    tmpband = tmp_ds.GetRasterBand(1)
-    tmpband.WriteArray(filter_img)
-    tmpband.FlushCache()
     # 创建输出文件，存放经开运算和填孔洞后的结果
     drv = gdal.GetDriverByName('GTiff')
     dst_ds = drv.Create(dst_file, xsize, ysize, 1, gdal.GDT_Byte)
@@ -156,10 +141,20 @@ def sieve(in_file, dst_dir, th, op, co):
     dst_ds.SetGeoTransform(geo)
     dstband = dst_ds.GetRasterBand(1)
     maskband = None
-    result = gdal.SieveFilter(tmpband, maskband, dstband,
+    result = gdal.SieveFilter(srcband, maskband, dstband,
                               th, co, callback=None)
     dstband.FlushCache()
-    in_ds = srcband = dst_ds = dstband = filter_img = tmp_ds = None
+    # 进行开操作，平滑边缘
+    kernel = SE[co]
+    win_size = np.sqrt(kernel.size)
+    src_data = dstband.ReadAsArray()
+    if not win_size % 1 == 0:
+        raise ('The size of SE is wrong!')
+    filter_img = opening(win_size, kernel, op, src_data)
+    # 更新结果
+    dstband.WriteArray(filter_img)
+    dstband.FlushCache()
+    in_ds = srcband = dst_ds = dstband = filter_img  = None
     return None
 
 
@@ -187,10 +182,10 @@ if __name__ == '__main__':
     # 注册所有gdal驱动
     gdal.AllRegister()
     start_time = time.time()
-    in_dir = r"\\192.168.0.234\nydsj\user\ZSS\2020yancao\GF_S2融合\class\class"
-    out_dir = r"\\192.168.0.234\nydsj\user\ZSS\2020yancao\GF_S2融合\class\sieve"
-    threshold = 5
-    open_num = 3
+    in_dir = r"\\192.168.0.234\nydsj\user\ZSS\2020yancao\lingtou\class"
+    out_dir = r"\\192.168.0.234\nydsj\user\ZSS\2020yancao\lingtou\sieve"
+    threshold = 6
+    open_num = 2
     connectedness = 8
     main(in_dir, out_dir, threshold, open_num, connectedness)
     end_time = time.time()
