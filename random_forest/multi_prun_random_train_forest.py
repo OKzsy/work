@@ -386,7 +386,7 @@ def save_model(trees_result, trees_feature, model_file, feature_file):
 def main(sample_file, model_dir, model_name, tree_num):
     # 导入数据
     print("--------------------load data---------------------")
-    data = np.loadtxt(sample_file, delimiter=',', dtype=np.int32)
+    data = np.loadtxt(sample_file, delimiter=',', dtype=np.int16)
     lines = math.ceil(data.shape[0] * 0.8)
     np.random.shuffle(data)
     data_train, data_verify = data[:lines, :], data[lines:, :]
