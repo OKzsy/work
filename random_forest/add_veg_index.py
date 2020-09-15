@@ -179,6 +179,10 @@ def main(infile, outfile):
     # 写出数据
     tiff_driver = gdal.GetDriverByName('GTiff')
     all_band = bandnum + index_num
+    # 判断输出文件路径是否存在，不存在创建
+    out_dir = os.path.dirname(outfile)
+    if not os.path.exists(out_dir):
+        os.makedirs(out_dir)
     out_ds = tiff_driver.Create(outfile, xsize, ysize, all_band, gdal.GDT_Int16)
     out_ds.SetProjection(rpj)
     out_ds.SetGeoTransform(geo)

@@ -151,6 +151,9 @@ def main(model, feature, image, out):
     bandnum = in_ds.RasterCount
     # 创建分类结果
     tif_driver = gdal.GetDriverByName('GTiff')
+    # 判断输出路径是否存在，不存在创建
+    if not os.path.exists(out):
+        os.makedirs(out)
     out_ds = tif_driver.Create(out, xsize, ysize, 1, gdal.GDT_Byte)
     out_ds.SetProjection(rpj)
     out_ds.SetGeoTransform(geo)

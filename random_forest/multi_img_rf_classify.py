@@ -163,6 +163,9 @@ def main(model, feature, in_dir, out_dir):
     with open(feature, 'rb') as f:
         trees_feature = pickle.load(f)
     files = searchfiles(in_dir, partfileinfo='*.tif')
+    # 判断输出路径是否存在，不存在创建
+    if not os.path.exists(out_dir):
+        os.makedirs(out_dir)
     for ifile in files:
         # 打开待分类影像
         basename = os.path.splitext(os.path.basename(ifile))[0]

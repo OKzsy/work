@@ -160,7 +160,7 @@ def sieve(in_file, dst_dir, th, op, co):
 
 def main(in_dir, out_dir, threshold, open_num, connect):
     if os.path.isdir(in_dir):
-        files = searchfiles(in_dir, partfileinfo='*.tif')
+        files = searchfiles(in_dir, partfileinfo='L2A_T50SKE_A021951_20190905T030727_class.tif')
     else:
         files = [in_dir]
     jobs = os.cpu_count() - 1 if os.cpu_count() < len(files) else len(files)
@@ -182,10 +182,10 @@ if __name__ == '__main__':
     # 注册所有gdal驱动
     gdal.AllRegister()
     start_time = time.time()
-    in_dir = r"\\192.168.0.234\nydsj\user\ZSS\2020yancao\lingtou\class"
-    out_dir = r"\\192.168.0.234\nydsj\user\ZSS\2020yancao\lingtou\sieve"
-    threshold = 6
-    open_num = 2
+    in_dir = r"\\192.168.0.234\nydsj\user\ZSS\2020qixian\class"
+    out_dir = r"\\192.168.0.234\nydsj\user\ZSS\2020qixian\sieve"
+    threshold = 3
+    open_num = 1
     connectedness = 8
     main(in_dir, out_dir, threshold, open_num, connectedness)
     end_time = time.time()

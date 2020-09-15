@@ -158,7 +158,9 @@ def mask_raster(raster_ds, mask_ds, outfile, ext):
     return 1
 
 
-def main(rasters, shp, out, fieldName='Name'):
+def main(rasters, shp, outdir, fieldName='Name'):
+    if not os.path.exists(outdir):
+        os.makedirs(outdir)
     # 循环处理栅格影像
     for raster in rasters:
         # 打开栅格和矢量影像
@@ -190,7 +192,6 @@ def main(rasters, shp, out, fieldName='Name'):
             # outdir = os.path.join(out, feat.Name.split('-')[1])
             # if not os.path.exists(outdir):
             #     os.makedirs(outdir)
-            outdir = out
             outpath = os.path.join(
                 outdir, raster_basename + '_' + feat.GetField(fieldName) + '.tif')
             # print(os.path.basename(outpath))

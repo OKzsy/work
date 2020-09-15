@@ -178,8 +178,11 @@ def mask_raster(raster_ds, mask_ds, outfile, ext):
     return 1
 
 
-def main(src_dir, shp, out, fieldName='Name'):
+def main(src_dir, shp, outdir, fieldName='Name'):
     rasters = searchfiles(src_dir, partfileinfo='*.tif')
+    # 判断输出路径是否存在，不存在创建
+    if not os.path.exists(outdir):
+        os.makedirs(outdir)
     # 循环处理栅格影像
     for raster in rasters:
         # 打开栅格和矢量影像
@@ -207,11 +210,6 @@ def main(src_dir, shp, out, fieldName='Name'):
         count = 0
         num_feature = re_shp_l.GetFeatureCount()
         for feat in re_shp_l:
-            # 获取要素的属性值用以确定输出tif影像的名字和路径
-            # outdir = os.path.join(out, feat.Name.split('-')[1])
-            # if not os.path.exists(outdir):
-            #     os.makedirs(outdir)
-            outdir = out
             outpath = os.path.join(
                 outdir, raster_basename + '_' + feat.GetField(fieldName) + '.tif')
             # print(os.path.basename(outpath))

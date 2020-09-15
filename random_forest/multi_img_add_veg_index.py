@@ -171,6 +171,9 @@ def add_ndvi(blue=None, green=None, red=None, red_edge1=None, red_edge2=None, re
 
 def main(indir, outdir):
     infiles = searchfiles(indir, partfileinfo='*.tif')
+    # 判断输出路径是否存在，不存在创建
+    if not os.path.exists(outdir):
+        os.makedirs(outdir)
     for infile in infiles:
         basename = os.path.splitext(os.path.basename(infile))[0]
         print(basename)

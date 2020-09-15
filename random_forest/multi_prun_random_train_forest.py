@@ -402,6 +402,9 @@ def main(sample_file, model_dir, model_name, tree_num):
     str_pre = [str(round(ipre, 4)) for ipre in Precision]
     corr_rate = '_'.join(str_pre)
     model_name = os.path.splitext(os.path.basename(model_name))[0]
+    # 判断输出路径是否存在，不存在创建
+    if not os.path.exists(model_dir):
+        os.makedirs(model_dir)
     model_file = os.path.join(model_dir, model_name) + '_' + str(tree_num) + '_' +corr_rate + '_mdl.pkl'
     feature_file = os.path.join(model_dir, model_name) + '_' + str(tree_num) + '_' +corr_rate + '_fea.pkl'
     print("--------------------save model---------------------")

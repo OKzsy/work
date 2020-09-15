@@ -22,6 +22,7 @@ import fnmatch
 import subprocess
 import tempfile
 import shutil
+import numba as nb
 import numpy as np
 from osgeo import gdal, ogr, osr, gdalconst
 
@@ -93,6 +94,62 @@ def img2csv(sample, tmp_csv_path, flag):
     return None
 
 
+@nb.njit()
+def cyunique(a):
+    n = a.shape[0]
+    label_num = 0
+    max_i = a[0]
+    min_i = a[0]
+    for i in range(n):
+        max_i = max(max_i, a[i])
+        min_i = min(min_i, a[i])
+    min_i = min(min_i, 0)
+    max_i -= min_i
+    real_total = max_i + 1
+    unique = np.zeros(real_total, dtype=np.int16)
+    label = np.zeros(real_total, dtype=np.int16)
+    label_count = np.zeros(real_total, dtype=np.uint32)
+    for i in range(n):
+        tmp = a[i] - min_i
+        label_count[tmp] += 1
+        if not unique[tmp]:
+            label_num += 1
+            unique[tmp] = 1
+            label[tmp] = tmp
+    res_label = np.zeros(label_num, dtype=np.int16)
+    res_label_count = np.zeros(label_num, dtype=np.uint32)
+    ires = 0
+    for i in range(real_total):
+        if unique[i]:
+            res_label[ires] = label[i] + min_i
+            res_label_count[ires] = label_count[i]
+            ires += 1
+    return (res_label, res_label_count)
+
+
+def equilibrium(tmp_csv, out_csv):
+    data = np.loadtxt(tmp_csv, delimiter=',', dtype=np.int16)
+    shape = data.shape
+    label_static = cyunique(data[:, -1])
+    count_label = label_static[0].size
+    most_label = max(label_static[1])
+    balanced_label_xsize = count_label * most_label
+    balanced_label = np.zeros((balanced_label_xsize, shape[1]), dtype=np.int16)
+    for ilabel in range(count_label):
+        label = label_static[0][ilabel]
+        label_count = label_static[1][ilabel]
+        x_point = ilabel * most_label
+        index = np.where(data[:, -1] == label)
+        ori_label_mat = data[index[0], :]
+        ori_label_mat_rows = ori_label_mat.shape[0]
+        if label_count == most_label:
+            balanced_label[x_point: x_point + most_label, :] = ori_label_mat
+        else:
+            balanced_index = np.random.choice(ori_label_mat_rows, size=most_label, replace=True)
+            balanced_label[x_point: x_point + most_label, :] = ori_label_mat[balanced_index, :]
+    np.savetxt(out_csv, balanced_label, fmt='%d', delimiter=',')
+
+
 def main(flag_file, sample_file, out_csv):
     # 获取标签
     flag = np.genfromtxt(flag_file, delimiter=',', dtype=None, encoding='utf8')
@@ -100,21 +157,30 @@ def main(flag_file, sample_file, out_csv):
     # 处理每一个样本
     sample_list, category = searchfiles(sample_file, partfileinfo='*.tif')
     tmp_csv_path = tempfile.mkdtemp(dir=os.path.dirname(out_csv))
+    count = 0
+    total = len(sample_list)
     for isample in sample_list:
         img2csv(isample, tmp_csv_path, flag_dict)
+        count += 1
+        progress(count / total)
     # 将所有样本csv合并为一个
+    out_csv_dir = os.path.dirname(out_csv)
+    tmp_csv = os.path.join(out_csv_dir, 'temporary.csv')
     sys_str = platform.system()
     if (sys_str == 'Windows'):
-        cmd_str = r'copy /b *.csv %s' % (out_csv)
+        cmd_str = r'copy /b *.csv %s' % (tmp_csv)
         # 不打印列表
         subprocess.call(cmd_str, shell=True, stdout=open(os.devnull, 'w'), cwd=tmp_csv_path)
 
     elif (sys_str == 'Linux'):
-        cmd_str = r'cat *.csv > %s' % (out_csv)
+        cmd_str = r'cat *.csv > %s' % (tmp_csv)
         # 不打印列表
         subprocess.call(cmd_str, shell=True, stdout=open(os.devnull, 'w'), cwd=tmp_csv_path)
+    # 对不均衡的样本均衡化，采用随机复制的方法进行
+    equilibrium(tmp_csv, out_csv)
     # 删除临时文件
     shutil.rmtree(tmp_csv_path, ignore_errors=True)
+    shutil.rmtree(tmp_csv, ignore_errors=True)
     return None
 
 
