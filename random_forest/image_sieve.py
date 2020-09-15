@@ -160,9 +160,11 @@ def sieve(in_file, dst_dir, th, op, co):
 
 def main(in_dir, out_dir, threshold, open_num, connect):
     if os.path.isdir(in_dir):
-        files = searchfiles(in_dir, partfileinfo='L2A_T50SKE_A021951_20190905T030727_class.tif')
+        files = searchfiles(in_dir, partfileinfo='*.tif')
     else:
         files = [in_dir]
+    if not os.path.exists(out_dir):
+        os.makedirs(out_dir)
     jobs = os.cpu_count() - 1 if os.cpu_count() < len(files) else len(files)
     pool = mp.Pool(processes=jobs)
     for ifile in files:
