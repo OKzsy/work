@@ -184,6 +184,7 @@ def main(src_dir, shp, outdir, fieldName='Name'):
     if not os.path.exists(outdir):
         os.makedirs(outdir)
     # 循环处理栅格影像
+    count = 0
     for raster in rasters:
         # 打开栅格和矢量影像
         raster_ds = gdal.Open(raster)
@@ -207,7 +208,6 @@ def main(src_dir, shp, outdir, fieldName='Name'):
             re_shp_ds, re_shp_l = rpj_vec(shp_lyr, raster_srs)
         # 拆分矢量用以对单个要素进行裁剪
         # 定义变量用以显示进度条
-        count = 0
         num_feature = re_shp_l.GetFeatureCount()
         for feat in re_shp_l:
             outpath = os.path.join(
