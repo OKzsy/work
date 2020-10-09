@@ -180,7 +180,7 @@ def main(flag_file, sample_file, out_csv):
     equilibrium(tmp_csv, out_csv)
     # 删除临时文件
     shutil.rmtree(tmp_csv_path, ignore_errors=True)
-    shutil.rmtree(tmp_csv, ignore_errors=True)
+    os.remove(tmp_csv)
     return None
 
 
