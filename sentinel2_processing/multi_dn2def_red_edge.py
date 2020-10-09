@@ -224,7 +224,7 @@ def dn2ref(out_dir, zip_file):
         if jp2_20_files == []:
             continue
         # 增加红边波段
-        jp2_10_files[3:3] = jp2_20_files[3:6]
+        jp2_10_files[3:3] = jp2_20_files[3:7]
         vrt_10_file = os.path.join(safe_dir, '%s_10m.vrt' % xml_name)
         vrt_options = gdal.BuildVRTOptions(resolution='user', xRes=10, yRes=10, separate=True,
                                            resampleAlg='bilinear')
