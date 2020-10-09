@@ -185,6 +185,7 @@ def main(indir, outdir):
         bandnum = in_ds.RasterCount
         # 获取数据
         oridata = in_ds.ReadAsArray()
+        # add_ndvi, add_mtci, add_ARVI, add_VI4, add_VI7, add_msavi
         index_list = [add_ndvi, add_mtci, add_msavi]
         index_num = len(index_list)
         index_arr = np.zeros((index_num, ysize, xsize))
