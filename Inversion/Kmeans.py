@@ -29,13 +29,13 @@ except:
     progress = gdal.TermProgress
 
 
-def main(file):
+def main(file, num_clusters):
     data = np.loadtxt(file, delimiter=',', dtype=np.float32)
-    num_clusters = 8
     km_cluster = KMeans(n_clusters=num_clusters, max_iter=300, n_init=10, \
                         init='k-means++', n_jobs=-1)
+    data = data[:,[4,5,0]]
     result = km_cluster.fit_predict(data)
-
+    result = [i+1 for i in result]
     print("Predicting result: ", result)
 
     res = metrics.calinski_harabaz_score(data, result)
@@ -53,8 +53,9 @@ if __name__ == '__main__':
     # 注册所有gdal驱动
     gdal.AllRegister()
     start_time = time.time()
-    data_file = r"F:\tmp\data.csv"
-    main(data_file)
+    data_file = r"E:\tmp\data.csv"
+    for i in [2,3,4,5]:
+        main(data_file,i)
     end_time = time.time()
     print("time: %.4f secs." % (end_time - start_time))
 
