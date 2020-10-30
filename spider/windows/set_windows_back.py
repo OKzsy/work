@@ -35,4 +35,4 @@ if __name__ == '__main__':
     # 这里的路径必须为绝对路径
     wallpaper_path = "D:\\back_pic\\" + new_img_name
     set_desktop_windows(wallpaper_path)
-    os.remove(wallpaper_path)
+    # os.remove(wallpaper_path)
