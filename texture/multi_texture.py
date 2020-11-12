@@ -34,12 +34,30 @@ import time
 import math
 import fnmatch
 import numpy as np
+import multiprocessing as mp
 from osgeo import gdal, ogr, osr, gdalconst
+
+from datablock import DataBlock
 
 try:
     progress = gdal.TermProgress_nocb
 except:
     progress = gdal.TermProgress
+
+
+class Bar():
+    """用于多线程显示进度条"""
+    members = 0
+
+    def __init__(self, total):
+        self.total = total
+
+    def update(self):
+        Bar.members += 1
+        progress(Bar.members / self.total)
+
+    def shutdown(self):
+        Bar.members = 0
 
 
 @nb.njit()
@@ -211,7 +229,62 @@ def filtering(xs, ys, ori_xsize, ori_ysize, ext_img):
     return filtered_img
 
 
+def init_pool(in_shared, out_share, in_shape, out_shape, in_dt, out_dt):
+    """
+    多线程准备函数
+    :param in_shared: 原始数据
+    :param out_share: 输出数据
+    :param in_shape: 原始数据形状
+    :param out_shape: 输出数据形状
+    :param in_dt: 原始数据类型
+    :param out_dt: 输出数据类型
+    :return:
+    """
+    global global_in_share
+    global global_out_share
+    global IN_SHAPE
+    global OUT_SHAPE
+    global in_dtype
+    global out_dtype
+    global_in_share = in_shared
+    global_out_share = out_share
+    IN_SHAPE = in_shape
+    OUT_SHAPE = out_shape
+    in_dtype = in_dt
+    out_dtype = out_dt
+
+
+def cal_glmc(win, img_block, IDblock):
+    # 从共享内存中提取数据
+    share_in_data = np.frombuffer(global_in_share, in_dtype).reshape(IN_SHAPE)
+    share_out_data = np.frombuffer(global_out_share, out_dtype).reshape(
+        OUT_SHAPE)
+    dims_get, dims_put = img_block.block(IDblock)
+    in_data = share_in_data[dims_get[1]: dims_get[1] + dims_get[3],
+              dims_get[0]: dims_get[0] + dims_get[2]]
+    out_data = share_out_data[dims_get[1]: dims_get[1] + dims_get[3],
+               dims_get[0]: dims_get[0] + dims_get[2]]
+    # 计算纹理
+    mid_idx = int(win[0] * win[1] / 2)
+    ysize = in_data.shape[1]
+    xsize = in_data.shape[0]
+    for iraw in range(xsize * ysize):
+        if in_data[iraw, mid_idx] == 0:
+            out_data[iraw, :] = 0
+        else:
+            itex = glmc(in_data[iraw, :], win, 0)
+            out_data[iraw, :] = itex
+    # 将分类的数据放回共享内存中
+    share_out_data[dims_put[3]:dims_put[3] + dims_put[1],
+    dims_put[2]: dims_put[2] + dims_get[2]] = out_data
+    in_data = out_data = None
+    return 1
+
+
 def main(src, dst):
+    imgtype2ctype = {'uint8': 'B', 'uint16': 'H', 'int16': 'h',
+                     'uint32': 'I', 'int32': 'i',
+                     'float32': 'f', 'float64': 'd'}
     # 定义窗口大小
     win = (7, 7)
     # 打开影像
@@ -227,16 +300,54 @@ def main(src, dst):
     extend_img = Extend(win[0], win[1], src_arr, -999)
     filted_img = filtering(win[0], win[1], xsize, ysize, extend_img)
     # 计算纹理
+    # 为待计算纹理数据创建共享内存
+    typecode = filted_img.dtype.name
+    in_dt = np.dtype(typecode)
+    in_shape = filted_img.shape
+    pixel_len = int(np.prod(np.array(in_shape)))
+    ori_share = mp.RawArray(imgtype2ctype[typecode], pixel_len)
+    ori_share_arr = np.frombuffer(ori_share, in_dt).reshape(in_shape)
+    ori_share_arr[:, :] = filted_img
+    # 为结果创建共享内存
     # 创建存放纹理结果的矩阵
     texture_mat = np.zeros((xsize * ysize, 6), dtype=np.int16)
-    mid_idx = int(win[0] * win[1] / 2)
-    for iraw in range(xsize * ysize):
-        if filted_img[iraw, mid_idx] == 0:
-            texture_mat[iraw, :] = 0
-        else:
-            itex = glmc(filted_img[iraw, :], win, 0)
-            texture_mat[iraw, :] = itex
-    texture_res = texture_mat.T.reshape(6, ysize, xsize)
+    typecode = texture_mat.dtype.name
+    out_dt = np.dtype(typecode)
+    out_shape = texture_mat.shape
+    pixel_len = int(np.prod(np.array(out_shape)))
+    out_share = mp.RawArray(imgtype2ctype[typecode], pixel_len)
+    out_share_arr = np.frombuffer(out_share, out_dt).reshape(out_shape)
+    out_share_arr[:, :] = texture_mat
+    texture_mat = None
+    # 分块并行处理
+    # 引用DataBlock类
+    share_xsize = in_shape[1]
+    share_ysize = in_shape[0]
+    img_block = DataBlock(share_xsize, share_ysize, 1000, 0)
+    numsblocks = img_block.numsblocks
+    # 进行多线程分类
+    # 确定进程数量
+    cpu_count = os.cpu_count() - 1
+    tasks = cpu_count if cpu_count <= numsblocks else numsblocks
+    # 创建线程池
+    pool = mp.Pool(processes=tasks, initializer=init_pool,
+                   initargs=(ori_share, out_share, in_shape, out_shape, in_dt, out_dt))
+    # 定义进度条
+    bar = Bar(numsblocks)
+    update = lambda args: bar.update()
+    # 进行纹理计算
+    for itask in range(numsblocks):
+        pool.apply_async(cal_glmc,
+                         args=(win, img_block, itask), callback=update)
+    pool.close()
+    pool.join()
+    bar.shutdown()
+    # itask = 0
+    # cal_glmc(ori_share, out_share, in_shape, out_shape, in_dt, out_dt, win, img_block, itask)
+    # 写出结果
+    # 从共享内存获取结果
+    out_arr = np.frombuffer(out_share, out_dt).reshape(out_shape)
+    texture_res = out_arr.T.reshape(6, ysize, xsize)
     # 输出纹理信息
     drv = gdal.GetDriverByName('GTiff')
     dst_ds = drv.Create(dst, xsize, ysize, 6, gdal.GDT_Int16)
@@ -258,8 +369,8 @@ if __name__ == '__main__':
     # 注册所有gdal驱动
     gdal.AllRegister()
     start_time = time.time()
-    src_file = r"E:\DIP3\DIP3E_CH11_Original_Images\Fig1130(a)(uniform_noise).tif"
-    dst_file = r"\\192.168.0.234\nydsj\user\ZSS\郏县林地test\2.data\2.S2\3.clip\L2A_T49SFT_T49SGT_20200601T031149_tex.tif"
+    src_file = r"\\192.168.0.234\nydsj\user\ZSS\郏县林地test\2.data\2.S2\3.clip\L2A_T49SFT_T49SGT_20200706_jiaxian.tif"
+    dst_file = r"\\192.168.0.234\nydsj\user\ZSS\郏县林地test\2.data\2.S2\3.clip\L2A_T49SFT_T49SGT_20200601T031149_tex_multi.tif"
     main(src_file, dst_file)
     end_time = time.time()
     print("time: %.4f secs." % (end_time - start_time))
