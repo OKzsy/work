@@ -54,7 +54,7 @@ class Bar():
 
     def update(self):
         Bar.members += 1
-        progress(Bar.members / self.total)
+        progress(Bar.members / self.total, )
 
     def shutdown(self):
         Bar.members = 0
@@ -266,9 +266,8 @@ def cal_glmc(win, img_block, IDblock):
                dims_get[0]: dims_get[0] + dims_get[2]]
     # 计算纹理
     mid_idx = int(win[0] * win[1] / 2)
-    ysize = in_data.shape[1]
     xsize = in_data.shape[0]
-    for iraw in range(xsize * ysize):
+    for iraw in range(xsize):
         if in_data[iraw, mid_idx] == 0:
             out_data[iraw, :] = 0
         else:
