@@ -175,7 +175,7 @@ def main(infile, outfile):
                                           red_edge1=oridata[3, :, :],
                                           red_edge2=oridata[4, :, :],
                                           red_edge3=oridata[5, :, :],
-                                          inf=oridata[6, :, :])
+                                          inf=oridata[7, :, :])
     # 写出数据
     tiff_driver = gdal.GetDriverByName('GTiff')
     all_band = bandnum + index_num
