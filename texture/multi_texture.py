@@ -181,6 +181,10 @@ def glmc(matrix, win_size, angle):
     tmp_cor = (unique_arr_mat - hc_mean_r) * (unique_arr_mat.T - hc_mean_c) * (1 / (hc_var_r * hc_var_c + 0.000001))
     hc_cor = np.sum(tmp_cor * normaliz_hc)
     hc_cor = int(hc_cor * 10000)
+    # 计算灰度共生矩阵的同一性
+    tmp_hom = 1 + np.abs(unique_arr_mat - unique_arr_mat.T)
+    hc_hom = np.sum(normaliz_hc * (1 / tmp_hom))
+    hc_hom = int(hc_hom * 10000)
     # 计算灰度共生矩阵的熵
     hc_ent = -np.sum(normaliz_hc * np.log2(normaliz_hc, where=normaliz_hc > 0))
     if math.isnan(hc_ent):
@@ -188,7 +192,7 @@ def glmc(matrix, win_size, angle):
     hc_ent = int(hc_ent * 100)
     hc_mean = int((hc_mean_r + hc_mean_c) * 0.5)
     hc_var = int((hc_var_r + hc_var_c) * 0.5)
-    return np.array([hc_mean, hc_var, hc_asm, hc_con, hc_cor, hc_ent])
+    return np.array([hc_mean, hc_var, hc_asm, hc_con, hc_cor, hc_hom, hc_ent])
 
 
 def Extend(xs, ys, matrix, default_value):
@@ -297,6 +301,7 @@ def main(src, dst):
     src_arr = src_arr.astype(np.int16)
     # 整理数据，便于获取窗口数据
     extend_img = Extend(win[0], win[1], src_arr, -999)
+    src_arr = None
     filted_img = filtering(win[0], win[1], xsize, ysize, extend_img)
     # 计算纹理
     # 为待计算纹理数据创建共享内存
@@ -307,9 +312,10 @@ def main(src, dst):
     ori_share = mp.RawArray(imgtype2ctype[typecode], pixel_len)
     ori_share_arr = np.frombuffer(ori_share, in_dt).reshape(in_shape)
     ori_share_arr[:, :] = filted_img
+    filted_img = None
     # 为结果创建共享内存
     # 创建存放纹理结果的矩阵
-    texture_mat = np.zeros((xsize * ysize, 6), dtype=np.int16)
+    texture_mat = np.zeros((xsize * ysize, 7), dtype=np.int16)
     typecode = texture_mat.dtype.name
     out_dt = np.dtype(typecode)
     out_shape = texture_mat.shape
@@ -346,13 +352,13 @@ def main(src, dst):
     # 写出结果
     # 从共享内存获取结果
     out_arr = np.frombuffer(out_share, out_dt).reshape(out_shape)
-    texture_res = out_arr.T.reshape(6, ysize, xsize)
+    texture_res = out_arr.T.reshape(7, ysize, xsize)
     # 输出纹理信息
     drv = gdal.GetDriverByName('GTiff')
-    dst_ds = drv.Create(dst, xsize, ysize, 6, gdal.GDT_Int16)
+    dst_ds = drv.Create(dst, xsize, ysize, 7, gdal.GDT_Int16)
     dst_ds.SetGeoTransform(src_geo)
     dst_ds.SetProjection(src_prj)
-    for iband in range(6):
+    for iband in range(7):
         dst_ds.GetRasterBand(iband + 1).WriteArray(texture_res[iband, :, :])
     dst_ds.FlushCache()
     src_ds = dst_ds = None
