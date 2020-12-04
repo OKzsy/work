@@ -149,6 +149,25 @@ def add_ndvi(blue=None, green=None, red=None, red_edge1=None, red_edge2=None, re
     return ndvi
 
 
+def add_dvi(blue=None, green=None, red=None, red_edge1=None, red_edge2=None, red_edge3=None, inf=None):
+    """
+    增加差值植被指数
+    :param blue:
+    :param green:
+    :param red:
+    :param red_edge1:
+    :param red_edge2:
+    :param red_edge3:
+    :param inf:
+    :return:
+    """
+    red = red.astype(np.int16)
+    inf = inf.astype(np.int16)
+    dvi = (inf - red).astype(np.int16)
+    red = inf = None
+    return dvi
+
+
 def main(infile, outfile):
     in_ds = gdal.Open(infile)
     rpj = in_ds.GetProjection()
@@ -158,7 +177,7 @@ def main(infile, outfile):
     bandnum = in_ds.RasterCount
     # 获取数据
     oridata = in_ds.ReadAsArray()
-    index_list = [add_ndvi, add_VI4, add_VI7, add_ARVI]
+    index_list = [add_ndvi, add_dvi]
     index_num = len(index_list)
     index_arr = np.zeros((index_num, ysize, xsize))
     for ifunc in range(index_num):
@@ -212,8 +231,8 @@ if __name__ == '__main__':
     # 注册所有gdal驱动
     gdal.AllRegister()
     start_time = time.time()
-    infile = r"\\192.168.0.234\nydsj\user\ZSS\2020yancao\GF2\clip\GF2_20200707_L1A0004910794_reg_GF2_20200707_河底镇.tif"
-    outfile = r"\\192.168.0.234\nydsj\user\ZSS\2020yancao\luoyang\GF2_20200707_L1A0004910794_reg_GF2_20200707_河底镇_veg.tif"
+    infile = r"\\192.168.0.234\nydsj\user\ZSS\郏县林地test\2.data\4.GF\4.clip\GF1_20200720_9273_9275_9350_jiaxian.tif"
+    outfile = r'\\192.168.0.234\nydsj\user\ZSS\郏县林地test\GF1_20200720_9273_9275_9350_vi.tif'
     main(infile, outfile)
     end_time = time.time()
     print("time: %.4f secs." % (end_time - start_time))
