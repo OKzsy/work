@@ -1,12 +1,12 @@
 #!/usr/bin/env python3
 # -*- coding:utf-8 -*-
 """
-# @Time    : 2020/11/4 11:40
+# @Time    : 2020/11/11 11:50
 # @Author  : zhaoss
-# @FileName: glcm.py
+# @FileName: multi_texture.py
 # @Email   : zhaoshaoshuai@hnnydsj.com
 Description:
-用于生成灰度共生矩阵, 该算法可以使用影像的切片加上BIP存储方式进行按行读取加速。arr.reshape(bands,xsize * ysize).T
+
 
 Parameters
 
@@ -17,16 +17,47 @@ import os
 import sys
 import glob
 import time
-import math
 import fnmatch
-import numba as nb
 import numpy as np
+import numba as nb
 from osgeo import gdal, ogr, osr, gdalconst
 
 try:
     progress = gdal.TermProgress_nocb
 except:
     progress = gdal.TermProgress
+
+import os
+import sys
+import glob
+import time
+import math
+import fnmatch
+import numpy as np
+import multiprocessing as mp
+from osgeo import gdal, ogr, osr, gdalconst
+
+from datablock import DataBlock
+
+try:
+    progress = gdal.TermProgress_nocb
+except:
+    progress = gdal.TermProgress
+
+
+class Bar():
+    """用于多线程显示进度条"""
+    members = 0
+
+    def __init__(self, total):
+        self.total = total
+
+    def update(self):
+        Bar.members += 1
+        progress(Bar.members / self.total, )
+
+    def shutdown(self):
+        Bar.members = 0
 
 
 @nb.njit()
@@ -67,20 +98,6 @@ def cyunique(a):
 
 
 @nb.njit()
-def cyunique_ori(a):
-    n = a.shape[0]
-    real_total = 9
-    label_count = np.zeros(real_total, dtype=np.uint32)
-    for i in range(n):
-        tmp = a[i]
-        if tmp == -999:
-            continue
-        else:
-            label_count[tmp] += 1
-    return label_count
-
-
-@nb.njit()
 def glmc_cor(new_mat_ravel, new_col, dy, dx):
     """
 
@@ -112,91 +129,6 @@ def glmc_cor(new_mat_ravel, new_col, dy, dx):
     return hc
 
 
-@nb.njit()
-def glmc_ori_cor(new_mat_ravel, new_col, dy, dx):
-    """
-
-    :param matrix:
-    :param dy: 行偏移
-    :param dx: 列偏移
-    :return:
-    """
-    # 生成灰度矩阵
-    hc = np.zeros((9, 9), dtype=np.uint16)
-    for ihc in range(9):
-        index = np.where(new_mat_ravel == ihc)
-        if index[0].shape[0] == 0:
-            continue
-        new_index = index[0] + (new_col * dy + dx)
-        tmp_mat = new_mat_ravel[new_index]
-        tmp_unique = cyunique_ori(tmp_mat)
-        hc[ihc, :] = tmp_unique
-    return hc
-
-
-def glmc_ori(matrix, win_size, angle):
-    """
-
-    :param matrix: 原始矩阵
-    :param angle: 方向角度值
-    :return:
-    """
-    # 根据角度确定dx(列偏移量), dy(行偏移量)的值和对应的归一化常数
-    ori_raw, ori_col = win_size
-    direction = {0: (1, 0),
-                 45: (1, 1),
-                 90: (0, 1),
-                 135: (-1, 1)}
-    dx, dy = direction[angle]
-    # 根据相邻关系计算新的矩阵大小
-    matrix = matrix.reshape(win_size)
-    new_raw = ori_raw + abs(dy)
-    new_col = ori_col + abs(dx)
-    new_mat = np.zeros((new_raw, new_col), dtype=np.int16) - 999
-    point_y = 0 if dy >= 0 else abs(dy)
-    point_x = 0 if dx >= 0 else abs(dx)
-    new_mat[point_y: point_y + ori_raw, point_x: point_x + ori_col] = matrix
-    new_mat_ravel = new_mat.ravel()
-    matrix = new_mat = None
-    # 生成灰度共生矩阵
-    hc = glmc_ori_cor(new_mat_ravel, new_col, dy, dx)
-    # 对灰度共生矩阵进行归一化
-    normaliz_hc = hc * (1 / np.sum(hc))
-    unique_arr = np.arange(256)
-    # 计算灰度共生矩阵的二阶矩
-    hc_asm = np.sum(normaliz_hc * normaliz_hc)
-    hc_asm = int(hc_asm * 100000)
-    # # 计算灰度共生矩阵的均值(包括行均值mr和列均值mc)
-    unique_arr_mat = unique_arr.reshape(-1, 1) + np.zeros(256)
-    hc_mean_r = np.sum(np.sum(unique_arr_mat * normaliz_hc, axis=1))
-    hc_mean_c = np.sum(np.sum(unique_arr_mat * normaliz_hc.T, axis=1))
-    # 计算灰度共生矩阵的方差
-    unique_square_r = (unique_arr_mat - hc_mean_r) * (unique_arr_mat - hc_mean_r)
-    unique_square_c = (unique_arr_mat - hc_mean_c) * (unique_arr_mat - hc_mean_c)
-    hc_var_r = np.sqrt(np.sum(np.sum(unique_square_r * normaliz_hc, axis=1)))
-    hc_var_c = np.sqrt(np.sum(np.sum(unique_square_c * normaliz_hc.T, axis=1)))
-    # 计算灰度共生矩阵的对比度
-    tmp_con = unique_arr_mat - unique_arr_mat.T
-    hc_con = np.sum(tmp_con * tmp_con * normaliz_hc)
-    hc_con = int(hc_con)
-    # 计算灰度共生矩阵的相关性
-    tmp_cor = (unique_arr_mat - hc_mean_r) * (unique_arr_mat.T - hc_mean_c) * (1 / (hc_var_r * hc_var_c + 0.000001))
-    hc_cor = np.sum(tmp_cor * normaliz_hc)
-    hc_cor = int(hc_cor * 10000)
-    # 计算灰度共生矩阵的同一性
-    tmp_hom = 1 + np.abs(unique_arr_mat - unique_arr_mat.T)
-    hc_hom = np.sum(normaliz_hc * (1 / tmp_hom))
-    hc_hom = int(hc_hom * 10000)
-    # 计算灰度共生矩阵的熵
-    hc_ent = -np.sum(normaliz_hc * np.log2(normaliz_hc, where=normaliz_hc > 0))
-    if math.isnan(hc_ent):
-        hc_ent = 0
-    hc_ent = int(hc_ent * 100)
-    hc_mean = int((hc_mean_r + hc_mean_c) * 0.5)
-    hc_var = int((hc_var_r + hc_var_c) * 0.5)
-    return np.array([hc_mean, hc_var, hc_asm, hc_con, hc_cor, hc_hom, hc_ent])
-
-
 def glmc(matrix, win_size, angle):
     """
 
@@ -212,6 +144,7 @@ def glmc(matrix, win_size, angle):
                  135: (-1, 1)}
     dx, dy = direction[angle]
     # 根据相邻关系计算新的矩阵大小
+    matrix = matrix.reshape(win_size)
     new_raw = ori_raw + abs(dy)
     new_col = ori_col + abs(dx)
     new_mat = np.zeros((new_raw, new_col), dtype=np.int16) - 999
@@ -259,7 +192,7 @@ def glmc(matrix, win_size, angle):
     hc_ent = int(hc_ent * 100)
     hc_mean = int((hc_mean_r + hc_mean_c) * 0.5)
     hc_var = int((hc_var_r + hc_var_c) * 0.5)
-    return np.array([hc_asm, hc_ent])
+    return np.array([hc_mean, hc_var, hc_asm, hc_con, hc_cor, hc_hom, hc_ent])
 
 
 def Extend(xs, ys, matrix, default_value):
@@ -300,7 +233,63 @@ def filtering(xs, ys, ori_xsize, ori_ysize, ext_img):
     return filtered_img
 
 
+def init_pool(in_shared, out_share, in_shape, out_shape, in_dt, out_dt):
+    """
+    多线程准备函数
+    :param in_shared: 原始数据
+    :param out_share: 输出数据
+    :param in_shape: 原始数据形状
+    :param out_shape: 输出数据形状
+    :param in_dt: 原始数据类型
+    :param out_dt: 输出数据类型
+    :return:
+    """
+    global global_in_share
+    global global_out_share
+    global IN_SHAPE
+    global OUT_SHAPE
+    global in_dtype
+    global out_dtype
+    global_in_share = in_shared
+    global_out_share = out_share
+    IN_SHAPE = in_shape
+    OUT_SHAPE = out_shape
+    in_dtype = in_dt
+    out_dtype = out_dt
+
+
+def cal_glmc(win, img_block, IDblock):
+    # 从共享内存中提取数据
+    share_in_data = np.frombuffer(global_in_share, in_dtype).reshape(IN_SHAPE)
+    share_out_data = np.frombuffer(global_out_share, out_dtype).reshape(
+        OUT_SHAPE)
+    dims_get, dims_put = img_block.block(IDblock)
+    in_data = share_in_data[dims_get[1]: dims_get[1] + dims_get[3],
+              dims_get[0]: dims_get[0] + dims_get[2]]
+    out_data = share_out_data[dims_get[1]: dims_get[1] + dims_get[3],
+               dims_get[0]: dims_get[0] + dims_get[2]]
+    # 计算纹理
+    mid_idx = int(win[0] * win[1] / 2)
+    xsize = in_data.shape[0]
+    for iraw in range(xsize):
+        if in_data[iraw, mid_idx] == 0:
+            out_data[iraw, :] = 0
+        else:
+            itex = glmc(in_data[iraw, :], win, 0)
+            out_data[iraw, :] = itex
+    # 将分类的数据放回共享内存中
+    share_out_data[dims_put[3]:dims_put[3] + dims_put[1],
+    dims_put[2]: dims_put[2] + dims_get[2]] = out_data
+    in_data = out_data = None
+    return 1
+
+
 def main(src, dst):
+    imgtype2ctype = {'uint8': 'B', 'uint16': 'H', 'int16': 'h',
+                     'uint32': 'I', 'int32': 'i',
+                     'float32': 'f', 'float64': 'd'}
+    # 定义窗口大小
+    win = (7, 7)
     # 打开影像
     src_ds = gdal.Open(src)
     xsize = src_ds.RasterXSize
@@ -310,22 +299,69 @@ def main(src, dst):
     # 获取指定波段用于计算纹理
     src_arr = src_ds.GetRasterBand(1).ReadAsArray()
     src_arr = src_arr.astype(np.int16)
-    src_arr = [[1, 1, 7, 5, 3, 2],
-               [5, 1, 6, 1, 2, 5],
-               [8, 8, 6, 8, 1, 2],
-               [5, 3, 5, 5, 5, 1],
-               [8, 7, 8, 7, 6, 2],
-               [7, 8, 6, 2, 6, 2]]
-    src_arr = np.array(src_arr).astype((np.int16))
-    # 对影像进行拉伸，灰度级压缩
-    filted_img = np.round((255 / 255) * src_arr)
+    # 整理数据，便于获取窗口数据
+    extend_img = Extend(win[0], win[1], src_arr, -999)
+    src_arr = None
+    filted_img = filtering(win[0], win[1], xsize, ysize, extend_img)
     # 计算纹理
+    # 为待计算纹理数据创建共享内存
+    typecode = filted_img.dtype.name
+    in_dt = np.dtype(typecode)
+    in_shape = filted_img.shape
+    pixel_len = int(np.prod(np.array(in_shape)))
+    ori_share = mp.RawArray(imgtype2ctype[typecode], pixel_len)
+    ori_share_arr = np.frombuffer(ori_share, in_dt).reshape(in_shape)
+    ori_share_arr[:, :] = filted_img
+    filted_img = None
+    # 为结果创建共享内存
     # 创建存放纹理结果的矩阵
     texture_mat = np.zeros((xsize * ysize, 7), dtype=np.int16)
-    # win = (ysize, xsize)
-    win = (6, 6)
-    itex = glmc_ori(filted_img, win, 0)
-    print(itex)
+    typecode = texture_mat.dtype.name
+    out_dt = np.dtype(typecode)
+    out_shape = texture_mat.shape
+    pixel_len = int(np.prod(np.array(out_shape)))
+    out_share = mp.RawArray(imgtype2ctype[typecode], pixel_len)
+    out_share_arr = np.frombuffer(out_share, out_dt).reshape(out_shape)
+    out_share_arr[:, :] = texture_mat
+    texture_mat = None
+    # 分块并行处理
+    # 引用DataBlock类
+    share_xsize = in_shape[1]
+    share_ysize = in_shape[0]
+    img_block = DataBlock(share_xsize, share_ysize, 1000, 0)
+    numsblocks = img_block.numsblocks
+    # 进行多线程分类
+    # 确定进程数量
+    cpu_count = os.cpu_count() - 1
+    tasks = cpu_count if cpu_count <= numsblocks else numsblocks
+    # 创建线程池
+    pool = mp.Pool(processes=tasks, initializer=init_pool,
+                   initargs=(ori_share, out_share, in_shape, out_shape, in_dt, out_dt))
+    # 定义进度条
+    bar = Bar(numsblocks)
+    update = lambda args: bar.update()
+    # 进行纹理计算
+    for itask in range(numsblocks):
+        pool.apply_async(cal_glmc,
+                         args=(win, img_block, itask), callback=update)
+    pool.close()
+    pool.join()
+    bar.shutdown()
+    # itask = 0
+    # cal_glmc(ori_share, out_share, in_shape, out_shape, in_dt, out_dt, win, img_block, itask)
+    # 写出结果
+    # 从共享内存获取结果
+    out_arr = np.frombuffer(out_share, out_dt).reshape(out_shape)
+    texture_res = out_arr.T.reshape(7, ysize, xsize)
+    # 输出纹理信息
+    drv = gdal.GetDriverByName('GTiff')
+    dst_ds = drv.Create(dst, xsize, ysize, 7, gdal.GDT_Int16)
+    dst_ds.SetGeoTransform(src_geo)
+    dst_ds.SetProjection(src_prj)
+    for iband in range(7):
+        dst_ds.GetRasterBand(iband + 1).WriteArray(texture_res[iband, :, :])
+    dst_ds.FlushCache()
+    src_ds = dst_ds = None
 
 
 if __name__ == '__main__':
@@ -338,8 +374,8 @@ if __name__ == '__main__':
     # 注册所有gdal驱动
     gdal.AllRegister()
     start_time = time.time()
-    src_file = r"E:\DIP3\DIP3E_CH11_Original_Images\Fig1130(c)(cktboard_section).tif"
-    dst_file = r"F:\test\Fig1130(c)(cktboard_section)3.tif"
+    src_file = r"\\192.168.0.234\nydsj\user\ZSS\郏县林地test\2.data\2.S2\3.clip\L2A_T49SFT_T49SGT_20200706_jiaxian.tif"
+    dst_file = r"\\192.168.0.234\nydsj\user\ZSS\郏县林地test\2.data\2.S2\3.clip\L2A_T49SFT_T49SGT_20200601T031149_tex_multi.tif"
     main(src_file, dst_file)
     end_time = time.time()
     print("time: %.4f secs." % (end_time - start_time))
