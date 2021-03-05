@@ -13,7 +13,7 @@ Parameters
 
 """
 
-import sys
+import sys, getopt
 import time
 import numpy as np
 from osgeo import gdal, ogr
@@ -140,7 +140,7 @@ def main(geo_json, color, src):
                          str(int(iline[5])), str(round(percent, 3))]) + '\n'
         fb.write(line)
     fb.close
-    # mem_ds.Destroy()
+    mem_ds.Destroy()
     return None
 
 
@@ -154,12 +154,26 @@ if __name__ == '__main__':
     # 注册所有gdal驱动
     gdal.AllRegister()
     start_time = time.time()
-    geo_json = '{"type":"Polygon","coordinates":' \
-               '[[[114.20719716708481,35.57353558786161],[114.20672127488365,35.572314924365514],' \
-               '[114.20887706655503,35.57174385372423],[114.20931012845801,35.573035901050446],' \
-               '[114.20719716708481,35.57353558786161]]]}'
-    color_table = r"F:\test\L2A_T50SKE_20210112.txt"
-    src_file = r"F:\test\L2A_T50SKE_20201213_NDVI_石桥村.tif"
+    argv = sys.argv[1:]
+    try:
+        opts, args = getopt.getopt(argv, "hj:c:s:", ["geo_json=", "color_table=", "src_file="])
+    except getopt.GetoptError:
+        print('statisticByfield.py -j <geo_json> -c <color_table> -s <src_file>')
+        sys.exit(2)
+    for opt, arg in opts:
+        if opt == '-h':
+            print("""
+            statisticByfield.py -j|--geo_json= 'geometry GeoJson'
+            -c|--color_table= 'The path of color table'
+            -s|--src_file= 'The path of image file'
+            """)
+            sys.exit()
+        elif opt in ("-j", "--geo_json"):
+            geo_json = arg
+        elif opt in ("-c", "--color_table"):
+            color_table = arg
+        elif opt in ("-s", "--src_file"):
+            src_file = arg
     main(geo_json, color_table, src_file)
     end_time = time.time()
     print("time: %.4f secs." % (end_time - start_time))
