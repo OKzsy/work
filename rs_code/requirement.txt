@@ -40,7 +40,7 @@ Pysolar==0.6
 python-dateutil==2.7.3
 pytz==2018.5
 PyWavelets==0.5.2
-PyYAML==3.12
+PyYAML==5.4
 scikit-image==0.14.0
 scikit-learn==0.19.1
 scipy==1.1.0
