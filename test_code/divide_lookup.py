@@ -33,7 +33,7 @@ def main():
     res = lookup(sorted_record, find_value)
     print(sorted_record)
     if res:
-        print(res)
+        print(*res)
     else:
         print('没有找到')
     pass
