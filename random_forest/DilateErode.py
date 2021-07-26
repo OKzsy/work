@@ -158,6 +158,37 @@ def gray_erode(win_size, kernel, src_data):
     return dst_img
 
 
+def gray_filtering(xs, ys, ori_xsize, ori_ysize, kernel, ext_img):
+    """
+
+    :param xs: 卷积核大小：列
+    :param ys: 卷积核大小：行
+    :param kernel: 卷积核
+    :param ext_img: 经扩展后的影像
+    :return: 滤波后的影像
+    """
+    # 使用切片后影像的波段书
+    # 创建切片后存储矩阵
+    index = np.where(kernel == 1)
+    channel = kernel.size
+    filtered_img = np.zeros((channel, ori_ysize, ori_xsize), dtype=np.uint8)
+    ichannel = 0
+    for irow in range(ys):
+        for icol in range(xs):
+            filtered_img[ichannel, :, :] = ext_img[irow: irow + ori_ysize, icol: icol + ori_xsize]
+            ichannel += 1
+    return filtered_img[index[0], :, :]
+
+
+def gray_erode(win_size, kernel, src_data):
+    ysize, xsize = src_data.shape
+    extend_src_data = Extend(win_size, win_size, src_data, default_value=255)
+    filter_img = gray_filtering(int(win_size), int(win_size), xsize, ysize, kernel, extend_src_data)
+    dst_img = np.min(filter_img, axis=0)
+    filter_img = None
+    return dst_img
+
+
 def gray_dilate(win_size, kernel, src_data):
     ysize, xsize = src_data.shape
     extend_src_data = Extend(win_size, win_size, src_data, default_value=0)
