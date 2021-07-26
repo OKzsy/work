@@ -6,7 +6,7 @@
 # @FileName: add_veg_index.py
 # @Email   : zhaoshaoshuai@hnnydsj.com
 Description:
-
+对输入的影像添加不同指数
 
 Parameters
 
@@ -88,6 +88,26 @@ def add_VI4(blue=None, green=None, red=None, red_edge1=None, red_edge2=None, red
     VI4 = blue + green + red
     blue = green = red = None
     return VI4
+
+
+def add_gcvi(blue=None, green=None, red=None, red_edge1=None, red_edge2=None, red_edge3=None, inf=None):
+    """
+    增加绿光叶绿素植被指数
+    :param blue:
+    :param green:
+    :param red:
+    :param red_edge1:
+    :param red_edge2:
+    :param red_edge3:
+    :param inf:
+    :return:
+    """
+    green = green.astype(np.float32) / 10000
+    inf = inf.astype(np.float32) / 10000
+    gcvi = (inf / green + 0.000001 - 1) * 1000
+    gcvi = gcvi.astype(np.int16)
+    green = inf = None
+    return gcvi
 
 
 def add_msavi(blue=None, green=None, red=None, red_edge1=None, red_edge2=None, red_edge3=None, inf=None):
