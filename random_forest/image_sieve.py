@@ -6,7 +6,7 @@
 # @FileName: image_sieve.py
 # @Email   : zhaoshaoshuai@hnnydsj.com
 Description:
-
+分类后处理程序，可对需要进行的操作进行阈值调节
 
 Parameters
 
@@ -114,18 +114,35 @@ def opening(win_size, kernel, thr, src_data):
     :return:
     """
     for _ in range(thr):
+        src_data = gray_erode(win_size, kernel, src_data)
+    for _ in range(thr):
+        src_data = gray_dilate(win_size, kernel, src_data)
+    return src_data
+
+
+def closing(win_size, kernel, thr, src_data):
+    """
+    先膨胀后腐蚀，能够填平小湖（即小孔），弥合小裂缝，而总的位置和形状不变
+    :param win_size:
+    :param kernel:
+    :param fr_value:
+    :param bg_value:
+    :param src_data:
+    :return:
+    """
+    for _ in range(thr):
         src_data = gray_dilate(win_size, kernel, src_data)
     for _ in range(thr):
         src_data = gray_erode(win_size, kernel, src_data)
     return src_data
 
 
-def sieve(in_file, dst_dir, th, op, co):
+def sieve(in_file, dst_dir, operate, th, op, co):
     # 定义结构元
     SE = {4: np.array([0, 1, 0, 1, 1, 1, 0, 1, 0]),
           8: np.array([1, 1, 1, 1, 1, 1, 1, 1, 1])}
     basename = os.path.splitext(os.path.basename(in_file))[0]
-    dst_file = os.path.join(dst_dir, basename) + '_sieve.tif'
+    dst_file = os.path.join(dst_dir, basename) + '_sieve1.tif'
     if os.path.exists(dst_file):
         return None
     in_ds = gdal.Open(in_file)
@@ -142,23 +159,27 @@ def sieve(in_file, dst_dir, th, op, co):
     dstband = dst_ds.GetRasterBand(1)
     maskband = None
     result = gdal.SieveFilter(srcband, maskband, dstband,
-                              th, co, callback=None)
+                              th, co[0], callback=None)
     dstband.FlushCache()
     # 进行开操作，平滑边缘
-    kernel = SE[co]
+    kernel = SE[co[1]]
     win_size = np.sqrt(kernel.size)
     src_data = dstband.ReadAsArray()
     if not win_size % 1 == 0:
         raise ('The size of SE is wrong!')
-    filter_img = opening(win_size, kernel, op, src_data)
+    # 根据输入判断是进行开运算还是进行闭运算
+    if operate:
+        filter_img = closing(win_size, kernel, op, src_data)
+    else:
+        filter_img = opening(win_size, kernel, op, src_data)
     # 更新结果
     dstband.WriteArray(filter_img)
     dstband.FlushCache()
-    in_ds = srcband = dst_ds = dstband = filter_img  = None
+    in_ds = srcband = dst_ds = dstband = filter_img = None
     return None
 
 
-def main(in_dir, out_dir, threshold, open_num, connect):
+def main(in_dir, out_dir, operate, threshold, open_num, connect):
     if os.path.isdir(in_dir):
         files = searchfiles(in_dir, partfileinfo='*.tif')
     else:
@@ -168,7 +189,7 @@ def main(in_dir, out_dir, threshold, open_num, connect):
     jobs = os.cpu_count() - 1 if os.cpu_count() < len(files) else len(files)
     pool = mp.Pool(processes=jobs)
     for ifile in files:
-        pool.apply_async(sieve, args=(ifile, out_dir, threshold, open_num, connect))
+        pool.apply_async(sieve, args=(ifile, out_dir, operate, threshold, open_num, connect))
     pool.close()
     pool.join()
     return None
@@ -184,11 +205,16 @@ if __name__ == '__main__':
     # 注册所有gdal驱动
     gdal.AllRegister()
     start_time = time.time()
-    in_dir = r"\\192.168.0.234\nydsj\user\ZSS\2020qixian\class"
-    out_dir = r"\\192.168.0.234\nydsj\user\ZSS\2020qixian\sieve"
+    in_dir = r"\\192.168.0.234\nydsj\user\ZSS\garlic\GF6\class1\GF6_20190407_L1A1119901363_class_0.97.tif"
+    out_dir = r"\\192.168.0.234\nydsj\user\ZSS\garlic\GF6\class1"
+    # 填充孔洞大小阈值
     threshold = 3
-    open_num = 1
-    connectedness = 8
-    main(in_dir, out_dir, threshold, open_num, connectedness)
+    # 开闭运算操作次数
+    open_num = 2
+    # 选择进行的形态学运算opening=0, closing=1
+    operate = 1
+    # connectedness = [SieveFilter, opening/closing]
+    connectedness = [4, 8]
+    main(in_dir, out_dir, operate, threshold, open_num, connectedness)
     end_time = time.time()
     print("time: %.4f secs." % (end_time - start_time))
