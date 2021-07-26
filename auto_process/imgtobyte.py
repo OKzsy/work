@@ -6,8 +6,7 @@
 # @FileName: imgtobyte.py
 # @Email   : zhaoshaoshuai@hnnydsj.com
 Description:
-    对输入的影像采用2%线性拉伸，转换为可以在线展示的影像（Data_type:Byte,
-img_type:Tiff)
+对输入的影像采用2%线性拉伸，转换为可以在线展示的影像（Data_type:Byte,img_type:Tiff)
 Parameters
     :param in_path: 待处理影像所在文件夹
     :param out_path: 输出影像所在文件夹
@@ -48,7 +47,7 @@ def searchfiles(dirpath, partfileinfo='*', recursive=False):
 def hist(data, ratio):
     bins = np.arange(start=int(data.min()), stop=int(data.max()) + 2, step=1)
     n, xbin = np.histogram(data, bins=bins)
-    nozero_index = np.where(xbin[:-1] > 0)
+    nozero_index = np.where(xbin[:-1] != 0)
     zero_count = np.where(data == 0)[0].shape[0]
     n = n[nozero_index]
     xbin = xbin[nozero_index]
@@ -68,7 +67,10 @@ def Liner(ds, band_index):
     zero_index = np.where(band_data == band_data[0][0])
     # 计算ratio(2%)点
     start_time = time.clock()
-    min_gray, max_gray = hist(band_data, 2)
+    # min_gray, max_gray = hist(band_data, 2)
+    gray = [[40, 179], [60, 198], [54, 218]]
+    min_gray = gray[band_index][0]
+    max_gray = gray[band_index][1]
     end_time = time.clock()
     print("time: %.4f secs." % (end_time - start_time))
     # 将直方图中ratio以外的值统一为min_gray和max_gray
@@ -96,7 +98,7 @@ def main(in_dir, out_dir, partfileinfo='*'):
     # 循环处理文件
     for ifile in Pending_images:
         basename = os.path.splitext(os.path.basename(ifile))[0]
-        stretched_img_name = basename + '-strect.tiff'
+        stretched_img_name = basename + '_strect.tiff'
         # 打开影像
         data_ds = gdal.Open(ifile)
         # 获取影像的基本信息
@@ -127,13 +129,13 @@ def main(in_dir, out_dir, partfileinfo='*'):
 
 if __name__ == '__main__':
     # 支持中文路径
-    gdal.SetConfigOption("GDAL_FILENAME_IS_UTF8", "NO")
+    gdal.SetConfigOption("GDAL_FILENAME_IS_UTF8", "YES")
     # 注册所有gdal驱动
     gdal.AllRegister()
     start_time = time.clock()
-    in_path = r"C:\Users\01\Desktop\henan"
-    out_path = r"C:\Users\01\Desktop\henan"
-    partfileinfo = "*L1A0002693207-shpCut.tiff"
+    in_path = r"F:\test"
+    out_path = r"F:\test"
+    partfileinfo = "*_20210408_石桥村_RGB.tif"
     main(in_path, out_path, partfileinfo=partfileinfo)
     end_time = time.clock()
 

@@ -6,7 +6,7 @@
 # @FileName: multi_reproject.py
 # @Email   : zhaoshaoshuai@hnnydsj.com
 Description:
-
+对影像进行批量重投影
 
 Parameters
 
@@ -85,8 +85,12 @@ def reproject_dataset(out_dir, src_file):
     """
     # 定义目标投影
     oSRS = osr.SpatialReference()
-    # oSRS.SetWellKnownGeogCS("WGS84")
-    oSRS.ImportFromEPSG(3857)
+    oSRS.SetWellKnownGeogCS("WGS84")
+    if oSRS.GetAttrValue("UNIT").lower() in ["metre", "meter"]:
+        dst_prj_flag = 1
+    else:
+        dst_prj_flag = 0
+    # oSRS.ImportFromEPSG(3857)
     # 对无投影的影像定义投影
     # 定义赋值投影
     src_ds = gdal.Open(src_file)
@@ -98,19 +102,27 @@ def reproject_dataset(out_dir, src_file):
     src_prj = src_dst_prj.GetProjection()
     oSRC = osr.SpatialReference()
     oSRC.ImportFromWkt(src_prj)
+    if oSRC.GetAttrValue("UNIT").lower() in ["metre", "meter"]:
+        src_prj_flag = 1
+    else:
+        src_prj_flag = 0
     # 测试投影转换
     oSRC.SetTOWGS84(0, 0, 0)
     tx = osr.CoordinateTransformation(oSRC, oSRS)
-
     # 获取原始影像的放射变换参数
     geo_t = src_dst_prj.GetGeoTransform()
     x_size = src_dst_prj.RasterXSize
     y_size = src_dst_prj.RasterYSize
     bandCount = src_dst_prj.RasterCount
     dataType = src_dst_prj.GetRasterBand(1).DataType
-    if oSRC.GetAttrValue("UNIT").lower() in ["metre", "meter"]:
+    # 确定投影转换方式
+    flag = src_prj_flag - dst_prj_flag
+    if flag == 0:
         new_x_size = geo_t[1]
         new_y_size = geo_t[5]
+    elif flag > 0:
+        new_x_size = geo_t[1] / 10 ** 5
+        new_y_size = geo_t[5] / 10 ** 5
     else:
         new_x_size = geo_t[1] * 10 ** 5
         new_y_size = geo_t[5] * 10 ** 5
@@ -157,7 +169,7 @@ def reproject_dataset(out_dir, src_file):
     # 执行重投影和重采样
     res = gdal.ReprojectImage(src_dst_prj, dest, \
                               src_prj, oSRS.ExportToWkt(), \
-                              gdal.GRA_NearestNeighbour)
+                              gdal.GRA_Bilinear)
     src_dst_prj = None
     dest = None
     gc.collect()
@@ -184,8 +196,8 @@ if __name__ == '__main__':
     # 注册所有gdal驱动
     gdal.AllRegister()
     start_time = time.clock()
-    in_dir = r"\\192.168.0.234\nydsj\user\WangShun\gongyi\Data\images"
-    out_dir = r"\\192.168.0.234\nydsj\user\ZSS\test\out"
+    in_dir = r"G:\新建文件夹 (3)"
+    out_dir = r"G:\WGS84"
     partfileinfo = "*.tif"
     main(in_dir, out_dir, partfileinfo)
     end_time = time.clock()

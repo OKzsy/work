@@ -130,11 +130,11 @@ def main(http, city, code):
         raise Exception("抓取网页失败")
     bsobj = BeautifulSoup(html, features="lxml")
     # 获取更新时间
-    conn = psycopg2.connect(database="weather_test", user="sa", password="Nydsj@222", host="192.168.0.250", port="5432")
+    conn = psycopg2.connect(database="WebGis", user="sa", password="Nydsj@222", host="192.168.0.250", port="5432")
     cur = conn.cursor()
     date = datetime.datetime.now().strftime("%Y-%m-%d")
     update_time = bsobj.find("input", {"id": "update_time"}).get("value")
-    select_str = "SELECT * FROM weather_predict " \
+    select_str = "SELECT * FROM weather_forecast " \
                  "WHERE date1='{date}' AND shijian='{time}' AND city='{city}'".format(date=date,
                                                                                       time=update_time,
                                                                                       city=city_name[city])
@@ -156,7 +156,7 @@ def main(http, city, code):
     idate = 0
     for imessage in content_7d:
         riqi = (datetime.datetime.now() + datetime.timedelta(days=idate)).strftime('%Y-%m-%d')
-        insert_str = "INSERT INTO weather_predict VALUES ('{date_str}','{time_str}','{riqi}','{city}','{weather}'," \
+        insert_str = "INSERT INTO weather_forecast VALUES ('{date_str}','{time_str}','{riqi}','{city}','{weather}'," \
                      "'{maxtem}','{mintem}','{wind_dir1}','{wind_dir2}','{wind_level}')".format(date_str=date,
                                                                                                 time_str=update_time,
                                                                                                 riqi=riqi,
@@ -172,7 +172,7 @@ def main(http, city, code):
         conn.commit()
     for imessage in content_15d:
         riqi = (datetime.datetime.now() + datetime.timedelta(days=idate)).strftime('%Y-%m-%d')
-        insert_str = "INSERT INTO weather_predict VALUES ('{date_str}','{time_str}','{riqi}','{city}','{weather}'," \
+        insert_str = "INSERT INTO weather_forecast VALUES ('{date_str}','{time_str}','{riqi}','{city}','{weather}'," \
                      "'{maxtem}','{mintem}','{wind_dir1}','{wind_dir2}','{wind_level}')".format(date_str=date,
                                                                                                 time_str=update_time,
                                                                                                 riqi=riqi,

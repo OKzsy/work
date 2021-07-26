@@ -189,8 +189,7 @@ def main(http, city, code):
     last_h = dtime[start_point: end_point][-1]
     if last_h <= craw_time:
         save_file(start_point, end_point, today_tuple, dtime, tem, humidity, rain, wind_angle, wind_direct,
-                  wind_level,
-                  aqi)
+                  wind_level, aqi)
     return None
 
 

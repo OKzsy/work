@@ -63,7 +63,7 @@ def get_10_jp2(in_list):
 
 def get_20_jp2(in_list):
     # 20m排序
-    jp2_20_list = ['B02_20', 'B03_20', 'B04_20', 'B05_20', 'B06_20', 'B07_20', 'B8A_20', 'SCL_20m']
+    jp2_20_list = ['B02_20', 'B03_20', 'B04_20', 'B05_20', 'B06_20', 'B07_20', 'B8A_20', 'B12_20', 'SCL_20m']
 
     out_list = []
 
@@ -224,12 +224,13 @@ def dn2ref(out_dir, zip_file):
         if jp2_20_files == []:
             continue
         # 增加红边波段
-        jp2_10_files[3:3] = jp2_20_files[3:7]
+        jp2_10_files[3:3] = jp2_20_files[3:8]
         vrt_10_file = os.path.join(safe_dir, '%s_10m.vrt' % xml_name)
         vrt_options = gdal.BuildVRTOptions(resolution='user', xRes=10, yRes=10, separate=True,
                                            resampleAlg='bilinear')
         vrt_10_dataset = gdal.BuildVRT(vrt_10_file, jp2_10_files, options=vrt_options)
         # 重投影
+        # dst = vrt_10_dataset
         dst = reproject_dataset(vrt_10_dataset)
 
         isub_ref_dir = os.path.join(out_dir, zip_file_name)
@@ -274,8 +275,8 @@ if __name__ == '__main__':
     # in_dir = sys.argv[1]
     # out_dir = sys.argv[2]
     #
-    in_dir = r"\\192.168.0.234\nydsj\user\ZSS\2019qiu\old"
-    out_dir = r"\\192.168.0.234\nydsj\user\ZSS\2019qiu\test_out"
+    in_dir = r"\\192.168.0.234\nydsj\user\CLH\data\1_out\test\tmp"
+    out_dir = r"\\192.168.0.234\nydsj\user\CLH\data\1_out\test\tmp"
     main(in_dir, out_dir)
 
     end_time = time.time()

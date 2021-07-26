@@ -6,7 +6,7 @@
 # @FileName: update_rad_coe.py
 # @Email   : zhaoshaoshuai@hnnydsj.com
 Description:
-
+利用从资源卫星中心获取的定标系数文件，更新为系统程序可读的综合定标系数文件
 
 Parameters
 

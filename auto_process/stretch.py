@@ -3,11 +3,10 @@
 """
 # @Time    : 2019/4/23 10:55
 # @Author  : zhaoss
-# @FileName: imgtobyte.py
+# @FileName: stretch.py
 # @Email   : zhaoshaoshuai@hnnydsj.com
 Description:
-    对输入的影像采用2%线性拉伸，转换为可以在线展示的影像（Data_type:Byte,
-img_type:Tiff)
+对输入的影像采用2%线性拉伸，转换为可以在线展示的影像（Data_type:Byte,img_type:Tiff)
 Parameters
     :param in_path: 待处理影像所在文件夹
     :param out_path: 输出影像所在文件夹
@@ -67,22 +66,24 @@ def Liner(ds, band_index):
     # 记录nodata位置
     zero_index = np.where(band_data == band_data[0][0])
     # 计算ratio(2%)点
-    min_gray, max_gray = hist(band_data, 2)
-    tmp = {0: (28, 896),
-           1: (116, 1089),
-           2: (186, 1449)}
+    # min_gray, max_gray = hist(band_data, 2)
+    tmp = {0: (244, 1216),
+           1: (650, 1695),
+           2: (702, 2124)}
     min_gray, max_gray = tmp[band_index]
     # 将直方图中ratio以外的值统一为min_gray和max_gray
     norm_min_data = np.where(band_data <= min_gray, min_gray, band_data)
+    band_data = None
     stretch_img = np.where(norm_min_data >= max_gray, max_gray, norm_min_data)
+    norm_min_data = None
     # 拉伸影像
     # 确定拉伸后的范围
     low = 1
     high = 255
-    stretched_img = low + (high - low) * 1.0 * (stretch_img - min_gray) / (max_gray - min_gray)
+    stretch_img = low + (high - low) * (stretch_img - min_gray) / (max_gray - min_gray)
     # 反填背景值
-    stretched_img[zero_index] = 0
-    return stretched_img
+    stretch_img[zero_index] = 0
+    return stretch_img
 
 
 def main(in_dir, out_dir, partfileinfo='*'):
@@ -118,6 +119,7 @@ def main(in_dir, out_dir, partfileinfo='*'):
             stretched_band = Liner(data_ds, iband)
             print('Start outputting the {0} band'.format(iband + 1))
             stretched_ds.GetRasterBand(Bandcount - iband).WriteArray(stretched_band, callback=progress)
+            stretched_band = None
         data_ds = None
         stretched_ds = None
     return None
@@ -129,9 +131,9 @@ if __name__ == '__main__':
     # 注册所有gdal驱动
     gdal.AllRegister()
     start_time = time.clock()
-    in_path = r"\\192.168.0.234\nydsj\project\37.2019全省小麦监测\1.data\1.S2\3.xzqh_clip"
-    out_path = r"\\192.168.0.234\nydsj\user\LC\随机森林\strect"
-    partfileinfo = "*T49SET_A024425_20200225T032326*.tif"
+    in_path = r"\\192.168.0.234\nydsj\project\1.class_zhongmu\4.data\5.GF2_zhongmu"
+    out_path = r"\\192.168.0.234\nydsj\user\ZSS\2021xuchang\RGB"
+    partfileinfo = "*F2_20180327_zhongmu_reg.tif"
     main(in_path, out_path, partfileinfo=partfileinfo)
     end_time = time.clock()
 
