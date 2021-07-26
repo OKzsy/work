@@ -6,7 +6,7 @@
 # @FileName: sample.py
 # @Email   : zhaoshaoshuai@hnnydsj.com
 Description:
-
+将裁剪出来的样本影像块按照标签文件生成样本数据，可以选择是否自动均衡不平衡样本
 
 Parameters
 
@@ -150,7 +150,7 @@ def equilibrium(tmp_csv, out_csv):
     np.savetxt(out_csv, balanced_label, fmt='%d', delimiter=',')
 
 
-def main(flag_file, sample_file, out_csv):
+def main(flag_file, sample_file, out_csv, balance=True):
     # 获取标签
     flag = np.genfromtxt(flag_file, delimiter=',', dtype=None, encoding='utf8')
     flag_dict = dict(flag)
@@ -177,10 +177,16 @@ def main(flag_file, sample_file, out_csv):
         # 不打印列表
         subprocess.call(cmd_str, shell=True, stdout=open(os.devnull, 'w'), cwd=tmp_csv_path)
     # 对不均衡的样本均衡化，采用随机复制的方法进行
-    equilibrium(tmp_csv, out_csv)
+    if balance:
+        equilibrium(tmp_csv, out_csv)
+        os.remove(tmp_csv)
+    else:
+        # 重命名临时文件
+        os.rename(tmp_csv, out_csv)
     # 删除临时文件
     shutil.rmtree(tmp_csv_path, ignore_errors=True)
-    os.remove(tmp_csv)
+
+
     return None
 
 
@@ -194,9 +200,10 @@ if __name__ == '__main__':
     # 注册所有gdal驱动
     gdal.AllRegister()
     start_time = time.time()
+    balance = True
     flag_file = r"/mnt/e/dengfeng/flag.csv"
     sample_file = r"/mnt/e/dengfeng/out"
     out_csv = r"/mnt/e/dengfeng/sample.csv"
-    main(flag_file, sample_file, out_csv)
+    main(flag_file, sample_file, out_csv, balance)
     end_time = time.time()
     print("time: %.4f secs." % (end_time - start_time))
