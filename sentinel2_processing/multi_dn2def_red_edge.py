@@ -18,6 +18,7 @@ import time
 import sys
 import shutil
 import zipfile
+import glob
 import subprocess
 import tempfile
 import multiprocessing.dummy as mp
@@ -171,7 +172,7 @@ def reproject_dataset(src_ds):
     # 执行重投影和重采样
     res = gdal.ReprojectImage(src_ds, dest,
                               src_prj, oSRS.ExportToWkt(),
-                              gdal.GRA_Bilinear)
+                              gdal.GRA_Bilinear, callback=progress)
     return dest
 
 
@@ -191,60 +192,60 @@ def dn2ref(out_dir, zip_file):
     tag = zip_name[0:3]
     if tag == 'L1C':
         zip_name = list(os.walk(temp_dir))[0][1][0][0:-5]
-    # 使用Sen2Cor计算地表反射率
+    # # 使用Sen2Cor计算地表反射率
     safe_dir = os.path.join(temp_dir, '%s.SAFE' % zip_name)
-
     if not os.path.isdir(safe_dir):
         sys.exit('No %s.SAFE dir' % zip_name)
-    subprocess.call('L2A_Process.bat --refresh %s' % safe_dir)
+    # subprocess.call('L2A_Process.bat --refresh %s' % safe_dir)
+    subprocess.call('D:\Sen2Cor-02.09.00-win64\L2A_Process.bat %s' % safe_dir)
     # os.system('/home/zhaoshaoshuai/S2/Sen2Cor/bin/L2A_Process --refresh %s' % safe_dir)
 
     L2_dir_list = list(zip_name.split('_'))
     L2_dir_list[1] = 'MSIL2A'
-    L2_dir_name = '_'.join(L2_dir_list)
+    L2_dir_list[3] = '*'
+    L2_dir_list[6] = '*'
+    L2_dir_name_regex = os.path.join(temp_dir, '_'.join(L2_dir_list))
+    L2_dir = glob.glob(L2_dir_name_regex)[0]
 
-    L2_dir = os.path.join(temp_dir, '%s.SAFE' % L2_dir_name)
     L2_data_dir = os.path.join(L2_dir, 'GRANULE')
 
-    xml_files = search_file(L2_data_dir, '.xml')
+    xml_file = search_file(L2_data_dir, '.xml')[0]
 
-    for xml_file in xml_files:
-        xml_dir = os.path.dirname(xml_file)
-        jp2_files = search_file(xml_dir, '.jp2')
+    xml_dir = os.path.dirname(xml_file)
+    jp2_files = search_file(xml_dir, '.jp2')
 
-        if jp2_files == []:
-            continue
-        xml_name = os.path.basename(xml_dir)
+    if jp2_files == []:
+        sys.exit()
+    xml_name = os.path.basename(xml_dir)
 
-        jp2_10_files = get_10_jp2(jp2_files)
-        if jp2_10_files == []:
-            continue
+    jp2_10_files = get_10_jp2(jp2_files)
+    if jp2_10_files == []:
+        sys.exit()
 
-        jp2_20_files = get_20_jp2(jp2_files)
-        if jp2_20_files == []:
-            continue
-        # 增加红边波段
-        jp2_10_files[3:3] = jp2_20_files[3:8]
-        vrt_10_file = os.path.join(safe_dir, '%s_10m.vrt' % xml_name)
-        vrt_options = gdal.BuildVRTOptions(resolution='user', xRes=10, yRes=10, separate=True,
-                                           resampleAlg='bilinear')
-        vrt_10_dataset = gdal.BuildVRT(vrt_10_file, jp2_10_files, options=vrt_options)
-        # 重投影
-        # dst = vrt_10_dataset
-        dst = reproject_dataset(vrt_10_dataset)
+    jp2_20_files = get_20_jp2(jp2_files)
+    if jp2_20_files == []:
+        sys.exit()
+    # 增加红边波段
+    jp2_10_files[3:3] = jp2_20_files[3:7]
+    vrt_10_file = os.path.join(safe_dir, '%s_10m.vrt' % xml_name)
+    vrt_options = gdal.BuildVRTOptions(resolution='user', xRes=10, yRes=10, separate=True,
+                                       resampleAlg='bilinear')
+    vrt_10_dataset = gdal.BuildVRT(vrt_10_file, jp2_10_files, options=vrt_options)
+    # 重投影
+    dst = reproject_dataset(vrt_10_dataset)
 
-        isub_ref_dir = os.path.join(out_dir, zip_file_name)
-        if not os.path.isdir(isub_ref_dir):
-            os.mkdir(isub_ref_dir)
+    isub_ref_dir = os.path.join(out_dir, zip_file_name)
+    if not os.path.isdir(isub_ref_dir):
+        os.mkdir(isub_ref_dir)
 
-        out_driver = gdal.GetDriverByName('GTiff')
-        out_10_file = os.path.join(isub_ref_dir, '%s_ref_10m.tif' % xml_name)
-        print("Start exporting images at 10 meters resolution", flush=True)
-        out_10_sds = out_driver.CreateCopy(out_10_file, dst, callback=progress)
+    out_driver = gdal.GetDriverByName('GTiff')
+    out_10_file = os.path.join(isub_ref_dir, '%s_ref_10m.tif' % xml_name)
+    print("Start exporting images at 10 meters resolution", flush=True)
+    out_10_sds = out_driver.CreateCopy(out_10_file, dst, callback=progress)
 
-        vrt_10_dataset = dest = out_10_sds = None
+    vrt_10_dataset = dest = out_10_sds = None
 
-        shutil.rmtree(temp_dir, ignore_errors=True)
+    shutil.rmtree(temp_dir, ignore_errors=True)
 
 
 def main(in_dir, out_dir):
@@ -275,8 +276,8 @@ if __name__ == '__main__':
     # in_dir = sys.argv[1]
     # out_dir = sys.argv[2]
     #
-    in_dir = r"\\192.168.0.234\nydsj\user\CLH\data\1_out\test\tmp"
-    out_dir = r"\\192.168.0.234\nydsj\user\CLH\data\1_out\test\tmp"
+    in_dir = r"F:\test\data"
+    out_dir = r"F:\test\data_out"
     main(in_dir, out_dir)
 
     end_time = time.time()
