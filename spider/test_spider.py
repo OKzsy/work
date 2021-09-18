@@ -82,18 +82,11 @@ def main(url):
                 active = True
                 while active:
                     queue_ele = driver.find_element_by_css_selector('body > div.queue-tips')
-                    if len(queue_ele) == 0:
-                        buy_active = False
-                        break
-                    else:
-                        # print(EC.presence_of_element_located((By.CSS_SELECTOR, 'body > div.queue-tips'))(driver))
-                        # queue_ele = WebDriverWait(driver, 2).until(
-                        #     EC.presence_of_element_located((By.CSS_SELECTOR, 'body > div.queue-tips')))
-                        print(queue_ele.text)
-                        if '抱歉' in queue_ele.text:
-                            driver.find_element_by_css_selector('body > div.queue-btn').click()
-                            driver.switch_to.default_content()
-                            active = False
+                    print(queue_ele.text)
+                    if '排队中' not in queue_ele.text:
+                        driver.find_element_by_css_selector('body > div.queue-btn').click()
+                        driver.switch_to.default_content()
+                        active = False
     except Exception as e:
         print(e)
         driver.quit()
