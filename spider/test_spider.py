@@ -41,7 +41,7 @@ def main(url):
     # 等待页加载，并切换到需要购买的产品页面等待抢购
     page_wait = WebDriverWait(driver, 10)
     # element_pro_list = page_wait.until(lambda d: d.find_element_by_xpath('//*[@id="pro-list"]/li[8]/div/a'))
-    element_pro_list = page_wait.until(lambda d: d.find_element_by_xpath('//*[@id="pro-list"]/li[1]'))
+    element_pro_list = page_wait.until(lambda d: d.find_element_by_xpath('//*[@id="pro-list"]/li[6]'))
     element_pro_list.click()
     # 设置等待
     wait = WebDriverWait(driver, 10)
@@ -68,7 +68,7 @@ def main(url):
     try:
         buy_active = True
         while buy_active:
-            buy_wait = WebDriverWait(driver, timeout=10, poll_frequency=0.5)
+            buy_wait = WebDriverWait(driver, timeout=120, poll_frequency=0.01)
             element_buy = buy_wait.until(lambda d: buyisable(d))
             print(element_buy.text)
             element_buy.click()
@@ -96,10 +96,11 @@ def main(url):
                             active = False
     except Exception as e:
         print(e)
+        os.system('pause')
         driver.quit()
     os.system('pause')
 
 
 if __name__ == '__main__':
-    url = 'https://www.vmall.com/list-56'
+    url = 'https://www.vmall.com/list-277'
     main(url)
