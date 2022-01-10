@@ -18,6 +18,7 @@ import glob
 import time
 import sys
 import math
+import fnmatch
 import numpy as np
 from osgeo import gdal, ogr, osr, gdalconst
 
@@ -25,6 +26,24 @@ try:
     progress = gdal.TermProgress_nocb
 except:
     progress = gdal.TermProgress
+
+def searchfiles(dirpath, partfileinfo='*', recursive=False):
+    """列出符合条件的文件（包含路径），默认不进行递归查询，当recursive为True时同时查询子文件夹"""
+    # 定义结果输出列表
+    filelist = []
+    # 列出根目录下包含文件夹在内的所有文件目录
+    pathlist = glob.glob(os.path.join(os.path.sep, dirpath, "*"))
+    # 逐文件进行判断
+    for mpath in pathlist:
+        if os.path.isdir(mpath):
+            # 默认不判断子文件夹
+            if recursive:
+                filelist += searchfiles(mpath, partfileinfo, recursive)
+        elif fnmatch.fnmatch(os.path.basename(mpath), partfileinfo):
+            filelist.append(mpath)
+        # 如果mpath为子文件夹，则进行递归调用，判断子文件夹下的文件
+
+    return filelist
 
 
 def rpj_vec(lyr, srs):
@@ -144,73 +163,83 @@ def Corner_coordinates(dataset):
     return [old_ulx, old_uly, old_drx, old_dry]
 
 
-def main(raster, shp, out, nodata=None):
-    # 打开栅格和矢量影像
-    raster_ds = gdal.Open(raster)
-    raster_prj = raster_ds.GetProjection()
-    raster_geo = raster_ds.GetGeoTransform()
-    bandCount = raster_ds.RasterCount
-    dataType = raster_ds.GetRasterBand(1).DataType
+def main(file, shp, out_dir, nodata=None):
+    # 判断输入的是否为文件
+    if os.path.isdir(file):
+        rasters = searchfiles(file, partfileinfo='*.tif')
+    else:
+        rasters = [file]
+    # 打开矢量文件
     shp_ds = ogr.Open(shp)
     shp_lyr = shp_ds.GetLayer()
     shp_sr = shp_lyr.GetSpatialRef()
-    # 判断栅格和矢量的投影是否一致，不一致进行矢量投影变换
-    raster_srs_wkt = raster_ds.GetProjection()
-    raster_srs = osr.SpatialReference()
-    raster_srs.ImportFromWkt(raster_srs_wkt)
-    # 判断两个SRS的基准是否一致
-    if not shp_sr.IsSameGeogCS(raster_srs):
-        sys.exit("两个空间参考的基准面不一致，不能进行投影转换！！！")
-    # 判断两个SRS是否一致
-    elif shp_sr.IsSame(raster_srs):
-        re_shp_l = shp_lyr
-        re_shp_ds = shp_ds
-        shp_ds = None
-        shp_lyr = None
-    else:
-        re_shp_ds, re_shp_l = rpj_vec(shp_lyr, raster_srs)
-    # 获取影像的左上右下点交点坐标
-    corner = Corner_coordinates(raster_ds)
-    # 对原始图层进行空间过滤
-    re_shp_l.SetSpatialFilterRect(corner[0], corner[3], corner[2], corner[1])
-    # 复制经过属性过滤的图层
-    mem_dri = ogr.GetDriverByName('Memory')
-    temp_shp_ds = mem_dri.CreateDataSource(' ')
-    new_shp_l = temp_shp_ds.CopyLayer(re_shp_l, 'new_shp_l')
-    # 计算矢量和栅格的最小重叠矩形
-    offset = min_rect(raster_ds, new_shp_l)
-    # 创建输出影像
-    ulx, uly = gdal.ApplyGeoTransform(raster_geo, offset[0], offset[1])
-    result_ds = gdal.GetDriverByName('GTiff').Create(out, int(offset[2]), int(offset[3]), bandCount, dataType)
-    result_ds.SetProjection(raster_prj)
-    result_geo = [ulx, raster_geo[1], 0, uly, 0, raster_geo[5]]
-    result_ds.SetGeoTransform(result_geo)
-    # 嫁接分块裁切
-    ysize = int(offset[3]) + int(offset[1])
-    xsize = int(offset[2])
-    block_size = 300
-    count = 1
-    total_block = max(int(int(offset[3]) / block_size), 1)
-    for y in range(int(offset[1]), ysize, block_size):
-        if y + block_size < ysize:
-            rows = block_size
+    # 打开栅格和矢量影像
+    for raster in rasters:
+        basename = os.path.basename(raster)
+        raster_ds = gdal.Open(raster)
+        raster_prj = raster_ds.GetProjection()
+        raster_geo = raster_ds.GetGeoTransform()
+        bandCount = raster_ds.RasterCount
+        dataType = raster_ds.GetRasterBand(1).DataType
+        # 判断栅格和矢量的投影是否一致，不一致进行矢量投影变换
+        raster_srs_wkt = raster_ds.GetProjection()
+        raster_srs = osr.SpatialReference()
+        raster_srs.ImportFromWkt(raster_srs_wkt)
+        # 判断两个SRS的基准是否一致
+        if not shp_sr.IsSameGeogCS(raster_srs):
+            sys.exit("两个空间参考的基准面不一致，不能进行投影转换！！！")
+        # 判断两个SRS是否一致
+        elif shp_sr.IsSame(raster_srs):
+            re_shp_l = shp_lyr
+            re_shp_ds = shp_ds
+            
         else:
-            rows = ysize - y
-        cols = xsize
-        extent = [offset[0], y, cols, rows, offset[1]]
-        # 分块矢量栅格化
-        mask_ds = shp2raster(raster_ds, new_shp_l, extent)
-        # 分块裁切
-        res = mask_raster(raster_ds, mask_ds, result_ds, extent, nodata)
-        mask_ds = None
-        progress(count / total_block)
-        count += 1
-    progress(1.0)
-    temp_shp_ds = None
-    new_shp_l = None
-    re_shp_ds = None
-    raster_ds = None
+            re_shp_ds, re_shp_l = rpj_vec(shp_lyr, raster_srs)
+        # 获取影像的左上右下点交点坐标
+        corner = Corner_coordinates(raster_ds)
+        # 对原始图层进行空间过滤
+        re_shp_l.SetSpatialFilterRect(corner[0], corner[3], corner[2], corner[1])
+        # 复制经过属性过滤的图层
+        mem_dri = ogr.GetDriverByName('Memory')
+        temp_shp_ds = mem_dri.CreateDataSource(' ')
+        new_shp_l = temp_shp_ds.CopyLayer(re_shp_l, 'new_shp_l')
+        # 计算矢量和栅格的最小重叠矩形
+        offset = min_rect(raster_ds, new_shp_l)
+        # 创建输出影像
+        out = os.path.join(out_dir, basename)
+        ulx, uly = gdal.ApplyGeoTransform(raster_geo, offset[0], offset[1])
+        result_ds = gdal.GetDriverByName('GTiff').Create(out, int(offset[2]), int(offset[3]), bandCount, dataType)
+        result_ds.SetProjection(raster_prj)
+        result_geo = [ulx, raster_geo[1], 0, uly, 0, raster_geo[5]]
+        result_ds.SetGeoTransform(result_geo)
+        # 嫁接分块裁切
+        ysize = int(offset[3]) + int(offset[1])
+        xsize = int(offset[2])
+        block_size = 300
+        count = 1
+        total_block = max(int(int(offset[3]) / block_size), 1)
+        for y in range(int(offset[1]), ysize, block_size):
+            if y + block_size < ysize:
+                rows = block_size
+            else:
+                rows = ysize - y
+            cols = xsize
+            extent = [offset[0], y, cols, rows, offset[1]]
+            # 分块矢量栅格化
+            mask_ds = shp2raster(raster_ds, new_shp_l, extent)
+            # 分块裁切
+            res = mask_raster(raster_ds, mask_ds, result_ds, extent, nodata)
+            mask_ds = None
+            progress(count / total_block)
+            count += 1
+        # progress(1.0)
+
+        temp_shp_ds = None
+        new_shp_l = None
+        re_shp_ds = None
+        raster_ds = None
     shp_ds = None
+    shp_lyr = None
     return None
 
 
@@ -224,10 +253,10 @@ if __name__ == '__main__':
     # 注册所有gdal驱动
     gdal.AllRegister()
     start_time = time.clock()
-    in_file = r"\\192.168.0.234\nydsj\user\ZSS\2020yancao\luoyang_new\class1\GF2_20200707_910792_910794_高村乡_vi_class.tif"
-    shpfile = r"\\192.168.0.234\nydsj\user\ZSS\2020yancao\test\test_sieve\test_sieve_GF2.shp"
-    outfile = r"\\192.168.0.234\nydsj\user\ZSS\2020yancao\test\test_sieve\class\GF2_20200707_910792_910794_class.tif"
-    nodata = 200
+    in_file = r"\\192.168.0.234\nydsj\user\ZSS\changyuan_zaihai\vi.tif"
+    shpfile = r"\\192.168.0.234\nydsj\project\40.长垣高标准农田\2.vector\2.人工勾画\耕地合并.shp"
+    outfile = r"\\192.168.0.234\nydsj\user\ZSS\changyuan_zaihai\changyuan"
+    nodata = -300
 
     print('The program starts running!')
 
