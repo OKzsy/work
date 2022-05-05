@@ -86,6 +86,8 @@ def main(http, dst, province='河南省'):
                     break
                 rain = sub_s[1][:-2]
                 tem = sub_s[2][:-1]
+                if '0.0mm' in tem:
+                    tem = tem.replace('0.0mm', '-')
                 wind_speed = sub_s[3][:-3]
                 press = sub_s[5][:-3]
                 humidity = sub_s[6][:-1]
@@ -100,5 +102,5 @@ def main(http, dst, province='河南省'):
 if __name__ == '__main__':
     # 待抓取地区的网址
     https = "http://www.nmc.cn/publish/forecast"
-    dst_dir = r"F:\weather\changyuan\predict"
+    dst_dir = r"F:\test"
     main(https, dst_dir)

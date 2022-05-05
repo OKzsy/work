@@ -167,13 +167,13 @@ def main(flag_file, sample_file, out_csv, balance=True):
     out_csv_dir = os.path.dirname(out_csv)
     tmp_csv = os.path.join(out_csv_dir, 'temporary.csv')
     sys_str = platform.system()
-    if (sys_str == 'Windows'):
-        cmd_str = r'copy /b *.csv %s' % (tmp_csv)
+    if sys_str == 'Windows':
+        cmd_str = r'copy /b *.csv %s' % tmp_csv
         # 不打印列表
         subprocess.call(cmd_str, shell=True, stdout=open(os.devnull, 'w'), cwd=tmp_csv_path)
 
-    elif (sys_str == 'Linux'):
-        cmd_str = r'cat *.csv > %s' % (tmp_csv)
+    elif sys_str == 'Linux':
+        cmd_str = r'cat *.csv > %s' % tmp_csv
         # 不打印列表
         subprocess.call(cmd_str, shell=True, stdout=open(os.devnull, 'w'), cwd=tmp_csv_path)
     # 对不均衡的样本均衡化，采用随机复制的方法进行

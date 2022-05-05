@@ -4,50 +4,44 @@
 import os
 import glob
 import time
-import datetime
+from datetime import date
 import math
 
 
-class Julday:
-
-    def __init__(self, year, month, day):
-        self.year = int(year)
-        self.month = int(month)
-        self.day = int(day)
-
-    def cal_julday(self):
-        # 利用datetime库中的datetime函数的方法快速计算需要日期的儒略日
-        current = datetime.datetime(self.year, self.month, self.day)
-        re_julday = current.timetuple().tm_yday
-        return re_julday
-
-
-def sun_position(Day, Month, Year, GMT, latitude, longitude):
-    deg2radian = math.pi / 180
+def sun_position(Day, Month, Year, GMT, lat, lon, tzone=8):
+    deg2rad = math.pi / 180
+    lstm = 15 * tzone
     # 计算儒略日
-    julday = Julday(Year, Month, Day).cal_julday()
-    # 计算日角D
-    Day_angle = 2 * math.pi * (julday - 1) / 365
+    yy, mm, dd = map(int, [Year, Month, Day])
+    d0 = date(yy, 1, 1)
+    d1 = date(yy, mm, dd)
+    julday = (d1 - d0).days + 1
+    # 计算日角b
+    b = 360 * (julday - 81) / 365
+    b_rad = b * deg2rad
     # 计算时间修正项
-    Et = (0.000075 + 0.001868 * math.cos(Day_angle) - 0.032077 * math.sin(Day_angle) - 0.014615 * math.cos(
-        2 * Day_angle) - 0.04089 * math.sin(2 * Day_angle)) * 229.18 / 60
+    eot = 9.87 * math.sin(2 * b_rad) - 7.53 * math.cos(b_rad) - 1.5 * math.sin(b_rad)
+    tc = 4 * (lon - lstm) + eot
     # 将GMT时间转换为以小时为单位的时间
-    hour = float(GMT[0:0 + 2])
-    minute = float(GMT[2:2 + 2])
+    hour = float(GMT[0:0 + 2]) + tzone
+    minutes = float(GMT[2:2 + 2])
     second = float(GMT[5:5 + 2])
-    UTC = hour + minute / 60 + second / 3600
+    decimal_lt = hour + minutes / 60 + second / 3600
     # 计算时角
-    h = (UTC + longitude / 15 + Et - 12) * 15
-    h = h * deg2radian
-    # 计算太阳倾角
-    ED = 0.006918 - 0.399912 * math.cos(Day_angle) + 0.070257 * math.sin(Day_angle) - 0.006758 * math.cos(
-        2 * Day_angle) + 0.000907 * math.sin(2 * Day_angle) - 0.002697 * math.cos(3 * Day_angle) + 0.00148 * math.sin(
-        3 * Day_angle)
+    decimal_lst = decimal_lt + tc / 60
+    hra = 15 * (decimal_lst - 12)
+    # 计算太阳偏角
+    sigm_rad = (23.45 * deg2rad) * math.sin((360 * (julday - 81) / 365) * deg2rad)
     # 计算太阳高度角
-    elevation_angle = math.acos(
-        math.sin(latitude * deg2radian) * math.sin(ED) + math.cos(latitude * deg2radian) * math.cos(ED) * math.cos(h))
-    elevation_angle = elevation_angle / deg2radian
-    return elevation_angle
+    sun_elevation_rad = math.asin(math.sin(sigm_rad) * math.sin(lat * deg2rad) +
+                                  math.cos(sigm_rad) * math.cos(lat * deg2rad) * math.cos(hra * deg2rad))
+    sun_elevation = sun_elevation_rad / deg2rad
+    # 计算太阳方位角
+    tmp_var = math.sin(sigm_rad) * math.cos(lat * deg2rad) - \
+              math.cos(sigm_rad) * math.sin(lat * deg2rad) * math.cos(hra * deg2rad)
+    azimuth_rad = math.acos(tmp_var / math.cos(sun_elevation_rad))
+    azimuth = azimuth_rad / deg2rad
+    return round(sun_elevation, 3), round(azimuth, 3)
 
 
 def main(Day, Month, Year, GMT, Lat, Lon):
@@ -57,21 +51,21 @@ def main(Day, Month, Year, GMT, Lat, Lon):
 
 
 if __name__ == '__main__':
-    start_time = time.clock()
-    latitude = 34.8818
-    longitude = 113.144
-    year = '2017'
-    month = '10'
-    day = '20'
+    start_time = time.time()
+    latitude = 35
+    longitude = 114
+    year = '2022'
+    month = '03'
+    day = '08'
 
-    hour = '03'
-    minute = '41'
-    second = '06'
+    hour = '04'
+    minute = '00'
+    second = '00'
 
     GMT = hour + minute + '.' + second
 
     main(day, month, year, GMT, latitude, longitude)
 
-    end_time = time.clock()
+    end_time = time.time()
 
     print("time: %.4f secs." % (end_time - start_time))

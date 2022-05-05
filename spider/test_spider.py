@@ -1,4 +1,3 @@
-#!/usr/bin/env/ python3
 # -*- coding:utf-8 -*-
 import time
 import os
@@ -16,16 +15,14 @@ def main(url):
     # chrome_options.add_argument('--headless')
     chrome_options.add_argument('--disable-gpu')
     chrome_options.add_argument('log-level=3')
-    chrome_options.add_argument(
-        r'--user-data-dir=C:\Users\zss\AppData\Local\Google\Chrome\User Data\Default')
+    chrome_options.add_argument(r'--user-data-dir=C:\Users\01\AppData\Local\Google\Chrome\User Data\Default')
     # 获取浏览器驱动
     driver = webdriver.Chrome(chrome_options=chrome_options)
     driver.maximize_window()
     driver.get(url)
     # 登录账号
     if driver.find_element_by_xpath('//*[@id="top-index-loginUrl"]').text:
-        element_login = driver.find_element_by_xpath(
-            '// *[ @ id = "top-index-loginUrl"]')
+        element_login = driver.find_element_by_xpath('// *[ @ id = "top-index-loginUrl"]')
         element_login.click()
         username = '15239194035'
         passwd = '120503xz'
@@ -43,8 +40,8 @@ def main(url):
         pass
     # 等待页加载，并切换到需要购买的产品页面等待抢购
     page_wait = WebDriverWait(driver, 10)
-    element_pro_list = page_wait.until(
-        lambda d: d.find_element_by_xpath('//*[@id="pro-list"]/li[10]'))
+    # element_pro_list = page_wait.until(lambda d: d.find_element_by_xpath('//*[@id="pro-list"]/li[8]/div/a'))
+    element_pro_list = page_wait.until(lambda d: d.find_element_by_xpath('//*[@id="pro-list"]/li[6]'))
     element_pro_list.click()
     # 设置等待
     wait = WebDriverWait(driver, 10)
@@ -61,8 +58,7 @@ def main(url):
     # 等待商品可以抢购，并抢购
     # 设置等待
     def buyisable(drv):
-        element_product = drv.find_element_by_xpath(
-            '//*[@id="pro-operation"]/*[contains(@class,"product-button02")]')
+        element_product = drv.find_element_by_xpath('//*[@id="pro-operation"]/*[contains(@class,"product-button02")]')
         if 'disabled' in element_product.get_attribute('class'):
             print('check')
             return False
@@ -77,8 +73,7 @@ def main(url):
             print(element_buy.text)
             element_buy.click()
             try:
-                ele_frame = WebDriverWait(driver, 2).until(
-                    lambda d: d.find_element_by_css_selector('#queueIframe'))
+                ele_frame = WebDriverWait(driver, 2).until(lambda d: d.find_element_by_css_selector('#queueIframe'))
             except:
                 buy_active = False
                 break
@@ -86,12 +81,10 @@ def main(url):
                 driver.switch_to.frame(ele_frame)
                 active = True
                 while active:
-                    queue_ele = driver.find_element_by_css_selector(
-                        'body > div.queue-tips')
+                    queue_ele = driver.find_element_by_css_selector('body > div.queue-tips')
                     print(queue_ele.text)
                     if '排队中' not in queue_ele.text:
-                        driver.find_element_by_css_selector(
-                            'body > div.queue-btn').click()
+                        driver.find_element_by_css_selector('body > div.queue-btn').click()
                         driver.switch_to.default_content()
                         active = False
     except Exception as e:
@@ -100,6 +93,7 @@ def main(url):
         driver.quit()
     os.system('pause')
 
+
 if __name__ == '__main__':
-    url = 'https://www.vmall.com/list-76'
+    url = 'https://www.vmall.com/list-277'
     main(url)
