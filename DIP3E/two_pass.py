@@ -23,6 +23,9 @@ except:
 
 
 def main():
+    # 定义连通域
+    conn_4 = [[-1, 0, 0, 0, 1], [0, -1, 0, 1, 0]]
+    conn_8 = [[-1, -1, -1, 0, 0, 0, 1, 1, 1],[-1, 0, 1, -1, 0, 1, -1, 0, 1]]
     # 模拟二值图像
     img_list = [[0, 0, 1, 0, 0, 1, 0],
            [1, 1, 1, 0, 1, 1, 1],
@@ -34,12 +37,34 @@ def main():
     img_pad = np.pad(img, ((1, 1), (1, 1)), "constant", constant_values=0)
     rows, cols = img_pad.shape
     # 按照四邻域方式进行连通域检索
-    for row in (1, rows-1):
-        for col in (1, cols-1):
-            # 判断种子点即连通域开始点位
-            if img_pad[row - 1, col] + img_pad[row, col - 1] != 0:
+    label = 1
+    # 确定使用的是那种邻域方式
+    sign = len(conn_4[0]) // 2
+    for row in range(1, rows-1):
+        for col in range(1, cols-1):
+            # 逐个点位判断
+            if img_pad[row, col] != 1:
                 continue
-            
+            # 获取邻域像素值
+            pixel_coor = [[i + row for i in conn_4[0]], [j + col for j in conn_4[1]]]
+            conn_val = img_pad[pixel_coor]
+            valid_val = conn_val[0: sign]
+            sum_conn_val = sum(valid_val)
+            if sum_conn_val == 0:
+                img_pad[row, col] = label
+                label += 1
+            elif sum_conn_val >= sign:
+                img_pad[row, col] = min(valid_val)
+            else:
+                
+
+            min_conn_val = min(conn_val)
+            if min_conn_val > 1:
+                pass
+            else:
+                img_pad[row, col] = label
+                label += 1
+                pass
 
             pass
         pass
