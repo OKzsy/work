@@ -40,34 +40,27 @@ def main():
     label = 1
     # 确定使用的是那种邻域方式
     sign = len(conn_4[0]) // 2
+    # 创建关系字典,用以记录像素属于哪个连通域
+    label_dict = {}
     for row in range(1, rows-1):
         for col in range(1, cols-1):
             # 逐个点位判断
             if img_pad[row, col] != 1:
                 continue
             # 获取邻域像素值
-            pixel_coor = [[i + row for i in conn_4[0]], [j + col for j in conn_4[1]]]
-            conn_val = img_pad[pixel_coor]
-            valid_val = conn_val[0: sign]
-            sum_conn_val = sum(valid_val)
-            if sum_conn_val == 0:
+            pixel_coor = ([i + row for i in conn_4[0]], [j + col for j in conn_4[1]])
+            conn_vals = img_pad[pixel_coor]
+            valid_vals = conn_vals[0: sign]
+            if sum(valid_vals) == 0:
+                # 全为无效值
                 img_pad[row, col] = label
+                label_dict[label] = label
                 label += 1
-            elif sum_conn_val >= sign:
-                img_pad[row, col] = min(valid_val)
             else:
-                
-
-            min_conn_val = min(conn_val)
-            if min_conn_val > 1:
-                pass
-            else:
-                img_pad[row, col] = label
-                label += 1
-                pass
-
-            pass
-        pass
+                # 部分或全部为有效值
+                valid_val = valid_vals[np.nonzero(valid_vals)][0]
+                img_pad[row, col] = valid_val
+                label_dict[label - 1] = valid_val
 
 
     return None
