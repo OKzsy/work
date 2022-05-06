@@ -28,7 +28,7 @@ def main():
     conn_8 = [[-1, -1, -1, 0, 0, 0, 1, 1, 1],[-1, 0, 1, -1, 0, 1, -1, 0, 1]]
     # 模拟二值图像
     img_list = [[0, 0, 1, 0, 0, 1, 0],
-           [1, 1, 1, 0, 1, 1, 1],
+           [1, 1, 1, 1, 1, 1, 1],
            [0, 0, 1, 0, 0, 1, 0],
            [0, 1, 1, 0, 1, 1, 0]
     ]
@@ -59,9 +59,10 @@ def main():
                 label += 1
             else:
                 # 部分或全部为有效值
-                valid_val = valid_vals[np.nonzero(valid_vals)][0]
-                img_pad[row, col] = valid_val
-                label_dict[label - 1] = valid_val
+                min_valid_val = min(valid_vals[np.nonzero(valid_vals)])
+                img_pad[row, col] = min_valid_val
+                for val in valid_vals[np.nonzero(valid_vals)]:
+                    label_dict[val] = min_valid_val
     # 第二遍扫描，完成连通域的填充，并统计每个连通域像素个数
     # 创建每个连通域像素个数统计字典
     conn_num_dict = dict.fromkeys(set(label_dict.values()), 0)
