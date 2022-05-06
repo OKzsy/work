@@ -42,6 +42,7 @@ def main():
     sign = len(conn_4[0]) // 2
     # 创建关系字典,用以记录像素属于哪个连通域
     label_dict = {}
+    # 第一遍扫描
     for row in range(1, rows-1):
         for col in range(1, cols-1):
             # 逐个点位判断
@@ -61,8 +62,24 @@ def main():
                 valid_val = valid_vals[np.nonzero(valid_vals)][0]
                 img_pad[row, col] = valid_val
                 label_dict[label - 1] = valid_val
-
-
+    # 第二遍扫描，完成连通域的填充，并统计每个连通域像素个数
+    # 创建每个连通域像素个数统计字典
+    conn_num_dict = dict.fromkeys(set(label_dict.values()), 0)
+    for row in range(1, rows-1):
+        for col in range(1, cols-1):
+            # 逐个点位判断
+            if img_pad[row, col] == 0:
+                continue
+            flag = label_dict[img_pad[row, col]]
+            img_pad[row, col] = flag
+            conn_num_dict[flag] += 1
+    # 回复原图像，并输出统计结果
+    res_img = img_pad[1: rows - 1, 1: cols - 1]
+    # 统计结果
+    print("共有{}个连通域".format(len(conn_num_dict)))
+    print("+++++++++++++++++++++++++++++++++++++++++++++")
+    for k, v in conn_num_dict.items():
+        print("第{}个连通域的像素值个数为：{}".format(k, v))
     return None
 
 
