@@ -47,13 +47,13 @@ def main(image):
 
 
 if __name__ == '__main__':
-    start_time = time.clock()
+    start_time = time.time()
     # 支持中文路径
     gdal.SetConfigOption("GDAL_FILENAME_IS_UTF8", "YES")
     # 注册所有gdal驱动
     gdal.AllRegister()
-    pic_path = r"F:\文档\数字图像处理第三版\DIP3E_CH03_Original_Images\DIP3E_Original_Images_CH03\Fig0316(3)(third_from_top).tif"
+    pic_path = r"F:\test_data\DIP3E_out\Fig0940(a).tif"
     main(image=pic_path)
-    end_time = time.clock()
+    end_time = time.time()
 
     print("time: %.4f secs." % (end_time - start_time))
