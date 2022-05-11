@@ -41,6 +41,11 @@ def sun_position(Day, Month, Year, GMT, lat, lon, tzone=8):
               math.cos(sigm_rad) * math.sin(lat * deg2rad) * math.cos(hra * deg2rad)
     azimuth_rad = math.acos(tmp_var / math.cos(sun_elevation_rad))
     azimuth = azimuth_rad / deg2rad
+    # 计算日地距离的倒数
+    d = 1 + 0.033 * math.cos(2 * math.pi * julday / 365)
+    # 计算日出和日落时间
+    sunrise = 12 - math.acos(-math.tan(lat * deg2rad) * math.tan(sigm_rad)) / (15 * deg2rad) - tc / 60
+    sunset = 12 + math.acos(-math.tan(lat * deg2rad) * math.tan(sigm_rad)) / (15 * deg2rad) - tc / 60
     return round(sun_elevation, 3), round(azimuth, 3)
 
 
