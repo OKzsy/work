@@ -497,9 +497,9 @@ def main(py_path, file_path, out_path, partfileinfo='*.tif'):
 
 
 if __name__ == '__main__':
-    start_time = time.clock()
-    file_path = r'F:\test_sample\sv\1103190055\ort\02'
-    out = r"F:\test_sample\sv\gfout"
+    start_time = time.time()
+    file_path = r'F:\test\原始数据\101220029002\1012200290020001_01\SV1-03_20220323_L2A0001211134_1012200290020001_01'
+    out = r"F:\test\原始数据\atm"
     # for num_id in ID:
     #     partfileinfo = 'GF2*' + num_id + '*.img'
     #     print('The program starts running!')
@@ -515,5 +515,5 @@ if __name__ == '__main__':
     # partfileinfo = sys.argv[2]
     # tao = float(sys.argv[3])
     main(fun_path, file_path, out, partfileinfo)
-    end_time = time.clock()
+    end_time = time.time()
     print("time: %.4f secs." % (end_time - start_time))
