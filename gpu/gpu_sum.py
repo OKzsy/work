@@ -1,3 +1,18 @@
+#!/usr/bin/env python3
+# -*- coding:utf-8 -*-
+"""
+# @Time    : 2022/1/18 10:06
+# @Author  : zhaoss
+# @FileName: gpu_sum.py
+# @Email   : zhaoshaoshuai@hnnydsj.com
+Description:
+
+
+Parameters
+
+
+"""
+import numba
 from numba import cuda
 import numpy as np
 import math
@@ -6,9 +21,11 @@ from time import time
 
 @cuda.jit
 def vector_add(a, b, result, n):
-    idx = cuda.threadIdx.x + cuda.blockDim.x * cuda.blockIdx.x
-    if idx < n:
-        result[idx] = a[idx] + b[idx]
+    c = dict()
+    print(numba.typeof(c))
+    # idx = cuda.threadIdx.x + cuda.blockDim.x * cuda.blockIdx.x
+    # if idx < n:
+    #     result[idx] = a[idx] + b[idx]
 
 
 def main():
@@ -87,4 +104,5 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
