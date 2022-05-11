@@ -252,7 +252,7 @@ if __name__ == '__main__':
     ogr.RegisterAll()
     # 注册所有gdal驱动
     gdal.AllRegister()
-    start_time = time.clock()
+    start_time = time.time()
     in_file = r"\\192.168.0.234\nydsj\user\ZSS\changyuan_zaihai\vi.tif"
     shpfile = r"\\192.168.0.234\nydsj\project\40.长垣高标准农田\2.vector\2.人工勾画\耕地合并.shp"
     outfile = r"\\192.168.0.234\nydsj\user\ZSS\changyuan_zaihai\changyuan"
@@ -262,6 +262,6 @@ if __name__ == '__main__':
 
     main(in_file, shpfile, outfile, nodata)
 
-    end_time = time.clock()
+    end_time = time.time()
 
     print("time: %.4f secs." % (end_time - start_time))
