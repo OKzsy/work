@@ -147,7 +147,7 @@ def main(http, city, code, dst):
     date = datetime.datetime.now().strftime("%Y-%m-%d")
     today_dst_file = os.path.join(dst, city) + '-' + date + '.txt'
     date = (datetime.datetime.now() + datetime.timedelta(days=-1)).strftime("%Y-%m-%d")
-    yesterday_dst_file = os.path.join(dst, city) + '-' + date + '.txt'
+    yesterday_dst_file = os.path.join(dst, city, city) + '-' + date + '.txt'
     if not os.path.exists(today_dst_file):
         # 保存昨天信息
         start_point = 0
