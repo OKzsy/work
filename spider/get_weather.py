@@ -61,16 +61,16 @@ def parse_7d(obj):
         # 提取日期
         one_day_messages.append(child.h1.get_text()[:-4])
         # 提取天气情况
-        wea = child.find(attrs={"class": "wea"}).get_text()
+        wea = child.find("", {"class": "wea"}).get_text()
         one_day_messages.append(wea)
         # 提取温度
-        tem = child.find(attrs={"class": "tem"})
+        tem = child.find("", {"class": "tem"})
         maxtem = tem.span.get_text()
         mintem = tem.i.get_text()
         one_day_messages.append(maxtem)
         one_day_messages.append(mintem[:-1])
         # 提取风向和风力
-        win = child.find(attrs={"class": "win"})
+        win = child.find("", {"class": "win"})
         # 提取风向信息
         for direct in win.em.findAll("span"):
             one_day_messages.append(direct.get('title'))
@@ -92,17 +92,17 @@ def parse_15d(obj):
         # 提取日期
         one_day_messages.append(child.span.get_text()[2:][1:-1])
         # 提取天气情况
-        wea = child.find(attrs={"class": "wea"}).get_text()
+        wea = child.find("", {"class": "wea"}).get_text()
         one_day_messages.append(wea)
         # 提取温度
-        tem = child.find(attrs={"class": "tem"})
+        tem = child.find("", {"class": "tem"})
         tem_str = tem.text.split('/')
         maxtem = tem_str[0][:-1]
         mintem = tem_str[1][:-1]
         one_day_messages.append(maxtem)
         one_day_messages.append(mintem)
         # 提取风向信息
-        win_direct = child.find(attrs={"class": "wind"}).text
+        win_direct = child.find("", {"class": "wind"}).text
         win_directs = win_direct.split('转')
         if len(win_directs) == 2:
             one_day_messages.append(win_directs[0])
@@ -111,7 +111,7 @@ def parse_15d(obj):
             one_day_messages.append(win_directs[0])
             one_day_messages.append(win_directs[0])
         # 提取风力
-        win_force = child.find(attrs={"class": "wind1"})
+        win_force = child.find("", {"class": "wind1"})
         one_day_messages.append(win_force.text)
         messages.append(one_day_messages)
     return messages
@@ -161,6 +161,6 @@ def main(http, city, code, dst):
 if __name__ == '__main__':
     # 待抓取地区的网址
     https = "http://www.weather.com.cn"
-    dst_dir = r"F:\test"
+    dst_dir = r"F:\weather\changyuan\predict"
     for icity, icode in city_dict.items():
         main(https, icity, icode, dst_dir)

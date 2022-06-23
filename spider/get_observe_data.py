@@ -32,7 +32,9 @@ headers = {
 city_dict = {
     'changyuan': '101180308',
     'qixian': '101181203',
-    'zhengzhou': '101180101'
+    'zhengzhou': '101180101',
+    'yongcheng': '101181009',
+    'xinye': '101180709',
 }
 
 
@@ -134,18 +136,9 @@ def main(http, city, code, dst):
         split_point = 24
     else:
         split_point = dtime.index(0)
-    # 增加日志文件
-    tmp_time = datetime.datetime.now().strftime("%Y-%m-%d-%H-%M")
-    tmp_dtime = ','.join([str(val) for val in dtime])
-    str_dtime = city + ':' + tmp_time + ':' + tmp_dtime + ':split_point:' + str(split_point)
-    log_txt = r"F:\weather\changyuan\log.txt"
-    log_fj = open(log_txt, 'a', newline='')
-    log_fj.write(str_dtime)
-    log_fj.write('\r\n')
-    log_fj.close()
     # 保存天气信息
     date = datetime.datetime.now().strftime("%Y-%m-%d")
-    today_dst_file = os.path.join(dst, city) + '-' + date + '.txt'
+    today_dst_file = os.path.join(dst, city, city) + '-' + date + '.txt'
     date = (datetime.datetime.now() + datetime.timedelta(days=-1)).strftime("%Y-%m-%d")
     yesterday_dst_file = os.path.join(dst, city, city) + '-' + date + '.txt'
     if not os.path.exists(today_dst_file):
@@ -162,8 +155,7 @@ def main(http, city, code, dst):
     # 获取爬取的时间中最后的时间
     last_h = dtime[start_point: end_point][-1]
     if last_h <= craw_time:
-        save_file(start_point, end_point, today_dst_file, dtime, tem, humidity, rain, wind_angle, wind_direct,
-                  wind_level,
+        save_file(start_point, end_point, today_dst_file, dtime, tem, humidity, rain, wind_angle, wind_direct, wind_level,
                   aqi)
     return None
 

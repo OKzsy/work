@@ -25,6 +25,8 @@ city_dict = {
     'changyuan': '长垣',
     'zhengzhou': '郑州',
     'qixian': '淇县',
+    'yongcheng': '永城',
+    'xinye': '新野',
 }
 
 
@@ -102,5 +104,5 @@ def main(http, dst, province='河南省'):
 if __name__ == '__main__':
     # 待抓取地区的网址
     https = "http://www.nmc.cn/publish/forecast"
-    dst_dir = r"F:\test"
+    dst_dir = r"F:\weather\changyuan\predict"
     main(https, dst_dir)
