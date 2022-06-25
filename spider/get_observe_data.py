@@ -31,10 +31,10 @@ headers = {
 }
 city_dict = {
     'changyuan': '101180308',
-    'qixian': '101181203',
-    'zhengzhou': '101180101',
-    'yongcheng': '101181009',
-    'xinye': '101180709',
+    # 'qixian': '101181203',
+    # 'zhengzhou': '101180101',
+    # 'yongcheng': '101181009',
+    # 'xinye': '101180709',
 }
 
 
@@ -77,7 +77,7 @@ def save_file(start, end, dst, dt, tem, humidity, rain, wind_angle, wind_direct,
             content.append(tmp)
         fj = open(dst, 'w', newline='')
         for line in content:
-            tmp = ['{:<5}'.format(str(val)) for val in line]
+            tmp = ['{:<7}'.format(str(val)) for val in line]
             fj.writelines(tmp)
             fj.write('\r\n')
         tmp = None
@@ -85,7 +85,7 @@ def save_file(start, end, dst, dt, tem, humidity, rain, wind_angle, wind_direct,
     else:
         fj = open(dst, 'w', newline='')
         for i in range(len(miss_time)):
-            tmp = ['{:<5}'.format(str(val)) for val in [miss_time[i],
+            tmp = ['{:<7}'.format(str(val)) for val in [miss_time[i],
                                                         miss_tem[i],
                                                         miss_humidity[i],
                                                         miss_rain[i],
@@ -122,12 +122,12 @@ def main(http, city, code, dst):
     aqi = []
     for idata in observe_data[::-1]:
         dtime.append(int(idata['od21']))
-        tem.append(int(idata['od22']))
-        wind_angle.append(int(idata['od23']))
-        wind_direct.append(idata['od24'])
-        wind_level.append(int(idata['od25']))
-        rain.append(float(idata['od26']))
-        humidity.append(int(idata['od27']))
+        tem.append(int(idata['od22'] if idata['od22'] != '' else -999))
+        wind_angle.append(int(idata['od23'] if idata['od23'] != '' else -999))
+        wind_direct.append(idata['od24'] if idata['od24'] != '' else -999)
+        wind_level.append(int(idata['od25'] if idata['od25'] != '' else -999))
+        rain.append(float(idata['od26'] if idata['od26'] != '' else -999))
+        humidity.append(int(idata['od27'] if idata['od27'] != '' else -999))
         if idata['od28'] == '':
             aqi.append(0)
         else:
@@ -163,6 +163,6 @@ def main(http, city, code, dst):
 if __name__ == '__main__':
     # 待抓取地区的网址
     https = "http://www.weather.com.cn"
-    dst_dir = r"F:\weather\changyuan\collect"
+    dst_dir = r"F:\test_data"
     for icity, icode in city_dict.items():
         main(https, icity, icode, dst_dir)
