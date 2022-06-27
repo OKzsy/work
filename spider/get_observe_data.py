@@ -31,10 +31,10 @@ headers = {
 }
 city_dict = {
     'changyuan': '101180308',
-    # 'qixian': '101181203',
-    # 'zhengzhou': '101180101',
-    # 'yongcheng': '101181009',
-    # 'xinye': '101180709',
+    'qixian': '101181203',
+    'zhengzhou': '101180101',
+    'yongcheng': '101181009',
+    'xinye': '101180709',
 }
 
 
