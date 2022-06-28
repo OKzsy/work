@@ -65,12 +65,22 @@ def save_file(start, end, dst, dt, tem, humidity, rain, wind_angle, wind_direct,
         lines = fj.readlines()
         fj.close()
         content = []
+        lines_num = 0
         for line in lines:
             content.append(line.strip().split())
+            lines_num += 1
         last_line = content[-1]
         last_time = int(last_line[0])
         check_point = miss_time.index(last_time)
         content[-1][-1] = miss_aqi[check_point]
+        # 增加判断，修改服务器丢失数据的问题
+        for i in range(lines_num):
+            tmp_time = int(content[i][0])
+            error_flag = content[i][1]
+            if (error_flag == '-999') and (tmp_time in miss_time):
+                fi = miss_time.index(tmp_time)
+                content[i] = [miss_time[fi], miss_tem[fi], miss_humidity[fi], miss_rain[fi], miss_wind_angle[fi], miss_wind_direct[fi],
+                              miss_wind_level[fi], miss_aqi[fi]]
         for i in range(check_point + 1, len(miss_time)):
             tmp = [miss_time[i], miss_tem[i], miss_humidity[i], miss_rain[i], miss_wind_angle[i], miss_wind_direct[i],
                    miss_wind_level[i], miss_aqi[i]]
@@ -138,9 +148,13 @@ def main(http, city, code, dst):
         split_point = dtime.index(0)
     # 保存天气信息
     date = datetime.datetime.now().strftime("%Y-%m-%d")
-    today_dst_file = os.path.join(dst, city, city) + '-' + date + '.txt'
-    date = (datetime.datetime.now() + datetime.timedelta(days=-1)).strftime("%Y-%m-%d")
-    yesterday_dst_file = os.path.join(dst, city, city) + '-' + date + '.txt'
+    dir_path = os.path.join(dst, city)
+    if not os.path.exists(dir_path):
+        os.makedirs(dir_path)
+    today_dst_file = os.path.join(dir_path, city) + '-' + date + '.txt'
+    date = (datetime.datetime.now() +
+            datetime.timedelta(days=-1)).strftime("%Y-%m-%d")
+    yesterday_dst_file = os.path.join(dir_path, city) + '-' + date + '.txt'
     if not os.path.exists(today_dst_file):
         # 保存昨天信息
         start_point = 0
@@ -163,6 +177,6 @@ def main(http, city, code, dst):
 if __name__ == '__main__':
     # 待抓取地区的网址
     https = "http://www.weather.com.cn"
-    dst_dir = r"F:\test_data"
+    dst_dir = r"F:\test_data\weather_test"
     for icity, icode in city_dict.items():
         main(https, icity, icode, dst_dir)
