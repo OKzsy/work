@@ -27,10 +27,12 @@ import time
 import datetime
 from scipy import interpolate
 
+from osgeo import gdal, ogr, osr, gdalconst
+
 try:
-    from osgeo import gdal, ogr, osr
-except ImportError:
-    import gdal, ogr, osr
+    progress = gdal.TermProgress_nocb
+except:
+    progress = gdal.TermProgress
 
 try:
     progress = gdal.TermProgress_nocb

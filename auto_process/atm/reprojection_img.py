@@ -22,10 +22,7 @@ Parameters
 
 import os, sys, time
 
-try:
-    from osgeo import gdal, gdalconst, osr
-except ImportError:
-    import gdal, gdalconst, osr
+from osgeo import gdal, ogr, osr, gdalconst
 
 try:
     progress = gdal.TermProgress_nocb

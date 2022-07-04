@@ -146,12 +146,12 @@ def main(http, city, code):
     aqi = []
     for idata in observe_data[::-1]:
         dtime.append(int(idata['od21']))
-        tem.append(int(idata['od22']))
-        wind_angle.append(int(idata['od23']))
-        wind_direct.append(idata['od24'])
-        wind_level.append(int(idata['od25']))
-        rain.append(float(idata['od26']))
-        humidity.append(int(idata['od27']))
+        tem.append(int(idata['od22'] if idata['od22'] != '' else -999))
+        wind_angle.append(int(idata['od23'] if idata['od23'] != '' else -999))
+        wind_direct.append(idata['od24'] if idata['od24'] != '' else -999)
+        wind_level.append(int(idata['od25'] if idata['od25'] != '' else -999))
+        rain.append(float(idata['od26'] if idata['od26'] != '' else -999))
+        humidity.append(int(idata['od27'] if idata['od27'] != '' else -999))
         if idata['od28'] == '':
             aqi.append(0)
         else:

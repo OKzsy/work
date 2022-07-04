@@ -4,11 +4,12 @@
 
 import time
 
+from osgeo import gdal, ogr, osr, gdalconst
 
 try:
-    from osgeo import gdal, ogr, osr
-except ImportError:
-    import gdal, ogr, osr
+    progress = gdal.TermProgress_nocb
+except:
+    progress = gdal.TermProgress
 
 
 def corner_to_geo(sample, line, dataset):
