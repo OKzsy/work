@@ -4,10 +4,18 @@ import math
 from datetime import date, time, timedelta
 
 
-class ET:
+class ET0:
     """定义计算参照腾发量et0的类"""
 
     def __init__(self, lon, lat, dt, temperature, humidity, altitu, wind, period=None, tzone=8):
+        """
+        参数描述：
+        dt:日期
+        temperature: tuple[tmax(float), tmin(float)]
+        humidity: tuple[hmax(int), hmin(int)]
+        altitu: 单位是米(m)
+        period: tuple[start_time(string:'hour-minute'), end_time(string:'hour-minute')]
+        """
         """初始类属性"""
         self._lon = lon
         self._lat = lat
@@ -110,9 +118,17 @@ class ET:
         day_n = 24 * sunset_rad / math.pi
         # 计算太阳辐射Rs
         rs = 0.16 * self._day_ra * math.sqrt(self._t_max - self._t_min)
-        rs = 22.07
         # 计算晴空太阳辐射Rso
-        rso = (0.75 + 2 * 10 ** (-5) * self._altitu) * self._day_ra
+        # 下边的式子是在没有修正系数（as,bs)的情况下使用
+        # rso = (0.75 + 2 * 10 ** (-5) * self._altitu) * self._day_ra
+        # 下边的式子是在有修正系数的情况下使用
+        if self._month >= 4 and self._month <= 9:
+            a = 0.17
+            b = 0.45
+        else:
+            a = 0.14
+            b = 0.45
+        rso = (a + b) * self._day_ra
         # 计算净太阳辐射Rns
         rns = (1 - 0.23) * rs
         # 计算净长波辐射Rnl
@@ -157,6 +173,6 @@ class ET:
 # ra = sun_day_radia(-22.54, '2022-05-15')
 # sun_hour_radia('06-03', '18-42', 114, 35, '2022-09-03')
 # net_longwave_radia(-22.54, '2022-05-15', ra, 25.1, 19.1, 0, 2.1)
-et = ET(114, 50.8, '2022-07-06', (21.5, 12.3), (84, 63), 100, 2.78)
+et = ET0(114, 50.8, '2022-07-06', (21.5, 12.3), (84, 63), 100, 2.78)
 res = et.ten_days_et()
 print('hello')
