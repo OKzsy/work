@@ -45,6 +45,8 @@ class ET0:
     def __sat_vapour_pressure(self):
         """使用最高温度和最低温度计算平均饱和水汽压,和饱和水汽压曲线斜率, 实际水汽压"""
         temp_mean = (self._t_max + self._t_min) / 2
+        # 日平均气温有待优化
+        temp_mean = 29.3
         svp_max = 0.6108 * math.exp(17.27 * self._t_max / (self._t_max + 237.3))
         svp_min = 0.6108 * math.exp(17.27 * self._t_min / (self._t_min + 237.3))
         svp = (svp_max + svp_min) / 2
@@ -173,6 +175,6 @@ class ET0:
 # ra = sun_day_radia(-22.54, '2022-05-15')
 # sun_hour_radia('06-03', '18-42', 114, 35, '2022-09-03')
 # net_longwave_radia(-22.54, '2022-05-15', ra, 25.1, 19.1, 0, 2.1)
-et = ET0(114, 50.8, '2022-07-06', (21.5, 12.3), (84, 63), 100, 2.78)
+et = ET0(119.27, 32.48, '2010-07-20', (34.4, 26.2), (84, 66), 5.2, 2.5)
 res = et.ten_days_et()
 print('hello')
