@@ -58,15 +58,14 @@ def curve(x, y, quantile=[0, 100]):
     a = y_mean - b * x_mean
     forecast_y = a + b * x
     # 计算决定系数
-    forecast_y_mean = np.mean(forecast_y)
-    r2 = 1 - (np.sum((y - forecast_y) * (y - forecast_y)) / np.sum((y - forecast_y_mean) * (y - forecast_y_mean)))
+    r2 = 1 - (np.sum((y - forecast_y) * (y - forecast_y)) / np.sum((y - y_mean) * (y - y_mean)))
     return a, b, r2
 
 
 def data_clean(x, y, init_scale, init_offset, counter, m=10):
     m = counter * m
     # 数据剔除位置索引，保留为True, 剔除位置为False
-    status_index = np.ones_like(x, dtype=np.bool)
+    status_index = np.ones_like(x, dtype=np.bool_)
     status_count = 0
     # 数据分折统计
     unique_x = np.unique(x)
@@ -176,7 +175,7 @@ def main(src, dst):
     # 计算覆盖度
     cov = coverage(red, nir)
     print(coe)
-    coe = 1.060968
+    # coe = 1.060968
     mpdi = (red + coe * nir - cov * (0.05 + 0.5 * coe)) / ((1.0 - cov) * (coe * coe + 1) ** 0.5)
     mpdi = np.maximum(mpdi, 0.01)
     mpdi[nodata_index] = 0
@@ -208,8 +207,8 @@ if __name__ == '__main__':
     # 注册所有gdal驱动
     gdal.AllRegister()
     start_time = time.time()
-    src_file = r"\\192.168.0.234\nydsj\project\39.鹤壁高标准良田\1.data\S2\2.atm\8band\L2A_T50SKE_A020550_20210211T031225_ref_10m.tif"
-    dst_file = r"F:\test\drought\L2A_T50SKE_A029101_20210117T031049_shiqiao_dr4.tif"
+    src_file = r"\\192.168.0.234\nydsj\project\40.长垣高标准农田\1.data\3.S2\2.atm\2022年\9月\L2A_T50SKD_A037967_20220929T031313_ref_10m.tif"
+    dst_file = r"F:\test\drought\L2A_T50SKD_A037967_20220929T031313_dr.tif"
     main(src_file, dst_file)
     end_time = time.time()
     print("time: %.4f secs." % (end_time - start_time))
