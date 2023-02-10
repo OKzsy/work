@@ -168,7 +168,7 @@ def main(src, dst):
     prj = src_ds.GetProjection()
     # 获取数据
     red = src_ds.GetRasterBand(3).ReadAsArray() / 10000
-    nir = src_ds.GetRasterBand(8).ReadAsArray() / 10000
+    nir = src_ds.GetRasterBand(4).ReadAsArray() / 10000
     nodata_index = np.where(red == 0)
     # 确定M
     coe = regression_equation(red, nir)
