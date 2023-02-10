@@ -207,8 +207,8 @@ if __name__ == '__main__':
     # 注册所有gdal驱动
     gdal.AllRegister()
     start_time = time.time()
-    src_file = r"\\192.168.0.234\nydsj\project\40.长垣高标准农田\1.data\3.S2\2.atm\2022年\9月\L2A_T50SKD_A037967_20220929T031313_ref_10m.tif"
-    dst_file = r"F:\test\drought\L2A_T50SKD_A037967_20220929T031313_dr.tif"
+    src_file = r"\\192.168.0.234\nydsj\project\39.鹤壁高标准良田\1.data\S2\2.atm\2023年\1月\L2A_T50SKE_A039683_20230127T031153_ref_10m.tif"
+    dst_file = r"F:\test\drought\20220102T031129_ref_10m_dr.tif"
     main(src_file, dst_file)
     end_time = time.time()
     print("time: %.4f secs." % (end_time - start_time))
