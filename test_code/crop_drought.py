@@ -131,7 +131,8 @@ def regression_equation(red, nir):
         ired = red_unique[i]
         index = np.where(red == ired)
         tmp_nir = np.sort(nir[index])
-        point_num = 1
+        # 避免噪点，多获取一部分点位
+        point_num = 10
         if tmp_nir.size >= point_num:
             tmp_nir = tmp_nir[:point_num]
         for inir in tmp_nir:
@@ -172,6 +173,7 @@ def main(src, dst):
     nodata_index = np.where(red == 0)
     # 确定M
     coe = regression_equation(red, nir)
+    print(coe)
     # 计算覆盖度
     cov = coverage(red, nir)
     print(coe)
@@ -207,7 +209,7 @@ if __name__ == '__main__':
     # 注册所有gdal驱动
     gdal.AllRegister()
     start_time = time.time()
-    src_file = r"\\192.168.0.234\nydsj\project\39.鹤壁高标准良田\1.data\S2\2.atm\2023年\1月\L2A_T50SKE_A039683_20230127T031153_ref_10m.tif"
+    src_file = r"\\192.168.0.234\nydsj\user\ZSS\S2_test\S2B_MSIL1C_20220328T030539_N0400_R075_T50SKE_20220328T045907\L2A_T50SKE_A026413_20220328T031408_ref_10m.tif"
     dst_file = r"F:\test\drought\20220102T031129_ref_10m_dr.tif"
     main(src_file, dst_file)
     end_time = time.time()
