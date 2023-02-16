@@ -19,6 +19,7 @@ import sys
 import shutil
 import zipfile
 import glob
+import gc
 import subprocess
 import tempfile
 import fnmatch
@@ -120,7 +121,7 @@ def corner_to_geo(sample, line, dataset):
 def reproject_dataset(src_ds):
     """
     :param src_ds: 待重采样影像的数据集
-    :return: 调用ReprojectImage对影像进行重采样，重采样后影像的分辨率为原始影像分辨率，
+    :return: 调用ReprojectImage对影像进行重采样,重采样后影像的分辨率为原始影像分辨率,
     投影信息为WGS84。
     """
     # 定义目标投影
@@ -187,7 +188,7 @@ def reproject_dataset(src_ds):
     # 执行重投影和重采样
     res = gdal.ReprojectImage(src_ds, dest,
                               src_prj, oSRS.ExportToWkt(),
-                              gdal.GRA_Bilinear, callback=progress)
+                              gdal.GRA_NearestNeighbour, callback=progress)
     return dest
 
 
@@ -308,14 +309,18 @@ def dn2ref(out_dir, zip_file):
                                        resampleAlg='bilinear')
     vrt_10_dataset = gdal.BuildVRT(vrt_10_file, jp2_10_files, options=vrt_options)
     # # 依据云掩膜去除数据中的云,只去除RGB波段
-    # jp2_10_uncld_files = cld_mask(vrt_10_dataset)
-    # # 修改vrt_10_file文件
-    # tempvrtfile = genRandomfile(dir=safe_dir, prefix="uncloud_", suffix=".vrt")
-    # vrt_10_dataset.GetDriver().CreateCopy(tempvrtfile, vrt_10_dataset)
-    # jp2_10_uncld_vrt = update_vrt(tempvrtfile, jp2_10_uncld_files)
-    # vrt_uncld_ds = gdal.Open(jp2_10_uncld_vrt)
+    jp2_10_uncld_files = cld_mask(vrt_10_dataset)
+    # 修改vrt_10_file文件
+    tempvrtfile = genRandomfile(dir=safe_dir, prefix="uncloud_", suffix=".vrt")
+    vrt_10_dataset.GetDriver().CreateCopy(tempvrtfile, vrt_10_dataset)
+    jp2_10_uncld_vrt = update_vrt(tempvrtfile, jp2_10_uncld_files)
+    vrt_uncld_ds = gdal.Open(jp2_10_uncld_vrt)
     # 重投影
-    dst = reproject_dataset(vrt_10_dataset) 
+    dst = reproject_dataset(vrt_uncld_ds) 
+    # 释放内存文件
+    for mem_file in jp2_10_uncld_files:
+        gdal.Unlink(mem_file)
+    gc.collect()
     # 存储文件
     isub_ref_dir = os.path.join(out_dir, zip_file_name)
     if not os.path.isdir(isub_ref_dir):
@@ -328,9 +333,7 @@ def dn2ref(out_dir, zip_file):
 
     vrt_10_dataset = vrt_uncld_ds = dst = out_10_ds = None
     shutil.rmtree(temp_dir, ignore_errors=True)
-    # 释放内存文件
-    # for mem_file in jp2_10_uncld_files:
-    #     os.unlink(mem_file)
+    
     
 
 
@@ -363,7 +366,7 @@ if __name__ == '__main__':
     # in_dir = sys.argv[1]
     # out_dir = sys.argv[2]
     #
-    in_dir = r"\\192.168.0.234\nydsj\project\39.鹤壁高标准良田\1.data\S2\1.source\2022年\1月"
+    in_dir = r"F:\test\S2\data"
     out_dir = r"F:\test\data_out\new"
     main(in_dir, out_dir)
 
