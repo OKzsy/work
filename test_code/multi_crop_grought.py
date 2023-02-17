@@ -76,15 +76,14 @@ def curve(x, y, quantile=[0, 100]):
     a = y_mean - b * x_mean
     forecast_y = a + b * x
     # 计算决定系数
-    forecast_y_mean = np.mean(forecast_y)
-    r2 = 1 - (np.sum((y - forecast_y) * (y - forecast_y)) / np.sum((y - forecast_y_mean) * (y - forecast_y_mean)))
+    r2 = 1 - (np.sum((y - forecast_y) * (y - forecast_y)) / np.sum((y - y_mean) * (y - y_mean)))
     return a, b, r2
 
 
 def data_clean(x, y, init_scale, init_offset, counter, m=10):
     m = counter * m
     # 数据剔除位置索引，保留为True, 剔除位置为False
-    status_index = np.ones_like(x, dtype=np.bool)
+    status_index = np.ones_like(x, dtype=np.bool_)
     status_count = 0
     # 数据分折统计
     unique_x = np.unique(x)
@@ -150,7 +149,7 @@ def regression_equation(red, nir):
         ired = red_unique[i]
         index = np.where(red == ired)
         tmp_nir = np.sort(nir[index])
-        point_num = 1
+        point_num = 10
         if tmp_nir.size >= point_num:
             tmp_nir = tmp_nir[:point_num]
         for inir in tmp_nir:
@@ -182,7 +181,7 @@ def regression_equation(red, nir):
 def main(src, dst):
     # 判断vi_dir是路径还是文件
     if os.path.isdir(src):
-        rasters = searchfiles(src, partfileinfo='*.tif')
+        rasters = searchfiles(src, partfileinfo='*.tif', recursive=True)
     else:
         rasters = [src]
     for file in rasters:
@@ -194,14 +193,14 @@ def main(src, dst):
         prj = src_ds.GetProjection()
         # 获取数据
         red = src_ds.GetRasterBand(3).ReadAsArray() / 10000
-        nir = src_ds.GetRasterBand(8).ReadAsArray() / 10000
+        nir = src_ds.GetRasterBand(4).ReadAsArray() / 10000
         nodata_index = np.where(red == 0)
         # 确定M
         coe = regression_equation(red, nir)
         # 计算覆盖度
         cov = coverage(red, nir)
         print('{}:{}'.format(basename, coe))
-        coe = 1.060968
+        # coe = 1.060968
         mpdi = (red + coe * nir - cov * (0.05 + 0.5 * coe)) / ((1.0 - cov) * (coe * coe + 1) ** 0.5)
         mpdi = np.maximum(mpdi, 0.01)
         mpdi[nodata_index] = 0
@@ -234,7 +233,7 @@ if __name__ == '__main__':
     # 注册所有gdal驱动
     gdal.AllRegister()
     start_time = time.time()
-    src_dir = r"\\192.168.0.234\nydsj\project\39.鹤壁高标准良田\1.data\S2\4.clip"
+    src_dir = r"\\192.168.0.234\nydsj\user\ZSS\S2_test"
     dst_dir = r"F:\test\drought"
     main(src_dir, dst_dir)
     end_time = time.time()
