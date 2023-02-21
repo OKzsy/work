@@ -17,6 +17,7 @@ from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
 from datetime import datetime
 from bs4 import BeautifulSoup
+from selenium.webdriver.common.by import By
 from selenium.webdriver.common.desired_capabilities import DesiredCapabilities
 
 # desired_capabilities = DesiredCapabilities.CHROME
@@ -32,14 +33,14 @@ city_dict = {
 
 def get_web(drv, province, name):
 
-    element = drv.find_element_by_xpath("//select[@id='provinceSel']")
-    all_options = element.find_elements_by_tag_name("option")
+    element = drv.find_element(by=By.XPATH, value="//select[@id='provinceSel']")
+    all_options = element.find_elements(by=By.TAG_NAME, value="option")
     for option in all_options:
         if option.text == province:
             option.click()
             break
-    element = drv.find_element_by_xpath("//select[@id='citySel']")
-    all_options = element.find_elements_by_tag_name("option")
+    element = drv.find_element(by=By.XPATH, value="//select[@id='citySel']")
+    all_options = element.find_elements(by=By.TAG_NAME, value="option")
     for option in all_options:
         if option.text == name:
             option.click()
@@ -50,14 +51,15 @@ def get_web(drv, province, name):
 def main(http, dst, province='河南省'):
     # 抓取未来天气预报详情
     chrome_options = Options()
-    chrome_options.add_argument('--headless')
+    chrome_options.add_argument("--headless=new")
     chrome_options.add_argument('--disable-gpu')
     chrome_options.add_argument('log-level=3')
-    chrome_options.add_argument(r'--user-data-dir=C:\Users\01\AppData\Local\Google\Chrome\User Data\Default')
+    chrome_options.add_argument(
+        r'--user-data-dir=C:\Users\01\AppData\Local\Google\Chrome\User Data\Default')
     # 开启静默模式
-    driver = webdriver.Chrome(chrome_options=chrome_options)
+    driver = webdriver.Chrome(options=chrome_options)
     driver.get(http)
-    driver.find_element_by_css_selector('#indexMyWeather > div.hp.hp2.hp3 > div > div > div.seven-day-forecast').click()
+    driver.find_element(by=By.CSS_SELECTOR,value='#indexMyWeather > div.hp.hp2.hp3 > div > div > div.seven-day-forecast').click()
     # 分城市抓取
     for city_name in list(city_dict.keys()):
         source = get_web(driver, province, city_dict[city_name])
@@ -93,7 +95,8 @@ def main(http, dst, province='河南省'):
                 wind_speed = sub_s[3][:-3]
                 press = sub_s[5][:-3]
                 humidity = sub_s[6][:-1]
-                out_message = ','.join([tmp_day, hour[-1], rain, tem, wind_speed, sub_s[4], press, humidity])
+                out_message = ','.join(
+                    [tmp_day, hour[-1], rain, tem, wind_speed, sub_s[4], press, humidity])
                 fj.write(out_message)
                 fj.write('\n')
         fj.close()
