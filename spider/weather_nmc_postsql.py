@@ -16,6 +16,7 @@ Parameters
 import os
 from selenium import webdriver
 import psycopg2
+from selenium.webdriver.common.by import By
 from selenium.webdriver.chrome.options import Options
 import datetime
 from bs4 import BeautifulSoup
@@ -28,18 +29,20 @@ city_dict = {
     'changyuan': '长垣',
     'zhengzhou': '郑州',
     'qixian': '淇县',
+    'yongcheng': '永城',
+    'xinye': '新野',
 }
 
 
 def get_web(drv, province, name):
-    element = drv.find_element_by_xpath("//select[@id='provinceSel']")
-    all_options = element.find_elements_by_tag_name("option")
+    element = drv.find_element(by=By.XPATH, value="//select[@id='provinceSel']")
+    all_options = element.find_elements(by=By.TAG_NAME, value="option")
     for option in all_options:
         if option.text == province:
             option.click()
             break
-    element = drv.find_element_by_xpath("//select[@id='citySel']")
-    all_options = element.find_elements_by_tag_name("option")
+    element = drv.find_element(by=By.XPATH, value="//select[@id='citySel']")
+    all_options = element.find_elements(by=By.TAG_NAME, value="option")
     for option in all_options:
         if option.text == name:
             option.click()
@@ -50,14 +53,14 @@ def get_web(drv, province, name):
 def main(http, province='河南省'):
     # 抓取未来天气预报详情
     chrome_options = Options()
-    chrome_options.add_argument('--headless')
+    chrome_options.add_argument("--headless=new")
     chrome_options.add_argument('--disable-gpu')
     chrome_options.add_argument('log-level=3')
     chrome_options.add_argument(r'--user-data-dir=C:\Users\01\AppData\Local\Google\Chrome\User Data\Default')
     # 开启静默模式
-    driver = webdriver.Chrome(chrome_options=chrome_options)
+    driver = webdriver.Chrome(options=chrome_options)
     driver.get(http)
-    driver.find_element_by_css_selector('#indexMyWeather > div.hp.hp2.hp3 > div > div > div.seven-day-forecast').click()
+    driver.find_element(by=By.CSS_SELECTOR, value='#indexMyWeather > div.hp.hp2.hp3 > div > div > div.seven-day-forecast').click()
     # 连接数据库
     conn = psycopg2.connect(database="WebGis", user="sa", password="Nydsj@222", host="192.168.0.250", port="5432")
     cur = conn.cursor()
@@ -86,6 +89,8 @@ def main(http, province='河南省'):
                     break
                 rain = sub_s[1][:-2]
                 tem = sub_s[2][:-1]
+                if '0.0mm' in tem:
+                    tem = tem.replace('0.0mm', '-')
                 wind_speed = sub_s[3][:-3]
                 press = sub_s[5][:-3]
                 humidity = sub_s[6][:-1]
