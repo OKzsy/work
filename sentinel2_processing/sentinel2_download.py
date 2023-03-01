@@ -13,13 +13,20 @@ http://www.weather.com.cn/weather/101180308.shtml
 
 """
 import os
-import re
-import json
+import sys
 import time
 import requests
-import datetime
 import xml.etree.ElementTree as ET
-from requests.auth import HTTPBasicAuth, AuthBase
+from requests.auth import HTTPBasicAuth
+from requests.adapters import HTTPAdapter
+from urllib3 import Retry
+
+retry_strategy = Retry(
+    total=3,
+    status_forcelist=[429, 500, 502, 503, 504],
+    allowed_methods=["HEAD", "GET", "OPTIONS"]
+)
+adapter = HTTPAdapter(max_retries=retry_strategy)
 
 headers = {
     "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7",
@@ -124,28 +131,64 @@ def parse_xml(root, flag, attri=None, attri_value=None, namespace=None):
                 pass
     return content
 
+def progress(percent, name=None, netSpeed=None, width=50):
+    if percent >= 1:
+        percent=1
+    fmt = '[{{:<{}}}]'.format(width)
+    show_str= fmt.format(int(width*percent)*'#')
+    if name is not None:
+        print('\r{0} {1:>3.0%}-{2:>7.3f} M/s {3}'.format(show_str, percent, netSpeed, name),file=sys.stdout,flush=True,end='')
+    else:  
+        print('\r{0} {1:>3.0%}-{2:>7.3f} M/s'.format(show_str,percent, netSpeed),file=sys.stdout,flush=True,end='')
 
-def download(url, dst):
+
+def download(url, dst, limit=10):
+    basename = os.path.basename(dst)
+    # 创建会话
+    http = requests.Session()
+    http.mount("https://", adapter)
+    http.mount("http://", adapter)
     # 创建会话，获取文件大小
-    html = requests.get(url, headers=headers, stream=True, auth=HTTPBasicAuth(
+    respons1 = http.get(url, headers=headers, stream=True, auth=HTTPBasicAuth(
         username='hpu_zss', password='120503xz'))
-    print(html.status_code)
+    # print(respons1.status_code)
     # 文件总大小
-    total_size = int(html.headers['content-length'])
+    total_size = int(respons1.headers['content-length'])
     # 获取目标文件是否存在，存在则获取大小
     if os.path.exists(dst):
         temp_size = os.path.getsize(dst)
     else:
         temp_size = 0
-    if total_size == temp_size:
-        return None
+    if temp_size >= total_size:
+        http.close()
+        return basename
     else:
-        # 下载数据
-        header = {'Range': 'bytes={0}-'.format(str(temp_size))}
-        html = requests.get(url, headers=header, stream=True, auth=HTTPBasicAuth(
-        username='hpu_zss', password='120503xz'))
-        with open(dst, 'ab') as f:
-            f.write(html.content)
+        # 重复尝试下载
+        retry_count = 0
+        while retry_count < limit:
+            if retry_count >0:
+                temp_size = os.path.getsize(dst)
+            if temp_size >= total_size:
+                http.close()
+                return None
+            retry_count += 1
+            # 下载数据
+            header = {'Range': 'bytes={0}-'.format(str(temp_size))}
+            respons2 = http.get(url, headers=header, stream=True)
+            start_time = time.time()
+            with open(dst, 'ab') as f:
+                for chunk in respons2.iter_content(chunk_size=1024*512):
+                    if chunk:
+                        count_temp = len(chunk)
+                        temp_size += count_temp
+                        mid_time = time.time()
+                        speed = (count_temp) / 1024 / 1024 / (mid_time - start_time + 0.00001)
+                        start_time = mid_time
+                        percent = temp_size / total_size
+                        f.write(chunk)
+                        f.flush()
+                        progress(percent=percent, name=basename, netSpeed=speed)
+        http.close()
         time.sleep(2)
     return None
 
@@ -156,10 +199,14 @@ def main():
     # 查询数据
     base_url = 'https://scihub.copernicus.eu/dhus/search?'
     url = base_url + res
-    html = requests.get(url, headers=headers, auth=HTTPBasicAuth(
+    http = requests.Session()
+    http.mount("https://", adapter)
+    http.mount("http://", adapter)
+    html = http.get(url, headers=headers, auth=HTTPBasicAuth(
         username='hpu_zss', password='120503xz'))
     # 获取数据列表
     xmlroot = ET.fromstring(html.text)
+    http.close()
     # 去除命名空间的影响
     ns = {"opensearch": "http://a9.com/-/spec/opensearch/1.1/",
           "root": "http://www.w3.org/2005/Atom"}
@@ -169,17 +216,15 @@ def main():
     file_names, data_links, quickview_links = parse_xml(
         xmlroot, 'root:entry', namespace=ns)
     # 下载数据
-    # for i in range(len(file_names)):
-    #     name = file_names[i]
-    #     url = quickview_links[i]
-    #     dst = os.path.join(r'F:\test\S2', name) + '.jpg'
-    #     download(url, dst)
-    # html = requests.get(url, headers=headers, stream=True, auth=HTTPBasicAuth(
-    #     username='hpu_zss', password='120503xz'))
-    name = file_names[0]
-    url = quickview_links[0]
-    dst = os.path.join(r'F:\test\S2', name) + '.jpg'
-    download(url, dst)
+    for i in range(len(file_names)):
+        name = file_names[i]
+        url = data_links[i]
+        dst = os.path.join(r'F:\test\S2', name) + '.zip'
+        res = download(url, dst)
+        if res:
+            print('{} is already download!'.format(res))
+        else:
+            print(end='\n')
     return None
 
 
