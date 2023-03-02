@@ -1,32 +1,46 @@
-#!/usr/bin/env python3
-# -*- coding:utf-8 -*-
-"""
-# @Time    : 2020/8/15 10:39
-# @Author  : zhaoss
-# @FileName: test.py
-# @Email   : zhaoshaoshuai@hnnydsj.com
-Description:
+import requests
+from requests.adapters import HTTPAdapter
+import requests.exceptions as e
+from urllib3 import Retry
+import http
+
+http.client.HTTPConnection.debuglevel = 0
+
+retry_strategy = Retry(
+    total=5,
+    backoff_factor=0.1,
+    status_forcelist=[429, 500, 502, 503, 504],
+    allowed_methods=["HEAD", "GET", "OPTIONS"]
+)
 
 
-Parameters
+DEFAULT_TIMEOUT = 0.001 # seconds
 
+class TimeoutHTTPAdapter(HTTPAdapter):
+    def __init__(self, *args, **kwargs):
+        self.timeout = DEFAULT_TIMEOUT
+        if "timeout" in kwargs:
+            self.timeout = kwargs["timeout"]
+            del kwargs["timeout"]
+        super().__init__(*args, **kwargs)
 
-"""
+    def send(self, request, **kwargs):
+        timeout = kwargs.get("timeout")
+        if timeout is None:
+            kwargs["timeout"] = self.timeout
+        return super().send(request, **kwargs)
 
-import os
-import sys
-import glob
-import time
-import fnmatch
-import numpy as np
-from osgeo import gdal, ogr, osr, gdalconst
+http = requests.Session()
+http.mount("https://", TimeoutHTTPAdapter(max_retries=retry_strategy))
+http.mount("http://", TimeoutHTTPAdapter(max_retries=retry_strategy))
 
+# 通常为特定的请求重写超时时间
 try:
-    progress = gdal.TermProgress_nocb
-except:
-    progress = gdal.TermProgress
+    response = http.get("https://api.twilio.com/")
+except (e.Timeout) as ee:
+    print(ee)
+else:
+    print(response.status_code)
+finally:
+    http.close()
 
-vrt_options = gdal.BuildVRTOptions(resolution='user', xRes=10, yRes=10, separate=True,
-                                   options=['-rb'])
-
-print('end')
