@@ -25,17 +25,19 @@ from urllib3 import Retry
 import http
 
 # debug
-http.client.HTTPConnection.debuglevel = 0
+http.client.HTTPConnection.debuglevel = 1
 # timeout
 DEFAULT_TIMEOUT = 60 # seconds
+# raise error for 4xx,5xx
+assert_status_hook = lambda response, *args, **kwargs: response.raise_for_status()
 
 retry_strategy = Retry(
     total=5,
-    # backoff_factor=0.1,
+    backoff_factor=0.1,
     status_forcelist=[429, 500, 502, 503, 504],
     allowed_methods=["HEAD", "GET", "OPTIONS"]
 )
-adapter = HTTPAdapter(max_retries=retry_strategy)
+# adapter = HTTPAdapter(max_retries=retry_strategy)
 
 headers = {
     "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7",
@@ -168,8 +170,9 @@ def download(url, dst, limit=10):
     basename = os.path.basename(dst)
     # 创建会话
     http = requests.Session()
-    http.mount("https://", adapter)
-    http.mount("http://", adapter)
+    http.hooks["response"] = [assert_status_hook]
+    http.mount("https://", TimeoutHTTPAdapter(max_retries=retry_strategy))
+    http.mount("http://", TimeoutHTTPAdapter(max_retries=retry_strategy))
     # 创建会话，获取文件大小
     try:
         respons1 = http.get(url, headers=headers, stream=True, auth=HTTPBasicAuth(
@@ -195,23 +198,22 @@ def download(url, dst, limit=10):
         # 重复尝试下载
         retry_count = 0
         while retry_count < limit:
-            print('{}, retry_count:{}'.format(basename, retry_count))
             if retry_count > 0:
                 temp_size = os.path.getsize(dst)
             if temp_size >= total_size:
                 http.close()
                 return None
+            print('{}, retry_count:{}'.format(basename, retry_count))
             retry_count += 1
             # 下载数据
             header = {'Range': 'bytes={0}-'.format(str(temp_size))}
-            respons2 = http.get(url, headers=header, stream=True)
-            # try:
-            #     respons2 = http.get(url, headers=header, stream=True)
-            # except exception.RequestException as e:
-            #     http.close()
-            #     print('无法获取 {0} 的链接,原因如下：'.format(basename))
-            #     print(e)
-            #     continue
+            try:
+                respons2 = http.get(url, headers=header, stream=True)
+            except exception.RequestException as e:
+                http.close()
+                print('无法获取 {0} 的链接,原因如下：'.format(basename))
+                print(e)
+                continue
             start_time = time.time()
             with open(dst, 'ab') as f:
                 speed_low_count = 0
@@ -235,7 +237,8 @@ def download(url, dst, limit=10):
                             http.close()
                             break
                         # progress(percent=percent, name=basename, netSpeed=speed)
-            http.close()
+            if retry_count == limit:
+                http.close()
         http.close()
         time.sleep(2)
     return None
@@ -248,8 +251,9 @@ def main():
     base_url = 'https://scihub.copernicus.eu/dhus/search?'
     url = base_url + res
     http = requests.Session()
-    http.mount("https://", adapter)
-    http.mount("http://", adapter)
+    http.hooks["response"] = [assert_status_hook]
+    http.mount("https://", TimeoutHTTPAdapter(max_retries=retry_strategy))
+    http.mount("http://", TimeoutHTTPAdapter(max_retries=retry_strategy))
     try:
         html = http.get(url, headers=headers, auth=HTTPBasicAuth(
             username='hpu_zss', password='120503xz'))
@@ -276,10 +280,10 @@ def main():
         name = file_names[i]
         url = data_links[i]
         dst = os.path.join(r'F:\test\S2', name) + '.zip'
-        download(url, dst)
-    #     pool.apply_async(download, args=(url, dst,))
-    # pool.close()
-    # pool.join()
+        # download(url, dst)
+        pool.apply_async(download, args=(url, dst,))
+    pool.close()
+    pool.join()
         # name = file_names[i]
         # url = data_links[i]
         # dst = os.path.join(r'F:\test\S2', name) + '.zip'
