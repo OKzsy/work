@@ -4,7 +4,7 @@ import requests.exceptions as e
 from urllib3 import Retry
 import http
 
-http.client.HTTPConnection.debuglevel = 0
+http.client.HTTPConnection.debuglevel = 1
 
 retry_strategy = Retry(
     total=5,
@@ -14,8 +14,8 @@ retry_strategy = Retry(
 )
 
 
-DEFAULT_TIMEOUT = 0.001 # seconds
-
+DEFAULT_TIMEOUT = 10 # seconds
+assert_status_hook = lambda response, *args, **kwargs: response.raise_for_status()
 class TimeoutHTTPAdapter(HTTPAdapter):
     def __init__(self, *args, **kwargs):
         self.timeout = DEFAULT_TIMEOUT
@@ -31,13 +31,15 @@ class TimeoutHTTPAdapter(HTTPAdapter):
         return super().send(request, **kwargs)
 
 http = requests.Session()
+http.hooks["response"] = [assert_status_hook]
 http.mount("https://", TimeoutHTTPAdapter(max_retries=retry_strategy))
 http.mount("http://", TimeoutHTTPAdapter(max_retries=retry_strategy))
 
 # 通常为特定的请求重写超时时间
 try:
-    response = http.get("https://api.twilio.com/")
-except (e.Timeout) as ee:
+    response = http.get("https://httpbin.org/status/503")
+except e.RequestException as ee:
+    http.close()
     print(ee)
 else:
     print(response.status_code)
