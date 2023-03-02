@@ -16,13 +16,22 @@ import os
 import sys
 import time
 import requests
+import requests.exceptions as exception
 import xml.etree.ElementTree as ET
 from requests.auth import HTTPBasicAuth
 from requests.adapters import HTTPAdapter
+import multiprocessing.dummy as mp
 from urllib3 import Retry
+import http
+
+# debug
+http.client.HTTPConnection.debuglevel = 0
+# timeout
+DEFAULT_TIMEOUT = 60 # seconds
 
 retry_strategy = Retry(
-    total=3,
+    total=5,
+    # backoff_factor=0.1,
     status_forcelist=[429, 500, 502, 503, 504],
     allowed_methods=["HEAD", "GET", "OPTIONS"]
 )
@@ -45,6 +54,20 @@ headers = {
     "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/110.0.0.0 Safari/537.36",
 }
 
+
+class TimeoutHTTPAdapter(HTTPAdapter):
+    def __init__(self, *args, **kwargs):
+        self.timeout = DEFAULT_TIMEOUT
+        if "timeout" in kwargs:
+            self.timeout = kwargs["timeout"]
+            del kwargs["timeout"]
+        super().__init__(*args, **kwargs)
+
+    def send(self, request, **kwargs):
+        timeout = kwargs.get("timeout")
+        if timeout is None:
+            kwargs["timeout"] = self.timeout
+        return super().send(request, **kwargs)
 
 def BuildOptions(platformname='Sentinel-2',
                  tile='50SKE',
@@ -141,7 +164,6 @@ def progress(percent, name=None, netSpeed=None, width=50):
     else:  
         print('\r{0} {1:>3.0%}-{2:>7.3f} M/s'.format(show_str,percent, netSpeed),file=sys.stdout,flush=True,end='')
 
-
 def download(url, dst, limit=10):
     basename = os.path.basename(dst)
     # 创建会话
@@ -149,8 +171,14 @@ def download(url, dst, limit=10):
     http.mount("https://", adapter)
     http.mount("http://", adapter)
     # 创建会话，获取文件大小
-    respons1 = http.get(url, headers=headers, stream=True, auth=HTTPBasicAuth(
-        username='hpu_zss', password='120503xz'))
+    try:
+        respons1 = http.get(url, headers=headers, stream=True, auth=HTTPBasicAuth(
+            username='hpu_zss', password='120503xz'))
+    except exception.RequestException as e:
+        http.close()
+        print('无法获取 {0} 的链接,原因如下：'.format(basename))
+        print(e)
+        return None
     # print(respons1.status_code)
     # 文件总大小
     total_size = int(respons1.headers['content-length'])
@@ -161,12 +189,14 @@ def download(url, dst, limit=10):
         temp_size = 0
     if temp_size >= total_size:
         http.close()
-        return basename
+        print('{} is already download!'.format(basename))
+        return None
     else:
         # 重复尝试下载
         retry_count = 0
         while retry_count < limit:
-            if retry_count >0:
+            print('{}, retry_count:{}'.format(basename, retry_count))
+            if retry_count > 0:
                 temp_size = os.path.getsize(dst)
             if temp_size >= total_size:
                 http.close()
@@ -175,8 +205,16 @@ def download(url, dst, limit=10):
             # 下载数据
             header = {'Range': 'bytes={0}-'.format(str(temp_size))}
             respons2 = http.get(url, headers=header, stream=True)
+            # try:
+            #     respons2 = http.get(url, headers=header, stream=True)
+            # except exception.RequestException as e:
+            #     http.close()
+            #     print('无法获取 {0} 的链接,原因如下：'.format(basename))
+            #     print(e)
+            #     continue
             start_time = time.time()
             with open(dst, 'ab') as f:
+                speed_low_count = 0
                 for chunk in respons2.iter_content(chunk_size=1024*512):
                     if chunk:
                         count_temp = len(chunk)
@@ -187,7 +225,17 @@ def download(url, dst, limit=10):
                         percent = temp_size / total_size
                         f.write(chunk)
                         f.flush()
-                        progress(percent=percent, name=basename, netSpeed=speed)
+                        # 网速持续过慢, 结束进程
+                        if speed < 0.001:
+                            speed_low_count += 1
+                        else:
+                            speed_low_count = 0
+                        if speed_low_count >= 5:
+                            print('{}-speed_low_count: {}, speed: {}'.format(basename, speed_low_count, speed))
+                            http.close()
+                            break
+                        # progress(percent=percent, name=basename, netSpeed=speed)
+            http.close()
         http.close()
         time.sleep(2)
     return None
@@ -202,8 +250,14 @@ def main():
     http = requests.Session()
     http.mount("https://", adapter)
     http.mount("http://", adapter)
-    html = http.get(url, headers=headers, auth=HTTPBasicAuth(
-        username='hpu_zss', password='120503xz'))
+    try:
+        html = http.get(url, headers=headers, auth=HTTPBasicAuth(
+            username='hpu_zss', password='120503xz'))
+    except exception.RequestException as e:
+        http.close()
+        print("无法获取数据链接，原因如下：")
+        print(e)
+        sys.exit(0)
     # 获取数据列表
     xmlroot = ET.fromstring(html.text)
     http.close()
@@ -216,18 +270,30 @@ def main():
     file_names, data_links, quickview_links = parse_xml(
         xmlroot, 'root:entry', namespace=ns)
     # 下载数据
+    jobs = 2
+    pool = mp.Pool(processes=jobs)
     for i in range(len(file_names)):
         name = file_names[i]
         url = data_links[i]
         dst = os.path.join(r'F:\test\S2', name) + '.zip'
-        res = download(url, dst)
-        if res:
-            print('{} is already download!'.format(res))
-        else:
-            print(end='\n')
+        download(url, dst)
+    #     pool.apply_async(download, args=(url, dst,))
+    # pool.close()
+    # pool.join()
+        # name = file_names[i]
+        # url = data_links[i]
+        # dst = os.path.join(r'F:\test\S2', name) + '.zip'
+        # res = download(url, dst)
+        # if res:
+        #     print('{} is already download!'.format(res))
+        # else:
+        #     print(end='\n')
     return None
 
 
 if __name__ == '__main__':
     # 待抓取地区的网址
+    start_time = time.time()
     main()
+    end_time = time.time()
+    print("time: %.2f min." % ((end_time - start_time) / 60))
