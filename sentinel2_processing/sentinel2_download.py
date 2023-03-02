@@ -1,15 +1,14 @@
 #!/usr/bin/env python3
 # -*- coding:utf-8 -*-
 """
-# @Time    : 2021/2/22 18:04
+# @Time    : 2023/2/28 18:04
 # @Author  : zhaoss
-# @FileName: get_observe_data.py
+# @FileName: sentinel2_download.py
 # @Email   : zhaoshaoshuai@hnnydsj.com
 Description:
-从中国天气网爬取长垣地区当天的真实天气情况
+哨兵数据下载程序
 
 Parameters
-http://www.weather.com.cn/weather/101180308.shtml
 
 """
 import os
@@ -25,7 +24,7 @@ from urllib3 import Retry
 import http
 
 # debug
-http.client.HTTPConnection.debuglevel = 1
+http.client.HTTPConnection.debuglevel = 0
 # timeout
 DEFAULT_TIMEOUT = 60 # seconds
 # raise error for 4xx,5xx
