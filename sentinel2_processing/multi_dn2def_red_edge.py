@@ -20,6 +20,7 @@ import shutil
 import zipfile
 import glob
 import gc
+import psutil
 import subprocess
 import tempfile
 import fnmatch
@@ -116,6 +117,22 @@ def corner_to_geo(sample, line, dataset):
     geoX = Geo_t[0] + sample * Geo_t[1]
     geoY = Geo_t[3] + line * Geo_t[5]
     return geoX, geoY
+
+def get_mem(message=None):
+    mem = psutil.virtual_memory()
+    # 系统总计内存
+    zj = float(mem.total) / 1024 / 1024 / 1024
+    # 系统已经使用内存
+    ysy = float(mem.used) / 1024 / 1024 / 1024
+
+    # 系统空闲内存
+    kx = float(mem.free) / 1024 / 1024 / 1024
+    if message:
+        print(message)
+    print('系统总计内存:%d.3GB' % zj)
+    print('系统已经使用内存:%d.3GB' % ysy)
+    print('系统空闲内存:%d.3GB' % kx)
+    return None
 
 
 def reproject_dataset(src_ds):
@@ -225,7 +242,7 @@ def genRandomfile(dir='', prefix='', suffix='', slen=10):
         return genRandomfile(dir, prefix, suffix, slen=10)
 
 
-def cld_mask(src_dst):
+def cld_mask(src_dst, tempFilePath=None, tempFileLocation='DISK'):
     uncld_files_path = []
     bandcount = src_dst.RasterCount
     xsize = src_dst.RasterXSize
@@ -240,14 +257,18 @@ def cld_mask(src_dst):
         tmp_band = src_dst.GetRasterBand(iband)
         dtype = tmp_band.DataType
         tmp_data = tmp_band.ReadAsArray()
-        # 创建内存文件
-        mem_file = genRandomfile(prefix='/vsimem/',suffix='_{}.tif'.format(str(iband)))
+        # 创建临时文件,临时文件位置根据系统内存确定
+        if tempFileLocation == 'DISK' and os.path.isdir(tempFilePath):
+            mem_file = genRandomfile(dir=tempFilePath, prefix='disk',suffix='_{}.tif'.format(str(iband)))
+        else:
+            mem_file = genRandomfile(prefix='/vsimem/',suffix='_{}.tif'.format(str(iband)))
         tmp_ds = tif_drv.Create(mem_file, xsize, ysize, 1, dtype)
         tmp_data_uncld = tmp_data * cld_mask
         tmp_ds.GetRasterBand(1).WriteArray(tmp_data_uncld)
         tmp_ds = tmp_data_uncld = tmp_data = None
         uncld_files_path.append(mem_file)
     src_dst = cld_data = cld_mask = None
+    gc.collect()
     return uncld_files_path
 
 
@@ -257,6 +278,7 @@ def dn2ref(out_dir, zip_file):
     zip_name = os.path.splitext(os.path.basename(zip_file))[0]
     zip_file_name = zip_name
     temp_dir = tempfile.mkdtemp(dir=out_dir, suffix='_un_zip')
+    # temp_dir = r'F:\test\S2\S2A'
     if not os.path.isdir(temp_dir):
         os.mkdir(temp_dir)
     zip_value = un_zip(zip_file, temp_dir)
@@ -271,9 +293,9 @@ def dn2ref(out_dir, zip_file):
     safe_dir = os.path.join(temp_dir, '%s.SAFE' % zip_name)
     if not os.path.isdir(safe_dir):
         sys.exit('No %s.SAFE dir' % zip_name)
-    subprocess.call('L2A_Process.bat %s' % safe_dir)
+    # subprocess.call('L2A_Process.bat %s' % safe_dir)
     # subprocess.call('D:\Sen2Cor-02.09.00-win64\L2A_Process.bat %s' % safe_dir)
-    # os.system('L2A_Process %s' % safe_dir)
+    subprocess.call('L2A_Process {}'.format(safe_dir), stdout=subprocess.DEVNULL, stderr=subprocess.STDOUT, shell=True)
 
     L2_dir_list = list(zip_name.split('_'))
     L2_dir_list[1] = 'MSIL2A'
@@ -308,8 +330,20 @@ def dn2ref(out_dir, zip_file):
     vrt_options = gdal.BuildVRTOptions(resolution='user', xRes=10, yRes=10, separate=True,
                                        resampleAlg='bilinear')
     vrt_10_dataset = gdal.BuildVRT(vrt_10_file, jp2_10_files, options=vrt_options)
-    # # 依据云掩膜去除数据中的云,只去除RGB波段
-    jp2_10_uncld_files = cld_mask(vrt_10_dataset)
+    # 依据云掩膜去除数据中的云,只去除RGB波段
+    # 根据内存大小确定去云时临时文件的位置
+    # 获取系统剩余内存,单位G
+    mem = psutil.virtual_memory()
+    # 系统空闲内存
+    kx = float(mem.free) / 1024 / 1024 / 1024
+    mem_check = ''
+    if kx <= 5:
+        mem_check = 'DISK'
+        cld_temp_dir = temp_dir
+    else:
+        mem_check = 'MEM'
+        cld_temp_dir = None
+    jp2_10_uncld_files = cld_mask(vrt_10_dataset, tempFilePath=cld_temp_dir, tempFileLocation=mem_check)
     # 修改vrt_10_file文件
     tempvrtfile = genRandomfile(dir=safe_dir, prefix="uncloud_", suffix=".vrt")
     vrt_10_dataset.GetDriver().CreateCopy(tempvrtfile, vrt_10_dataset)
@@ -318,9 +352,12 @@ def dn2ref(out_dir, zip_file):
     # 重投影
     dst = reproject_dataset(vrt_uncld_ds) 
     # 释放内存文件
-    for mem_file in jp2_10_uncld_files:
-        gdal.Unlink(mem_file)
-    gc.collect()
+    if mem_check == 'MEM':
+        for mem_file in jp2_10_uncld_files:
+            get_mem('before {} unlink'.format(xml_name + str(mem_file)))
+            gdal.Unlink(mem_file)
+            gc.collect()
+            get_mem('end {} unlink'.format(xml_name + str(mem_file)))
     # 存储文件
     isub_ref_dir = os.path.join(out_dir, zip_file_name)
     if not os.path.isdir(isub_ref_dir):
@@ -332,6 +369,7 @@ def dn2ref(out_dir, zip_file):
     out_10_ds = out_driver.CreateCopy(out_10_file, dst, callback=progress)
 
     vrt_10_dataset = vrt_uncld_ds = dst = out_10_ds = None
+    gc.collect()
     shutil.rmtree(temp_dir, ignore_errors=True)
     
     
@@ -366,7 +404,7 @@ if __name__ == '__main__':
     # in_dir = sys.argv[1]
     # out_dir = sys.argv[2]
     #
-    in_dir = r"F:\test\S2\data"
+    in_dir = r"F:\test\S2\source"
     out_dir = r"F:\test\data_out\new"
     main(in_dir, out_dir)
 
