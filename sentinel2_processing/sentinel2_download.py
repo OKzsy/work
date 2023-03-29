@@ -26,9 +26,10 @@ import http
 # debug
 http.client.HTTPConnection.debuglevel = 0
 # timeout
-DEFAULT_TIMEOUT = 60 # seconds
+DEFAULT_TIMEOUT = 60  # seconds
 # raise error for 4xx,5xx
-assert_status_hook = lambda response, *args, **kwargs: response.raise_for_status()
+assert_status_hook = lambda response, * \
+    args, **kwargs: response.raise_for_status()
 
 retry_strategy = Retry(
     total=5,
@@ -70,8 +71,9 @@ class TimeoutHTTPAdapter(HTTPAdapter):
             kwargs["timeout"] = self.timeout
         return super().send(request, **kwargs)
 
+
 def BuildOptions(platformname='Sentinel-2',
-                 tile='50SKE',
+                 tile=None,
                  begintime=None,
                  endtime=None,
                  filename=None,
@@ -91,7 +93,9 @@ def BuildOptions(platformname='Sentinel-2',
     if tile is not None:
         query += [tile]
     if footprint is not None:
-        # 有待完善
+        tmp_str = '(footprint:"Intersects(POLYGON((' + footprint + ')))")'
+        query += [tmp_str]
+    if filename is not None:
         query += ['filename:' + filename]
     query1 = []
     if begintime is None:
@@ -128,24 +132,52 @@ def parse_xml(root, flag, attri=None, attri_value=None, namespace=None):
     # 判断获取的数据内容
     flag_name = flag.split(':')[1]
     # 匹配节点
-    content = []
     if flag_name == 'entry':
-        file_name = []
-        data_link = []
-        quicklook_link = []
+        allMetadatas = {}
         for node in root.findall(flag, namespace):
+            # 获取日期
+            for date in node.findall('root:date', namespace):
+                attrib_lst = date.items()
+                if attrib_lst[0][1] == 'datatakesensingstart':
+                    date_str = date.text.split('T')[0]
+                    break
+            if date_str not in list(allMetadatas.keys()):
+                allMetadatas[date_str] = []
+            metadata = {}
+            # 获取数据编号
+            for tile in node.findall('root:str', namespace):
+                attrib_lst = tile.items()
+                if attrib_lst[0][1] == 'tileid':
+                    tileid = tile.text
+                    break
+            metadata['tileid'] = tileid
+            # 获取云含量
+            clodecoverage = node.find('root:double', namespace).text
+            metadata['cloudcover'] = clodecoverage
+            # 获取矢量多边形
+            for polygon in node.findall('root:str', namespace):
+                attrib_lst = polygon.items()
+                if attrib_lst[0][1] == 'footprint':
+                    polygon_str = polygon.text.split('(')[-1][:-3]
+                    break
+            metadata['boundary'] = polygon_str
             # 获取文件名
-            file_name.append(node.find('root:title', namespace).text)
+            file_name = node.find('root:title', namespace).text
+            metadata['filename'] = file_name
             # 获取数据链接
             for link in node.findall('root:link', namespace):
                 attrib_lst = link.items()
                 attrib_num = len(attrib_lst)
                 if attrib_num == 1:
-                    data_link.append(attrib_lst[0][1])
+                    data_link = attrib_lst[0][1]
+                    metadata['dataLink'] = data_link
                 elif attrib_lst[0][1] == 'icon':
-                    quicklook_link.append(attrib_lst[1][1])
-        return file_name, data_link, quicklook_link
+                    quicklook_link = attrib_lst[1][1]
+                    metadata['viewLink'] = quicklook_link
+            allMetadatas[date_str].append(metadata)
+        return allMetadatas
     else:
+        content = []
         for node in root.findall(flag, namespace):
             if attri:
                 if node.attrib[attri] == attri_value:
@@ -155,15 +187,19 @@ def parse_xml(root, flag, attri=None, attri_value=None, namespace=None):
                 pass
     return content
 
+
 def progress(percent, name=None, netSpeed=None, width=50):
     if percent >= 1:
-        percent=1
+        percent = 1
     fmt = '[{{:<{}}}]'.format(width)
-    show_str= fmt.format(int(width*percent)*'#')
+    show_str = fmt.format(int(width*percent)*'#')
     if name is not None:
-        print('\r{0} {1:>3.0%}-{2:>7.3f} M/s {3}'.format(show_str, percent, netSpeed, name),file=sys.stdout,flush=True,end='')
-    else:  
-        print('\r{0} {1:>3.0%}-{2:>7.3f} M/s'.format(show_str,percent, netSpeed),file=sys.stdout,flush=True,end='')
+        print('\r{0} {1:>3.0%}-{2:>7.3f} M/s {3}'.format(show_str,
+                                                         percent, netSpeed, name), file=sys.stdout, flush=True, end='')
+    else:
+        print('\r{0} {1:>3.0%}-{2:>7.3f} M/s'.format(show_str,
+                                                     percent, netSpeed), file=sys.stdout, flush=True, end='')
+
 
 def download(url, dst, limit=10):
     basename = os.path.basename(dst)
@@ -221,7 +257,8 @@ def download(url, dst, limit=10):
                         count_temp = len(chunk)
                         temp_size += count_temp
                         mid_time = time.time()
-                        speed = (count_temp) / 1024 / 1024 / (mid_time - start_time + 0.00001)
+                        speed = (count_temp) / 1024 / 1024 / \
+                            (mid_time - start_time + 0.00001)
                         start_time = mid_time
                         percent = temp_size / total_size
                         f.write(chunk)
@@ -232,7 +269,8 @@ def download(url, dst, limit=10):
                         else:
                             speed_low_count = 0
                         if speed_low_count >= 5:
-                            print('{}-speed_low_count: {}, speed: {}'.format(basename, speed_low_count, speed))
+                            print(
+                                '{}-speed_low_count: {}, speed: {}'.format(basename, speed_low_count, speed))
                             http.close()
                             break
                         # progress(percent=percent, name=basename, netSpeed=speed)
@@ -243,9 +281,99 @@ def download(url, dst, limit=10):
     return None
 
 
-def main():
+def spatialfilter(farmshapefile, allDataDict, high=['49SGV']):
+    from osgeo import gdal, ogr
+    needData = {}
+    needData['Name'] = []
+    needData['dataLink'] = []
+    needData['viewLink'] = []
+    # 获取农场的范围
+    inDriver = ogr.GetDriverByName("ESRI Shapefile")
+    inDataSource = inDriver.Open(farmshapefile, 0)
+    inLayer = inDataSource.GetLayer()
+    for feat in inLayer:
+        geom = feat.geometry().Clone()
+        # 逐个对比待下载数据
+        for date, data in allDataDict.items():
+            dataName = []
+            dataLink = []
+            quickviewLink = []
+            # 判断是否存在优先下载的数据
+            if high:
+                alltileid = [k['tileid'] for k in data]
+                highRank = [k for k in alltileid if k in high]
+            else:
+                highRank = None
+            # 获取有效数据的矢量范围
+            cloud = 100
+            for tmpData in data:
+                boundary = tmpData['boundary'].split(',')
+                # 创建多边形
+                ring = ogr.Geometry(ogr.wkbLinearRing)
+                for point in boundary:
+                    lon, lat = map(float, point.split())
+                    ring.AddPoint(lon, lat)
+                poly = ogr.Geometry(ogr.wkbPolygon)
+                poly.AddGeometry(ring)
+                poly.CloseRings()
+                tileid = tmpData['tileid']
+                # 进行对比并放入带下载数据列表
+                if poly.Contains(geom):
+                    if highRank:
+                        if tileid in highRank:
+                            tempcloud = float(tmpData['cloudcover'])
+                            if tempcloud <= cloud:
+                                dataLink.clear()
+                                dataName.clear()
+                                quickviewLink.clear()
+                                dataName.append(tmpData['filename'])
+                                dataLink.append(tmpData['dataLink'])
+                                quickviewLink.append(tmpData['viewLink'])
+                            cloud = tempcloud
+                    else:
+                        tempcloud = float(tmpData['cloudcover'])
+                        if tempcloud <= cloud:
+                            dataLink.clear()
+                            dataName.clear()
+                            quickviewLink.clear()
+                            dataName.append(tmpData['filename'])
+                            dataLink.append(tmpData['dataLink'])
+                            quickviewLink.append(tmpData['viewLink'])
+                        cloud = tempcloud
+                else:
+                    dataName.append(tmpData['filename'])
+                    dataLink.append(tmpData['dataLink'])
+                    quickviewLink.append(tmpData['viewLink'])
+                poly.Destroy()
+            needData['Name'] += dataName
+            needData['dataLink'] += dataLink
+            needData['viewLink'] += quickviewLink
+        feat.Destroy()
+    inLayer = inDataSource = None
+    return needData
+
+
+def getPoints(farmshapefile):
+    from osgeo import gdal, ogr
+    # 获取农场的范围
+    inDriver = ogr.GetDriverByName("ESRI Shapefile")
+    inDataSource = inDriver.Open(farmshapefile, 0)
+    inLayer = inDataSource.GetLayer()
+    for feat in inLayer:
+        geom = feat.geometry().Clone()
+        polygon = geom.GetGeometryRef(0)
+        coorPoints = polygon.GetPoints()
+        footprint = ','.join(list(map(lambda x: ' '.join(
+            list(map(str, [x[0], x[1]]))), [k for k in coorPoints])))
+        feat.Destroy()
+    return footprint
+
+
+def main(roi):
+    # 获取农场范围
+    coordinate = getPoints(roi)
     # 创建查询条件
-    res = BuildOptions()
+    res = BuildOptions(footprint=coordinate)
     # 查询数据
     base_url = 'https://scihub.copernicus.eu/dhus/search?'
     url = base_url + res
@@ -270,33 +398,36 @@ def main():
     # 获取数据个数
     total_imgs = parse_xml(xmlroot, 'opensearch:totalResults', namespace=ns)
     # 获取数据名称,数据链接,快视图链接
-    file_names, data_links, quickview_links = parse_xml(
-        xmlroot, 'root:entry', namespace=ns)
+    alldata = parse_xml(xmlroot, 'root:entry', namespace=ns)
+    # 筛选需要下载的数据
+    vaildDatas = spatialfilter(roi, alldata)
     # 下载数据
     jobs = 2
     pool = mp.Pool(processes=jobs)
-    for i in range(len(file_names)):
-        name = file_names[i]
-        url = data_links[i]
-        dst = os.path.join(r'F:\test\S2', name) + '.zip'
+    for i in range(len(vaildDatas['Name'])):
+        name = vaildDatas['Name'][i]
+        url = vaildDatas['viewLink'][i]
+        dst = os.path.join(r'F:\test\S2\view', name) + '.jpg'
         # download(url, dst)
         pool.apply_async(download, args=(url, dst,))
     pool.close()
     pool.join()
-        # name = file_names[i]
-        # url = data_links[i]
-        # dst = os.path.join(r'F:\test\S2', name) + '.zip'
-        # res = download(url, dst)
-        # if res:
-        #     print('{} is already download!'.format(res))
-        # else:
-        #     print(end='\n')
+    # name = file_names[i]
+    # url = data_links[i]
+    # dst = os.path.join(r'F:\test\S2', name) + '.zip'
+    # res = download(url, dst)
+    # if res:
+    #     print('{} is already download!'.format(res))
+    # else:
+    #     print(end='\n')
     return None
 
 
 if __name__ == '__main__':
     # 待抓取地区的网址
     start_time = time.time()
-    main()
+    # 农场边界
+    roi = r"F:\tmp\farm\farm.shp"
+    main(roi)
     end_time = time.time()
     print("time: %.2f min." % ((end_time - start_time) / 60))
