@@ -37,9 +37,9 @@ def main(inShapefile,outShapefile):
     ring.AddPoint(extent[1], extent[2])
     ring.AddPoint(extent[1], extent[3])
     ring.AddPoint(extent[0], extent[3])
-    ring.AddPoint(extent[0],extent[2])
     poly = ogr.Geometry(ogr.wkbPolygon)
     poly.AddGeometry(ring)
+    poly.CloseRings
 
     # Save extent to a new Shapefile
     outDriver = ogr.GetDriverByName("ESRI Shapefile")
@@ -80,8 +80,8 @@ if __name__ == '__main__':
     # 注册所有gdal驱动
     gdal.AllRegister()
     start_time = time.time()
-    infile = r"F:\test\farm\farm.shp"
-    outfile = r"F:\test\farm\farm_extent.shp"
+    infile = r"F:\tmp\farm\farm.shp"
+    outfile = r"F:\tmp\farm\farm_extent.shp"
     main(infile, outfile)
     end_time = time.time()
     print("time: %.4f secs." % (end_time - start_time))
