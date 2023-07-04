@@ -12,12 +12,32 @@ Parameters
 """
 import os
 import time
+import fnmatch
+import glob
 from osgeo import gdal, ogr, osr, gdalconst
 
 try:
     progress = gdal.TermProgress_nocb
 except:
     progress = gdal.TermProgress
+
+def searchfiles(dirpath, partfileinfo='*', recursive=False):
+    """列出符合条件的文件（包含路径），默认不进行递归查询，当recursive为True时同时查询子文件夹"""
+    # 定义结果输出列表
+    filelist = []
+    # 列出根目录下包含文件夹在内的所有文件目录
+    pathlist = glob.glob(os.path.join(os.path.sep, dirpath, "*"))
+    # 逐文件进行判断
+    for mpath in pathlist:
+        if os.path.isdir(mpath):
+            # 默认不判断子文件夹
+            if recursive:
+                filelist += searchfiles(mpath, partfileinfo, recursive)
+        elif fnmatch.fnmatch(os.path.basename(mpath), partfileinfo):
+            filelist.append(mpath)
+        # 如果mpath为子文件夹，则进行递归调用，判断子文件夹下的文件
+
+    return filelist
 
 
 def main(txt, shp):
