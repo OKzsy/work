@@ -183,7 +183,7 @@ def main(src, dst, op, size):
     conn_8 = [[-1, -1, -1, 0, 0, 0, 1, 1, 1], [-1, 0, 1, -1, 0, 1, -1, 0, 1]]
     # 打开影像
     dataset = gdal.Open(src)
-    img_data = dataset.ReadAsArray()
+    img_data = dataset.GetRasterBand(1).ReadAsArray()
     # 对影像进行白顶帽变换，抑制暗色背景
     top_hat_img = spike_transf(size, op, img_data)
     # 影像二值化
@@ -258,10 +258,10 @@ if __name__ == '__main__':
     # 注册所有gdal驱动
     gdal.AllRegister()
     start_time = time.time()
-    src_path = r"F:\test_data\DIP3E_out\Fig0940(a).tif"
-    dst_path = r"F:\test_data\DIP3E_out\Fig0940(a)_res2.tif"
+    src_path = r"F:\test\DIPE\test.jpg"
+    dst_path = r"F:\test\DIPE\Fig0940(a)_res1.tif"
     # 选择进行的形态学运算top_hat=0, bottom=1
-    operate = 0
+    operate = 1
     # 结构元大小（即窗口大小-SE size)
     se_size = 31
     main(src_path, dst_path, operate, se_size)
