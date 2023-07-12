@@ -197,7 +197,7 @@ def main(infile, outfile):
     bandnum = in_ds.RasterCount
     # 获取数据
     oridata = in_ds.ReadAsArray()
-    index_list = [add_ndvi, add_dvi]
+    index_list = [add_ndvi, add_msavi]
     index_num = len(index_list)
     index_arr = np.zeros((index_num, ysize, xsize))
     for ifunc in range(index_num):
@@ -211,10 +211,10 @@ def main(infile, outfile):
             index_arr[ifunc, :, :] = func(blue=oridata[0, :, :],
                                           green=oridata[1, :, :],
                                           red=oridata[2, :, :],
-                                          red_edge1=oridata[3, :, :],
-                                          red_edge2=oridata[4, :, :],
-                                          red_edge3=oridata[5, :, :],
-                                          inf=oridata[7, :, :])
+                                          red_edge1=oridata[4, :, :],
+                                          red_edge2=oridata[5, :, :],
+                                          red_edge3=oridata[6, :, :],
+                                          inf=oridata[3, :, :])
     # 写出数据
     tiff_driver = gdal.GetDriverByName('GTiff')
     all_band = bandnum + index_num
@@ -251,8 +251,8 @@ if __name__ == '__main__':
     # 注册所有gdal驱动
     gdal.AllRegister()
     start_time = time.time()
-    infile = r"\\192.168.0.234\nydsj\user\ZSS\郏县林地test\2.data\4.GF\4.clip\GF1_20200720_9273_9275_9350_jiaxian.tif"
-    outfile = r'\\192.168.0.234\nydsj\user\ZSS\郏县林地test\GF1_20200720_9273_9275_9350_vi.tif'
+    infile = r"F:\test\S2\S2_Product\T50SKE\2023-03-28\L2A_T50SKE_A040541_20230328T031304_ref.tif"
+    outfile = r"F:\test\S2\S2_Product\T50SKE\L2A_T50SKE_A040541_20230328T031304_vi.tif"
     main(infile, outfile)
     end_time = time.time()
     print("time: %.4f secs." % (end_time - start_time))
