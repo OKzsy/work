@@ -28,7 +28,7 @@ except:
     progress = gdal.TermProgress
 
 def searchfiles(dirpath, partfileinfo='*', recursive=False):
-    """列出符合条件的文件（包含路径），默认不进行递归查询，当recursive为True时同时查询子文件夹"""
+    """列出符合条件的文件(包含路径), 默认不进行递归查询, 当recursive为True时同时查询子文件夹"""
     # 定义结果输出列表
     filelist = []
     # 列出根目录下包含文件夹在内的所有文件目录
@@ -253,10 +253,10 @@ if __name__ == '__main__':
     # 注册所有gdal驱动
     gdal.AllRegister()
     start_time = time.time()
-    in_file = r"\\192.168.0.234\nydsj\user\ZSS\changyuan_zaihai\vi.tif"
-    shpfile = r"\\192.168.0.234\nydsj\project\40.长垣高标准农田\2.vector\2.人工勾画\耕地合并.shp"
-    outfile = r"\\192.168.0.234\nydsj\user\ZSS\changyuan_zaihai\changyuan"
-    nodata = -300
+    in_file = r"F:\test\chanliang\clip\ttvi"
+    shpfile = r"F:\test\chanliang\2022小麦实际播种_公司种_终.shp"
+    outfile = r"F:\test\chanliang\clip\clip\ttvi"
+    nodata = 0
 
     print('The program starts running!')
 
