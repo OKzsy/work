@@ -132,7 +132,7 @@ def main(http, city, code, dst):
     aqi = []
     for idata in observe_data[::-1]:
         dtime.append(int(idata['od21']))
-        tem.append(int(idata['od22'] if idata['od22'] != '' else -999))
+        tem.append(float(idata['od22'] if idata['od22'] != '' else -999))
         wind_angle.append(int(idata['od23'] if idata['od23'] != '' else -999))
         wind_direct.append(idata['od24'] if idata['od24'] != '' else -999)
         wind_level.append(int(idata['od25'] if idata['od25'] != '' else -999))
@@ -177,6 +177,6 @@ def main(http, city, code, dst):
 if __name__ == '__main__':
     # 待抓取地区的网址
     https = "http://www.weather.com.cn"
-    dst_dir = r"F:\test_data\weather_test"
+    dst_dir = r"F:\testdata\weather_test"
     for icity, icode in city_dict.items():
         main(https, icity, icode, dst_dir)
