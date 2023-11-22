@@ -6,7 +6,7 @@
 # @FileName: create_shp.py
 # @Email   : zhaoshaoshuai@hnnydsj.com
 Description:
-
+将输入的文本文件转换为shpfile(矢量)文件
 Parameters
 
 """
@@ -22,7 +22,7 @@ except:
     progress = gdal.TermProgress
 
 def searchfiles(dirpath, partfileinfo='*', recursive=False):
-    """列出符合条件的文件（包含路径），默认不进行递归查询，当recursive为True时同时查询子文件夹"""
+    """列出符合条件的文件(包含路径), 默认不进行递归查询, 当recursive为True时同时查询子文件夹"""
     # 定义结果输出列表
     filelist = []
     # 列出根目录下包含文件夹在内的所有文件目录
@@ -43,7 +43,7 @@ def searchfiles(dirpath, partfileinfo='*', recursive=False):
 def main(txt, shp):
     # 获取原始信息
     fj = open(txt, 'r', encoding='utf-8')
-    lines = fj.readlines()
+    lines = fj.read().splitlines()
     # 定义目标投影
     oSRS = osr.SpatialReference()
     oSRS.SetWellKnownGeogCS("WGS84")
@@ -52,25 +52,24 @@ def main(txt, shp):
     shp_ds = shp_drv.CreateDataSource(shp)
     outLayer = shp_ds.CreateLayer(' ', geom_type=ogr.wkbPoint, srs=oSRS)
     # 为结果shp添加新字段信息
-    coord_fld = ogr.FieldDefn('city', ogr.OFTString)
-    coord_fld.SetWidth(10)
-    outLayer.CreateField(coord_fld)
-    coord_fld = ogr.FieldDefn('name', ogr.OFTString)
+    coord_fld = ogr.FieldDefn('yield', ogr.OFTReal)
+    coord_fld.SetWidth(8)
+    coord_fld.SetPrecision(3)
     outLayer.CreateField(coord_fld)
     # 创建虚拟要素用以输出
     out_defn = outLayer.GetLayerDefn()
     out_feat = ogr.Feature(out_defn)
-    for line in lines:
-        data = line.split()
-        lat = float(data[3])
-        lon = float(data[2])
-        city = data[1]
-        name = data[0]
+    for line in lines[1:]:
+        data = line.split(',')
+        lat = float(data[4])
+        lon = float(data[3])
+        product = float(data[5])
+        if product == 0:
+            continue
         feat = ogr.Geometry(ogr.wkbPoint)
         feat.AddPoint(lon, lat)
         out_feat.SetGeometry(feat.Clone())
-        out_feat.SetField('city', city)
-        out_feat.SetField('name', name)
+        out_feat.SetField('yield', product)
         outLayer.CreateFeature(out_feat)
     shp_ds.SyncToDisk()
     shp_ds = None
@@ -89,8 +88,8 @@ if __name__ == '__main__':
     # 注册所有gdal驱动
     gdal.AllRegister()
     start_time = time.time()
-    txt_path = r"F:\test\shp\test.txt"
-    shp_path = r"F:\test\shp\test.shp"
+    txt_path = r"F:\test\drought\data\2022淇县测产.csv"
+    shp_path = r"F:\test\drought\data\2022淇县测产.shp"
     main(txt_path, shp_path)
     end_time = time.time()
     print("time: %.4f secs." % (end_time - start_time))

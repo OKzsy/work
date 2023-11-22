@@ -1,18 +1,15 @@
 #!/usr/bin/env python3
 # -*- coding:utf-8 -*-
 """
-# @Time    : 2020/5/26 15:32
+# @Time    : 2023/07/27 18:08
 # @Author  : zhaoss
-# @FileName: multi_img_add_veg_index.py
+# @FileName: calc_index.py
 # @Email   : zhaoshaoshuai@hnnydsj.com
 Description:
-
-
+计算各种指数
 Parameters
 
-
 """
-
 import os
 import sys
 import glob
@@ -28,7 +25,7 @@ except:
 
 
 def searchfiles(dirpath, partfileinfo='*', recursive=False):
-    """列出符合条件的文件（包含路径），默认不进行递归查询，当recursive为True时同时查询子文件夹"""
+    """列出符合条件的文件(包含路径), 默认不进行递归查询, 当recursive为True时同时查询子文件夹"""
     # 定义结果输出列表
     filelist = []
     # 列出根目录下包含文件夹在内的所有文件目录
