@@ -27,7 +27,8 @@ try:
 except:
     progress = gdal.TermProgress
 
-def searchfiles(dirpath, partfileinfo='*', recursive=False):
+
+def searchfiles(dirpath, partfileinfo="*", recursive=False):
     """列出符合条件的文件(包含路径), 默认不进行递归查询, 当recursive为True时同时查询子文件夹"""
     # 定义结果输出列表
     filelist = []
@@ -49,9 +50,9 @@ def searchfiles(dirpath, partfileinfo='*', recursive=False):
 def rpj_vec(lyr, srs):
     """对矢量进行投影变换"""
     # 创建临时矢量文件
-    mem_dri = ogr.GetDriverByName('Memory')
-    mem_ds = mem_dri.CreateDataSource(' ')
-    outLayer = mem_ds.CreateLayer(' ', geom_type=lyr.GetGeomType(), srs=srs)
+    mem_dri = ogr.GetDriverByName("Memory")
+    mem_ds = mem_dri.CreateDataSource(" ")
+    outLayer = mem_ds.CreateLayer(" ", geom_type=lyr.GetGeomType(), srs=srs)
     # 附加字段
     outLayer.CreateFields(lyr.schema)
     # 逐要素进行投影转换
@@ -80,7 +81,9 @@ def shp2raster(raster_ds, shp_layer, ext):
     # 创建mask
     # out = r"F:\test_data\mask.tif"
     # mask_ds = gdal.GetDriverByName('GTiff').Create(out, int(x_size), int(y_size), 1, gdal.GDT_Byte)
-    mask_ds = gdal.GetDriverByName('MEM').Create('', int(x_size), int(y_size), 1, gdal.GDT_Byte)
+    mask_ds = gdal.GetDriverByName("MEM").Create(
+        "", int(x_size), int(y_size), 1, gdal.GDT_Byte
+    )
     mask_ds.SetProjection(raster_prj)
     mask_geo = [ulx, raster_geo[1], 0, uly, 0, raster_geo[5]]
     mask_ds.SetGeoTransform(mask_geo)
@@ -101,9 +104,13 @@ def min_rect(raster_ds, shp_layer):
     raster_inv_geo = gdal.InvGeoTransform(raster_geo)
     # 计算在raster上的行列号
     # 左上
-    off_ulx, off_uly = map(round, gdal.ApplyGeoTransform(raster_inv_geo, extent[0], extent[3]))
+    off_ulx, off_uly = map(
+        round, gdal.ApplyGeoTransform(raster_inv_geo, extent[0], extent[3])
+    )
     # 右下
-    off_drx, off_dry = map(round, gdal.ApplyGeoTransform(raster_inv_geo, extent[1], extent[2]))
+    off_drx, off_dry = map(
+        round, gdal.ApplyGeoTransform(raster_inv_geo, extent[1], extent[2])
+    )
     # 判断是否有重叠区域
     if off_ulx >= x_size or off_uly >= y_size or off_drx <= 0 or off_dry <= 0:
         sys.exit("Have no overlap")
@@ -138,7 +145,9 @@ def mask_raster(raster_ds, mask_ds, result_ds, ext, nodata):
     mask = mask_ds.GetRasterBand(1).ReadAsArray()
     # 对原始影像进行掩模并输出
     for band in range(bandCount):
-        banddata = raster_ds.GetRasterBand(band + 1).ReadAsArray(int(ext[0]), int(ext[1]), int(x_size), int(y_size))
+        banddata = raster_ds.GetRasterBand(band + 1).ReadAsArray(
+            int(ext[0]), int(ext[1]), int(x_size), int(y_size)
+        )
         banddata = np.choose(mask, (background, banddata))
         result_ds.GetRasterBand(band + 1).WriteArray(banddata, 0, int(ext[1] - ext[4]))
     result_ds.FlushCache()
@@ -166,7 +175,7 @@ def Corner_coordinates(dataset):
 def main(file, shp, out_dir, nodata=None):
     # 判断输入的是否为文件
     if os.path.isdir(file):
-        rasters = searchfiles(file, partfileinfo='*.tif')
+        rasters = searchfiles(file, partfileinfo="*.tif")
     else:
         rasters = [file]
     # 打开矢量文件
@@ -189,10 +198,10 @@ def main(file, shp, out_dir, nodata=None):
         if not shp_sr.IsSameGeogCS(raster_srs):
             sys.exit("两个空间参考的基准面不一致，不能进行投影转换！！！")
         # 判断两个SRS是否一致
-        elif shp_sr.IsSame(raster_srs):
+        elif shp_sr.GetAuthorityCode(None) == raster_srs.GetAuthorityCode(None):
             re_shp_l = shp_lyr
             re_shp_ds = shp_ds
-            
+
         else:
             re_shp_ds, re_shp_l = rpj_vec(shp_lyr, raster_srs)
         # 获取影像的左上右下点交点坐标
@@ -200,15 +209,17 @@ def main(file, shp, out_dir, nodata=None):
         # 对原始图层进行空间过滤
         re_shp_l.SetSpatialFilterRect(corner[0], corner[3], corner[2], corner[1])
         # 复制经过属性过滤的图层
-        mem_dri = ogr.GetDriverByName('Memory')
-        temp_shp_ds = mem_dri.CreateDataSource(' ')
-        new_shp_l = temp_shp_ds.CopyLayer(re_shp_l, 'new_shp_l')
+        mem_dri = ogr.GetDriverByName("Memory")
+        temp_shp_ds = mem_dri.CreateDataSource(" ")
+        new_shp_l = temp_shp_ds.CopyLayer(re_shp_l, "new_shp_l")
         # 计算矢量和栅格的最小重叠矩形
         offset = min_rect(raster_ds, new_shp_l)
         # 创建输出影像
         out = os.path.join(out_dir, basename)
         ulx, uly = gdal.ApplyGeoTransform(raster_geo, offset[0], offset[1])
-        result_ds = gdal.GetDriverByName('GTiff').Create(out, int(offset[2]), int(offset[3]), bandCount, dataType)
+        result_ds = gdal.GetDriverByName("GTiff").Create(
+            out, int(offset[2]), int(offset[3]), bandCount, dataType
+        )
         result_ds.SetProjection(raster_prj)
         result_geo = [ulx, raster_geo[1], 0, uly, 0, raster_geo[5]]
         result_ds.SetGeoTransform(result_geo)
@@ -243,7 +254,7 @@ def main(file, shp, out_dir, nodata=None):
     return None
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     # 支持中文路径
     gdal.SetConfigOption("GDAL_FILENAME_IS_UTF8", "YES")
     # 支持中文属性字段
@@ -258,7 +269,7 @@ if __name__ == '__main__':
     outfile = r"F:\test\chanliang\clip\clip\ttvi"
     nodata = 0
 
-    print('The program starts running!')
+    print("The program starts running!")
 
     main(in_file, shpfile, outfile, nodata)
 
