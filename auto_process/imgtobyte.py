@@ -197,7 +197,7 @@ def main(in_dir, out_dir, partfileinfo="*"):
     # 循环处理文件
     for ifile in Pending_images:
         basename = os.path.splitext(os.path.basename(ifile))[0]
-        stretched_img_name = basename + "_strect4.tiff"
+        stretched_img_name = basename + "_strect5.tiff"
         # 打开影像
         data_ds = gdal.Open(ifile)
         # 获取影像的基本信息
@@ -232,12 +232,14 @@ def main(in_dir, out_dir, partfileinfo="*"):
 if __name__ == "__main__":
     # 支持中文路径
     gdal.SetConfigOption("GDAL_FILENAME_IS_UTF8", "YES")
+    # 启用异常处理
+    gdal.UseExceptions()
     # 注册所有gdal驱动
     gdal.AllRegister()
     start_time = time.time()
-    in_path = r"E:\data\gs"
-    out_path = r"E:\data\gs\rgb"
-    partfileinfo = "*L1A14469114001_sub.tif"
+    in_path = r"E:\1.phdFile\data\gs"
+    out_path = r"E:\1.phdFile\data\gs\rgb"
+    partfileinfo = "*L1A14469114001_sha.tif"
     main(in_path, out_path, partfileinfo=partfileinfo)
     end_time = time.time()
 
