@@ -1,26 +1,33 @@
 #!/usr/bin/env python3
 # -*- coding:utf-8 -*-
 """
-# @Time    : 2020/8/29 15:44
-# @Author  : zhaoss
-# @FileName: multi_prun_numba_train.py
-# @Email   : zhaoshaoshuai@hnnydsj.com
-Description:
+Optimized Random Forest based on the original program.
+模型选择逻辑
+明确主要指标
+    Micro-F1：综合衡量分类性能，尤其是类别不平衡时很有用。
+    Accuracy：整体正确率。
+    Kappa：考虑随机正确率后的校正一致性指标。
+如果你的数据类别分布不平衡，Micro-F1往往比Accuracy更可靠。
+优先级选择策略
+一般做法：
+    首先根据 Micro-F1 排序，选最大的。
+    如果 Micro-F1 相同或差别很小（如 0.0001 以内），再比较 Kappa，选更高的。
+    Accuracy 可作为参考，但不要是唯一标准。
 
-
-Parameters
-
-
+组合指标加权
+    如果希望综合考虑：
+    score=w1*Micro-F1+w2*Accuracy+w3*Kappa
+    比如：w1=0.5, w2=0.3, w3=0.2，然后选 score 最高的模型。
 """
 
 import os
 import time
 import math
-import sys
 import pickle
 import numpy as np
 import numba as nb
 import multiprocessing as mp
+
 from osgeo import gdal, ogr, osr, gdalconst
 
 try:
@@ -29,8 +36,14 @@ except:
     progress = gdal.TermProgress
 
 
-class Bar():
+# ============================================================
+# progress bar
+# ============================================================
+
+
+class Bar:
     """用于多线程显示进度条"""
+
     members = 0
 
     def __init__(self, total):
@@ -44,457 +57,717 @@ class Bar():
         Bar.members = 0
 
 
-@nb.njit()
-def cyunique(a):
-    n = a.shape[0]
-    label_num = 0
-    max_i = a[0]
-    min_i = a[0]
-    for i in range(n):
-        max_i = max(max_i, a[i])
-        min_i = min(min_i, a[i])
-    min_i = min(min_i, 0)
-    max_i -= min_i
-    real_total = max_i + 1
-    unique = np.zeros(real_total, dtype=np.int16)
-    label = np.zeros(real_total, dtype=np.int16)
-    label_count = np.zeros(real_total, dtype=np.uint32)
-    for i in range(n):
-        tmp = a[i] - min_i
-        label_count[tmp] += 1
-        if not unique[tmp]:
-            label_num += 1
-            unique[tmp] = 1
-            label[tmp] = tmp
-    res_label = np.zeros(label_num, dtype=np.int16)
-    res_label_count = np.zeros(label_num, dtype=np.uint32)
-    ires = 0
-    for i in range(real_total):
-        if unique[i]:
-            res_label[ires] = label[i] + min_i
-            res_label_count[ires] = label_count[i]
-            ires += 1
-    return (res_label, res_label_count)
+# ============================================================
+# shared memory globals
+# ============================================================
+
+global_train_share = global_label_share = None
+DATA_SHAPE = LABEL_SHAPE = None
+DATA_DTYPE = LABEL_DTYPE = None
+global_predict_share = predict_SHAPE = predict_DTYPE = None
 
 
-@nb.njit()
-def cal_gini(data):
-    """
-    计算给定数据集的gini指数
-    :param data: numpy array 数据集
-    :return: Gini指数
-    """
-    # 样本总个数
-    total_sample = data.shape[0]
-    if total_sample == 0:
-        return 0
-    max_i = data[0]
-    min_i = data[0]
-    for i in range(total_sample):
-        max_i = max(max_i, data[i])
-        min_i = min(min_i, data[i])
-    min_i = min(min_i, 0)
-    max_i -= min_i
-    real_total = max_i + 1
-    label_count = np.zeros(real_total)
-    for i in range(total_sample):
-        tmp = data[i] - min_i
-        label_count[tmp] += 1
-    gini = 0
-    for j in range(real_total):
-        gini += (label_count[j] * label_count[j])
-    gini = 1 - gini / (total_sample * total_sample)
+def init_pool_train(
+    data_share, label_share, data_shape, label_shape, data_dtype, label_dtype
+):
+    global global_train_share, global_label_share
+    global DATA_SHAPE, LABEL_SHAPE
+    global DATA_DTYPE, LABEL_DTYPE
+
+    global_train_share = data_share
+    global_label_share = label_share
+    DATA_SHAPE = data_shape
+    LABEL_SHAPE = label_shape
+    DATA_DTYPE = data_dtype
+    LABEL_DTYPE = label_dtype
+
+
+# ============================================================
+# numba helpers
+# ============================================================
+
+
+@nb.njit(cache=True)
+def cal_gini_hist(hist, total):
+    if total <= 0:
+        return 0.0
+    gini = 1.0
+    inv_total = 1.0 / total
+    for i in range(hist.shape[0]):
+        if hist[i] > 0:
+            p = hist[i] * inv_total
+            gini -= p * p
     return gini
 
 
-@nb.njit()
-def nwhere(data, value):
-    # 样本总个数
-    total_sample = data.shape[0]
-    ge_index = np.zeros(total_sample, dtype=np.uint32)
-    lt_index = np.zeros(total_sample, dtype=np.uint32)
-    ge_count = 0
-    lt_count = 0
-    for i in range(total_sample):
-        if min(data[i], value) == value:
-            ge_index[ge_count] = i
-            ge_count += 1
-        else:
-            lt_index[lt_count] = i
-            lt_count += 1
-    return ge_index[0:ge_count], ge_count, lt_index[0:lt_count], lt_count
+@nb.njit(cache=True)
+def label_stat_by_index(labels, sample_index):
+    """
+    统计 sample_index 对应样本的标签分布。
+    支持负标签。
+    """
+    n = sample_index.shape[0]
+    first_label = labels[sample_index[0]]
+    min_label = first_label
+    max_label = first_label
+
+    for i in range(n):
+        lbl = labels[sample_index[i]]
+        if lbl < min_label:
+            min_label = lbl
+        if lbl > max_label:
+            max_label = lbl
+
+    hist_size = max_label - min_label + 1
+    hist = np.zeros(hist_size, dtype=np.int32)
+    for i in range(n):
+        lbl = labels[sample_index[i]]
+        hist[lbl - min_label] += 1
+
+    used = 0
+    for i in range(hist_size):
+        if hist[i] > 0:
+            used += 1
+
+    label_arr = np.empty(used, dtype=np.int32)
+    count_arr = np.empty(used, dtype=np.int32)
+    p = 0
+    for i in range(hist_size):
+        if hist[i] > 0:
+            label_arr[p] = i + min_label
+            count_arr[p] = hist[i]
+            p += 1
+
+    return label_arr, count_arr, hist, min_label
 
 
-@nb.njit()
-def cal_per_value(currentgini, data):
-    bestgini = 0.0
-    # 样本中的可用特征个数
-    feature_num = data.shape[1] - 1
-    # 寻找最好的切分属性和切分点
-    for fea in range(feature_num):
-        # 获取所在fea特征所有可能取得的值
-        tmp_feature = data[:, fea]
-        feature_values = cyunique(tmp_feature)
-        # 对每一个可能的值进行数据集划分，并计算gini指数
-        for value in feature_values[0]:
-            # 根据fea特征中的值将数据集划分为左右子树
-            index1, size1, index2, size2 = nwhere(tmp_feature, value)
-            if size1 * size2 == 0:
+# def best_split_sorted_scan(
+#     data, labels, sample_index, feature_ids, total_hist, min_label
+# ):
+#     """
+#     在当前节点内，从随机特征 feature_ids 中寻找最佳 Gini 划分。
+#     使用排序扫描，向量化实现。
+#     """
+#     n = sample_index.shape[0]
+#     class_num = total_hist.shape[0]
+#     base_gini = cal_gini_hist(total_hist, n)
+
+#     best_gain = 0.0
+#     best_feature = -1
+#     best_threshold = 0.0
+
+#     # Ensure contiguous
+#     data_c = np.ascontiguousarray(data)
+#     labels_c = np.ascontiguousarray(labels)
+#     sample_index = np.asarray(sample_index, dtype=np.intp)
+
+#     for f_idx, fea in enumerate(feature_ids):
+#         # === 关键修改：向量化取列 ===
+#         feat_values = data_c[sample_index, fea].astype(np.float64)
+
+#         order = np.argsort(feat_values)
+#         sorted_feat = feat_values[order]
+
+#         # 对应标签
+#         labels_in_node = labels_c[sample_index]
+#         hidx_all = labels_in_node - min_label  # shape (n,)
+
+#         left_hist = np.zeros(class_num, dtype=np.int32)
+#         right_hist = total_hist.copy()
+#         left_n = 0
+#         right_n = n
+
+#         # === 向量化扫描 ===
+#         # 遍历排序后的样本（0 ~ n-2），因为阈值在 i 和 i+1 之间
+#         for i in range(n - 1):
+#             # 获取 sampled label for i-th sorted sample
+#             hidx = hidx_all[order[i]]
+#             left_hist[hidx] += 1
+#             right_hist[hidx] -= 1
+#             left_n += 1
+#             right_n -= 1
+
+#             # 相同特征值跳过
+#             if sorted_feat[i] == sorted_feat[i + 1]:
+#                 continue
+
+#             gl = cal_gini_hist(left_hist, left_n)
+#             gr = cal_gini_hist(right_hist, right_n)
+#             weighted_gini = (left_n * gl + right_n * gr) / n
+#             gain = base_gini - weighted_gini
+
+#             if gain > best_gain:
+#                 best_gain = gain
+#                 best_feature = fea
+#                 best_threshold = (sorted_feat[i] + sorted_feat[i + 1]) * 0.5
+
+#     return best_gain, best_feature, best_threshold
+
+
+@nb.njit(cache=True)
+def best_split_sorted_scan(
+    data, labels, sample_index, feature_ids, total_hist, min_label
+):
+    """
+    在当前节点内，从随机特征 feature_ids 中寻找最佳 Gini 划分。
+    使用排序扫描，不再为每个候选阈值复制左右子集。
+
+    返回：best_gain, best_feature, best_threshold
+    """
+    n = sample_index.shape[0]
+    class_num = total_hist.shape[0]
+    base_gini = cal_gini_hist(total_hist, n)
+
+    best_gain = 0.0
+    best_feature = -1
+    best_threshold = 0.0
+
+    for f_idx in range(feature_ids.shape[0]):
+        fea = feature_ids[f_idx]
+
+        feat_values = np.empty(n, dtype=np.float64)
+        for i in range(n):
+            feat_values[i] = data[sample_index[i], fea]
+
+        order = np.argsort(feat_values)
+        sorted_feat = feat_values[order]
+        sample_index_sorted = sample_index[order]
+
+        left_hist = np.zeros(class_num, dtype=np.int32)
+        right_hist = total_hist.copy()
+        left_n = 0
+        right_n = n
+
+        for i in range(n - 1):
+            sid = sample_index_sorted[i]
+            lbl = labels[sid]
+            hidx = lbl - min_label
+
+            left_hist[hidx] += 1
+            right_hist[hidx] -= 1
+            left_n += 1
+            right_n -= 1
+
+            # 相同特征值不能形成有效新阈值
+            if sorted_feat[i] == sorted_feat[i + 1]:
                 continue
-            set1 = data[index1, :]
-            set2 = data[index2, :]
-            # 计算拆分后的gini指数
-            nowgini = (size1 * cal_gini(set1[:, -1]) + size2 * cal_gini(set2[:, -1])) / \
-                      data.shape[0]
-            # 计算gini指数增加量
-            gain = currentgini - nowgini
-            # 判断此划分是否比当前划分更好
-            if gain > bestgini and size1 > 0 and size2 > 0:
-                bestgini = gain
-                # 最佳切分属性以及最佳切分点
-                bestcriteria = [fea, value]
-                # 存储切分后的两个数据集
-                bestsets = [set1, set2]
-    if bestgini == 0.0:
-        bestcriteria = [-1, -1]
-        tmp_set = np.zeros((3, 3), dtype=data.dtype)
-        bestsets = [tmp_set, tmp_set]
-        return bestgini, bestcriteria, bestsets
-    else:
-        return bestgini, bestcriteria, bestsets
+
+            gl = cal_gini_hist(left_hist, left_n)
+            gr = cal_gini_hist(right_hist, right_n)
+            weighted_gini = (left_n * gl + right_n * gr) / n
+            gain = base_gini - weighted_gini
+
+            if gain > best_gain:
+                best_gain = gain
+                best_feature = fea
+                # 标准 CART 连续特征阈值：相邻不同值中点
+                best_threshold = (sorted_feat[i] + sorted_feat[i + 1]) * 0.5
+
+    return best_gain, best_feature, best_threshold
 
 
-def build_tree(data, depth=1):
-    node = {'fea': -1,
-            'value': None,
-            'results': None,
-            'right': None,
-            'left': None}
-    # 增加树的深度变量
+# ============================================================
+# tree build
+# ============================================================
+
+
+def build_tree(
+    data,
+    label,
+    sample_index,
+    depth=1,
+    threshold=0.95,
+    limit_depth=4,
+    max_depth=None,
+    min_samples_split=2,
+    min_samples_leaf=1,
+    rng=None,
+):
+    """
+    构建单棵树。
+
+    保留原逻辑：
+        if (max_lable_rate >= threshold) and (depth >= 4):
+            return leaf
+
+    改进逻辑：
+        每个节点随机选择 k = log2(feature_num)+1 个特征寻找最佳划分。
+    """
+    node = {
+        "fea": -1,
+        "value": None,
+        "results": None,
+        "right": None,
+        "left": None,
+    }
+
     depth += 1
-    # 构建决策树，函数返回该决策树的根节点
-    if data.shape[0] == 0:
-        return node
-        # 增加模糊度判断过程
-    threshold = 0.95
-    lable_jugdment = cyunique(data[:, -1])
-    # 判断剩余标签种类个数
-    lable_cate = lable_jugdment[0]
-    lable_count = lable_jugdment[1]
-    max_lable_rate = lable_count.max() / lable_count.sum()
-    # 如果数据集中的标签只有一种，直接返回结果
-    if lable_cate.shape[0] == 1:
-        node['results'] = lable_jugdment
-        return node
-    # 如果对数据集的划分结果达到要求直接返回结果
-    if (max_lable_rate >= threshold) and (depth >= 4):
-        lable_count_argsort = np.argsort(lable_count)[::-1]
-        lable_cate = lable_cate[lable_count_argsort]
-        lable_count = lable_count[lable_count_argsort]
-        lable_jugdment = (lable_cate, lable_count)
-        node['results'] = lable_jugdment
-        return node
-    # 计算当前的gini指数
-    currentgini = cal_gini(data[:, -1])
-    # 计算本次样本中最佳的划分
-    bestgini, bestcriteria, bestsets = cal_per_value(currentgini, data)
-    # 判断划分是否结束
-    if bestgini > 0:
-        right = build_tree(bestsets[0], depth=depth)
-        left = build_tree(bestsets[1], depth=depth)
-        node['fea'] = bestcriteria[0]
-        node['value'] = bestcriteria[1]
-        node['right'] = right
-        node['left'] = left
-        return node
-    else:
-        # 返回当前的类别标签作为最终的类别标签
-        node['results'] = np.unique(data[:, -1], return_counts=True)
+
+    if sample_index.shape[0] == 0:
         return node
 
+    label_cate, label_count, total_hist, min_label = label_stat_by_index(
+        label, sample_index
+    )
+    max_lable_rate = label_count.max() / label_count.sum()
 
-def choose_sample(data, k):
+    # 1. 单一类别，停止
+    if label_cate.shape[0] == 1:
+        node["results"] = (label_cate, label_count)
+        return node
+
+    # 2. 保留你的原始模糊停止逻辑
+    if (max_lable_rate >= threshold) and (depth >= limit_depth):
+        argsort_idx = np.argsort(label_count)[::-1]
+        node["results"] = (label_cate[argsort_idx], label_count[argsort_idx])
+        return node
+
+    # 3. 可选停止条件：避免过深、过小叶子；默认不强行限制原行为
+    if max_depth is not None and depth >= max_depth:
+        argsort_idx = np.argsort(label_count)[::-1]
+        node["results"] = (label_cate[argsort_idx], label_count[argsort_idx])
+        return node
+
+    if sample_index.shape[0] < min_samples_split:
+        argsort_idx = np.argsort(label_count)[::-1]
+        node["results"] = (label_cate[argsort_idx], label_count[argsort_idx])
+        return node
+
+    # 4. 每个节点随机选择特征，更接近标准随机森林
+    feature_num = data.shape[1]
+    if feature_num <= 0:
+        argsort_idx = np.argsort(label_count)[::-1]
+        node["results"] = (label_cate[argsort_idx], label_count[argsort_idx])
+        return node
+
+    k = int(math.log(feature_num, 2)) + 1 if feature_num > 2 else 1
+    k = min(k, feature_num)
+    feature_ids = rng.choice(feature_num, size=k, replace=False).astype(np.int32)
+
+    best_gain, best_feature, best_threshold = best_split_sorted_scan(
+        data, label, sample_index.astype(np.int32), feature_ids, total_hist, min_label
+    )
+
+    if best_gain <= 0.0 or best_feature < 0:
+        argsort_idx = np.argsort(label_count)[::-1]
+        node["results"] = (label_cate[argsort_idx], label_count[argsort_idx])
+        return node
+
+    feat = data[sample_index, best_feature]
+    left_ids = sample_index[feat < best_threshold]
+    right_ids = sample_index[feat >= best_threshold]
+
+    # 防止过小叶子或异常空分裂
+    if left_ids.shape[0] < min_samples_leaf or right_ids.shape[0] < min_samples_leaf:
+        argsort_idx = np.argsort(label_count)[::-1]
+        node["results"] = (label_cate[argsort_idx], label_count[argsort_idx])
+        return node
+
+    node["fea"] = int(best_feature)
+    node["value"] = float(best_threshold)
+    node["left"] = build_tree(
+        data,
+        label,
+        left_ids.astype(np.int32),
+        depth=depth,
+        threshold=threshold,
+        limit_depth=limit_depth,
+        max_depth=max_depth,
+        min_samples_split=min_samples_split,
+        min_samples_leaf=min_samples_leaf,
+        rng=rng,
+    )
+    node["right"] = build_tree(
+        data,
+        label,
+        right_ids.astype(np.int32),
+        depth=depth,
+        threshold=threshold,
+        limit_depth=limit_depth,
+        max_depth=max_depth,
+        min_samples_split=min_samples_split,
+        min_samples_leaf=min_samples_leaf,
+        rng=rng,
+    )
+    return node
+
+
+# ============================================================
+# train
+# ============================================================
+
+
+def _typecode(dtype):
+    type2ctype = {
+        "uint8": "B",
+        "int8": "b",
+        "uint16": "H",
+        "int16": "h",
+        "uint32": "I",
+        "int32": "i",
+        "float32": "f",
+        "float64": "d",
+    }
+    name = np.dtype(dtype).name
+    if name not in type2ctype:
+        raise TypeError("Unsupported dtype for shared memory: {}".format(name))
+    return type2ctype[name]
+
+
+def multi_build_tree(args):
+    (
+        tree_id,
+        threshold,
+        limit_depth,
+        max_depth,
+        min_samples_split,
+        min_samples_leaf,
+        random_state,
+    ) = args
+    data = np.frombuffer(global_train_share, dtype=DATA_DTYPE).reshape(DATA_SHAPE)
+    label = np.frombuffer(global_label_share, dtype=LABEL_DTYPE).reshape(LABEL_SHAPE)
+
+    seed = None if random_state is None else int(random_state) + int(tree_id)
+    rng = np.random.default_rng(seed)
+
+    n = data.shape[0]
+    # bootstrap 有放回抽样
+    sample_index = rng.choice(n, size=n, replace=True).astype(np.int32)
+
+    tree = build_tree(
+        data,
+        label,
+        sample_index,
+        depth=1,
+        threshold=threshold,
+        limit_depth=limit_depth,
+        max_depth=max_depth,
+        min_samples_split=min_samples_split,
+        min_samples_leaf=min_samples_leaf,
+        rng=rng,
+    )
+    return tree
+
+
+def random_forest_training(
+    feat_train,
+    labels_train,
+    trees_num,
+    threshold=0.95,
+    limit_depth=4,
+    max_depth=None,
+    min_samples_split=2,
+    min_samples_leaf=1,
+    random_state=None,
+):
     """
-    从总体样本集中随机选择样本及特征
-    :param data: numpy array 原始样本集
-    :param k:选择的特征个数
-    :return:被选出来的样本，被选择的特征的索引
+    构建随机森林。
+
+    与原程序相比：
+    - 返回 trees_result
     """
-    # 确定样本个数和特征个数
-    sample_num = data.shape[0]
-    feature_num = data.shape[1] - 1
-    # 先随机算出m个样本，有放回的抽取（m = sample_num)
-    random_sample_index = np.random.choice(sample_num, size=sample_num,
-                                           replace=True)
-    random_sample = data[random_sample_index, :]
-    random_sample_index = None
-    # 选取k个特征，无放回的选取（k <= feature_num)
-    feature_index = np.random.choice(feature_num, size=k, replace=False)
-    random_sample_feature = random_sample[:, feature_index]
-    data_samples = np.insert(random_sample_feature, k,
-                             values=random_sample[:, -1], axis=1)
-    random_sample = None
-    return data_samples, feature_index
+    if trees_num <= 0:
+        raise ValueError("trees_num must be positive")
 
+    feat_train = np.ascontiguousarray(feat_train)
+    labels_train = np.ascontiguousarray(labels_train)
 
-def multi_build_tree(train_data, k):
-    # 随机选择m个样本，k个特征
-    data_samples, feature = choose_sample(train_data, k)
-    # 构建每一颗树
-    tree = build_tree(data_samples)
-    return tree, feature
-
-
-def random_forest_training(data_train, trees_num):
-    """
-    构建随机森林
-    :param data_train: numpy array 训练数据集
-    :param trees_num: 分类树的个数
-    :return: 每一棵树最好的划分，每一棵树对原始特征的选择
-    """
-
-    # 构建每一棵树最好的划分
-    trees_result = []
-    trees_feature = []
-    # 确定样本的维数
-    feature_num = data_train.shape[1] - 1
-    if feature_num > 2:
-        # 设置特征的个数
-        k = int(math.log(feature_num, 2)) + 1
-    else:
-        k = 1
-    # 多线程训练
+    feat_train_share = mp.RawArray(_typecode(feat_train.dtype), feat_train.ravel())
+    labels_train_share = mp.RawArray(
+        _typecode(labels_train.dtype), labels_train.ravel()
+    )
     tasks = trees_num < os.cpu_count() and trees_num or os.cpu_count()
-    pool = mp.Pool(processes=tasks)
-    res = []
-    # 定义进度条
+
+    pool = mp.Pool(
+        processes=tasks,
+        initializer=init_pool_train,
+        initargs=(
+            feat_train_share,
+            labels_train_share,
+            feat_train.shape,
+            labels_train.shape,
+            feat_train.dtype,
+            labels_train.dtype,
+        ),
+    )
+
     bar = Bar(trees_num)
-    update = lambda args: bar.update()
-    # 开始构建每一颗树
-    for i in range(trees_num):
-        res.append(pool.apply_async(multi_build_tree, args=(data_train, k),
-                                    callback=update))
+    async_results = []
+    for tree_id in range(trees_num):
+        args = (
+            tree_id,
+            threshold,
+            limit_depth,
+            max_depth,
+            min_samples_split,
+            min_samples_leaf,
+            random_state,
+        )
+        async_results.append(
+            pool.apply_async(
+                multi_build_tree, args=(args,), callback=lambda _: bar.update()
+            )
+        )
+
     pool.close()
     pool.join()
     bar.shutdown()
-    for r in res:
-        tree, feature = r.get()
-        # 保存训练好的分类树
-        trees_result.append(tree)
-        # 保存该分类树使用的特征
-        trees_feature.append(feature)
-    return trees_result, trees_feature
+
+    trees_result = [r.get() for r in async_results]
+    return trees_result
+
+
+# ============================================================
+# predict
+# ============================================================
 
 
 def predict(sample, tree):
-    """
-    对每一个样本进行预测
-    :param sample: numpy array 需要预测的样本
-    :param tree: 构建好的决策树
-    :return: 所属类别
-    """
-    # 只有树根
-    if tree['results'] != None:
-        return tree['results'][0][0]
-    else:
-        # 有左右子树
-        val_sample = sample[tree['fea']]
-        branch = None
-        if val_sample >= tree['value']:
-            branch = tree['right']
+    """单样本单树预测。"""
+    while True:
+        if tree["results"] is not None:
+            return int(tree["results"][0][0])
+        if sample[tree["fea"]] >= tree["value"]:
+            tree = tree["right"]
         else:
-            branch = tree['left']
-        return predict(sample, branch)
+            tree = tree["left"]
 
 
-def multi_predict(trees_result, trees_feature, itree, m):
-    # 包含标签
-    data_train = np.frombuffer(global_in_share, in_dtype).reshape(IN_SHAPE)
-    clf = trees_result[itree]
-    feature = trees_feature[itree]
-    data = data_train[:, feature]
-    result_i = []
-    for isample in range(m):
-        result_i.append(predict(data[isample], clf))
-    return result_i
+def init_pool_predict(in_shared, in_shape, in_dt):
+    """初始化共享内存供多进程读取"""
+    global global_predict_share, predict_SHAPE, predict_DTYPE
+    global_predict_share = in_shared
+    predict_SHAPE = in_shape
+    predict_DTYPE = in_dt
 
 
-def init_pool(in_shared, in_shape, in_dt):
+def multi_predict_tree_chunk(trees_result, tree_indices, n_samples):
     """
-    多线程准备函数
-    :param in_shared: 原始数据
-    :param in_shape: 原始数据形状
-    :param in_dt: 原始数据类型
-    :return:
+    进程预测指定树集合 tree_indices
+    返回 shape: n_samples x len(tree_indices)
     """
-    global global_in_share
-    global IN_SHAPE
-    global in_dtype
-    global_in_share = in_shared
-    IN_SHAPE = in_shape
-    in_dtype = in_dt
+    data_train = np.frombuffer(global_predict_share, predict_DTYPE).reshape(
+        predict_SHAPE
+    )
+    chunk_res = np.empty((n_samples, len(tree_indices)), dtype=np.int32)
+    for idx, itree in enumerate(tree_indices):
+        clf = trees_result[itree]
+        # 每个样本预测
+        for isample in range(n_samples):
+            sample = data_train[isample]
+            chunk_res[isample, idx] = predict(sample, clf)
+    return chunk_res
 
 
-def get_predict(trees_result, trees_feature, data_train):
+def get_predict(trees_result, sample_verify):
     """
-    利用训练好的随机森林模型对样本进行预测
-    :param trees_result: 训练好的随机森林模型
-    :param trees_feature: 每一颗分类树选择的特征
-    :param data_train: 训练样本
-    :return: 对样本的预测结果
+    多进程预测版本，适配优化版RF
     """
-    type2ctype = {'uint8': 'B', 'uint16': 'H', 'int16': 'h', 'uint32': 'I',
-                  'int32': 'i',
-                  'float32': 'f', 'float64': 'd'}
-    # 遍历所有训练好的树，并对应选择建立该树时使用的特征，根据特征从原始数据集中挑选出子数据集
-    # ---------------------------------------------------------------------------
-    # 结合影像数据量大的特点，采用对对每一个像元遍历所有决策树，然后统计结果
-    # ---------------------------------------------------------------------------
-    # 实验程序采用样例算法的统计方式
-    # 为测试数据创建共享内存，不在进程之间拷贝数据
-    typecode = data_train.dtype.name
-    dt = data_train.dtype
-    shape = data_train.shape
-    train_share = mp.RawArray(type2ctype[typecode], data_train.ravel())
-    m_tree = len(trees_feature)
-    data_train = None
-    tasks = m_tree < os.cpu_count() and m_tree or os.cpu_count()
-    pool = mp.Pool(processes=tasks, initializer=init_pool,
-                   initargs=(train_share, shape, dt))
-    m = shape[0]
-    result_itree = []
-    # 定义进度条
-    bar = Bar(m_tree)
-    update = lambda args: bar.update()
-    for itree in range(m_tree):
-        result_itree.append(pool.apply_async(multi_predict, args=(
-            trees_result, trees_feature, itree, m), callback=update))
+    sample_verify = np.ascontiguousarray(sample_verify)
+    n_samples = sample_verify.shape[0]
+    n_trees = len(trees_result)
+
+    shared_arr = mp.RawArray(_typecode(sample_verify.dtype), sample_verify.ravel())
+
+    # 将树分块到进程，每个进程处理部分树
+    n_proc = min(os.cpu_count(), n_trees)
+    trees_per_proc = [list(range(i, n_trees, n_proc)) for i in range(n_proc)]
+
+    pool = mp.Pool(
+        processes=n_proc,
+        initializer=init_pool_predict,
+        initargs=(shared_arr, sample_verify.shape, sample_verify.dtype),
+    )
+
+    async_results = [
+        pool.apply_async(
+            multi_predict_tree_chunk, args=(trees_result, chunk, n_samples)
+        )
+        for chunk in trees_per_proc
+    ]
+
     pool.close()
     pool.join()
-    bar.shutdown()
-    result_arr = np.array([r.get() for r in result_itree]).T
-    result = []
-    for line in result_arr:
-        result.append(np.argmax(np.bincount(line)))
-    return np.array(result)
+
+    # 合并所有树预测结果
+    votes_matrix = np.hstack(
+        [r.get() for r in async_results]
+    )  # shape: n_samples x n_trees
+
+    # 多数投票
+
+    final_predict = np.apply_along_axis(
+        lambda row: np.argmax(np.bincount(row)), 1, votes_matrix
+    ).astype(np.int32)
+
+    return final_predict
 
 
-def cal_corr_rate(data_train, final_predict):
-    """
-    计算模型的预测准确性
-    :param data_train: numpy array 训练样本
-    :param final_predict: 预测结果
-    :return: 准确性
-    """
-    # 分别计算精度
-    flags = np.unique(data_train[:, -1])
-    mat = np.zeros([flags.size, flags.size])
+# ============================================================
+# metrics and save
+# ============================================================
+
+
+def cal_corr_rate(sample_labels, final_predict):
+
+    flags = np.unique(sample_labels)
+    mat = np.zeros((flags.size, flags.size), dtype=np.float64)
+
     for ipre in range(len(flags)):
-        pre_index = np.where(final_predict == flags[ipre])
-        tr_value = data_train[:, -1][pre_index]
+        pre_index = np.where(final_predict == flags[ipre])[0]
+        tr_value = sample_labels[pre_index]
         for itr in range(len(flags)):
-            tr_flag = flags[itr]
-            mat[ipre, itr] = np.where(tr_value == tr_flag)[0].shape[0]
-    # 计算混淆矩阵
-    # 精度（Precision）代表多分进来，即不属于该标签，被误分为该标签。不要多分，即精度必须高，
-    # 保证分为该类的，其可信度较高，但会有本应该分为该类的分为其他类
-    # 灵敏度（Sensitivity）代表少分，即本应应该数据该标签，结果部分分为其他标签，不要少分，
-    # 即灵敏度必须高，保证是该类的尽量部分为其他类，结果是分为该类的中，有部分本应该是其他类的。
-    micro_ppv = np.zeros(len(flags))
-    micro_trp = np.zeros(len(flags))
-    for iflag in range(len(flags)):
-        Tp = mat[iflag, iflag]
-        Fp = np.sum(mat[iflag, :]) - Tp
-        Fn = np.sum(mat[:, iflag]) - Tp
-        Tn = np.sum(mat) - Tp - Fp - Fn
+            mat[ipre, itr] = np.sum(tr_value == flags[itr])
 
-        ppv = Tp / (Tp + Fp)
+    micro_ppv = np.zeros(len(flags), dtype=np.float64)
+    micro_trp = np.zeros(len(flags), dtype=np.float64)
+
+    for iflag in range(len(flags)):
+        tp = mat[iflag, iflag]
+        fp = np.sum(mat[iflag, :]) - tp
+        fn = np.sum(mat[:, iflag]) - tp
+
+        ppv = tp / (tp + fp) if (tp + fp) > 0 else 0.0
+        trp = tp / (tp + fn) if (tp + fn) > 0 else 0.0
+        f1 = 2 * ppv * trp / (ppv + trp) if (ppv + trp) > 0 else 0.0
+
         micro_ppv[iflag] = ppv
-        trp = Tp / (Tp + Fn)
         micro_trp[iflag] = trp
-        F1Score = 2 * ppv * trp / (ppv + trp)
-        print('The flag is: {}'.format(flags[iflag]))
-        print('The Precision is: {:<5.4}'.format(ppv))
-        print('The Sensitivity is: {:<5.4}'.format(trp))
-        print('The F1-Score is: {:<5.4}'.format(F1Score))
+
+        print("The flag is: {}".format(flags[iflag]))
+        print("The Precision is: {:<5.4}".format(ppv))
+        print("The Sensitivity is: {:<5.4}".format(trp))
+        print("The F1-Score is: {:<5.4}".format(f1))
+
     micro_p = np.average(micro_ppv)
     micro_t = np.average(micro_trp)
-    micro_f1 = 2 * micro_p * micro_t / (micro_p + micro_t)
-    print('The Micro-F1-Score is: {:<5.4}'.format(micro_f1))
-    acc = np.trace(mat) / np.sum(mat)
-    print('The Accuracy is: {:<5.4}'.format(acc))
-    # 计算kappa系数
+    micro_f1 = (
+        2 * micro_p * micro_t / (micro_p + micro_t) if (micro_p + micro_t) > 0 else 0.0
+    )
+    acc = np.trace(mat) / np.sum(mat) if np.sum(mat) > 0 else 0.0
+
     pe_rows = np.sum(mat, axis=0)
     pe_cols = np.sum(mat, axis=1)
-    sum_total = sum(pe_cols)
-    pe = np.dot(pe_rows, pe_cols) / float(sum_total ** 2)
-    po = np.trace(mat) / float(sum_total)
-    kappa = (po - pe) / (1 - pe)
-    print('The Kappa is: {:<5.4}'.format(kappa))
-    return [kappa, acc, micro_f1]
+    sum_total = np.sum(pe_cols)
+    pe = np.dot(pe_rows, pe_cols) / float(sum_total**2) if sum_total > 0 else 0.0
+    po = np.trace(mat) / float(sum_total) if sum_total > 0 else 0.0
+    kappa = (po - pe) / (1 - pe) if (1 - pe) != 0 else 0.0
+    score = 0.5 * micro_f1 + 0.3 * acc + 0.2 * kappa
+
+    print("The Micro-F1-Score is: {:<5.4}".format(micro_f1))
+    print("The Accuracy is: {:<5.4}".format(acc))
+    print("The Kappa is: {:<5.4}".format(kappa))
+    print("The Score is: {:<5.4}".format(score))
+    return [micro_f1, acc, kappa, score]
 
 
-def save_model(trees_result, trees_feature, model_file, feature_file):
-    """
-    保存最终模型
-    :param trees_result: 训练好的随机森林模型
-    :param trees_feature: 每一棵决策树选择的特征
-    :param model_file: 模型保存的文件
-    :param feature_file: 特征保存的文件
-    :return:
-    """
-    with open(feature_file, 'wb') as f:
-        pickle.dump(trees_feature, f)
-    with open(model_file, 'wb') as f:
+def save_model(trees_result, model_file):
+    with open(model_file, "wb") as f:
         pickle.dump(trees_result, f)
-    return None
 
 
-def main(sample_file, model_dir, model_name, tree_num):
-    # 导入数据
+def main(
+    sample_file,
+    model_dir,
+    model_name,
+    tree_num,
+    threshold=0.95,
+    limit_depth=4,
+    max_depth=None,
+    min_samples_split=2,
+    min_samples_leaf=1,
+    random_state=2000,
+):
     print("--------------------load data---------------------")
-    data = np.loadtxt(sample_file, delimiter=',', dtype=np.int16)
-    lines = math.ceil(data.shape[0] * 0.8)
-    np.random.shuffle(data)
-    data_train, data_verify = data[:lines, :], data[lines:, :]
-    data = None
-    # 训练random forest 模型
+    # 如果你的标签确定是 int16 且特征也是 int16，可改为 dtype=np.int16。
+    # 这里用 float32 兼容连续特征，标签会在统计时转 int。
+    data_all = np.loadtxt(sample_file, delimiter=",", dtype=np.float32)
+    # 打乱数据，分训练和验证数据集
+    idx = np.random.permutation(data_all.shape[0])
+    split = int(data_all.shape[0] * 0.8)
+    sample_feats = data_all[:, :-1]
+    sample_labels = data_all[:, -1].astype(np.int32)
+    sample_feat_train, sample_label_train = (
+        sample_feats[idx[:split]],
+        sample_labels[idx[:split]],
+    )
+    sample_feat_verify, sample_label_verify = (
+        sample_feats[idx[split:]],
+        sample_labels[idx[split:]],
+    )
+
     print("---------------random forest training-------------")
-    trees_result, trees_feature = random_forest_training(data_train, tree_num)
-    # 得到训练的准确性
+    trees_result = random_forest_training(
+        sample_feat_train,
+        sample_label_train,
+        tree_num,
+        threshold=threshold,
+        limit_depth=limit_depth,
+        max_depth=max_depth,
+        min_samples_split=min_samples_split,
+        min_samples_leaf=min_samples_leaf,
+        random_state=random_state,
+    )
+
     print("---------------get prediction correct rate--------")
-    result = get_predict(trees_result, trees_feature, data_verify)
-    # 输出根据混淆矩阵计算得到的混合精度，Kappa, total accuracy, Micro-F1-Score
-    Precision = cal_corr_rate(data_verify, result)
-    str_pre = [str(round(ipre, 4)) for ipre in Precision]
-    corr_rate = '_'.join(str_pre)
+    result = get_predict(trees_result, sample_feat_verify)
+    precision = cal_corr_rate(sample_label_verify, result)
+    corr_rate = "_".join([str(round(x, 4)) for x in precision])
+
     model_name = os.path.splitext(os.path.basename(model_name))[0]
-    # 判断输出路径是否存在，不存在创建
     if not os.path.exists(model_dir):
         os.makedirs(model_dir)
-    model_file = os.path.join(model_dir, model_name) + '_' + str(tree_num) + '_' + corr_rate + '_mdl.pkl'
-    feature_file = os.path.join(model_dir, model_name) + '_' + str(tree_num) + '_' + corr_rate + '_fea.pkl'
+
+    model_file = (
+        os.path.join(model_dir, model_name)
+        + "_"
+        + str(tree_num)
+        + "_"
+        + corr_rate
+        + "_mdl.pkl"
+    )
+
     print("--------------------save model---------------------")
-    save_model(trees_result, trees_feature, model_file, feature_file)
+    save_model(trees_result, model_file)
     return None
 
 
-if __name__ == '__main__':
-    # 支持中文路径
-    gdal.SetConfigOption("GDAL_FILENAME_IS_UTF8", "YES")
-    # 支持中文属性字段
-    gdal.SetConfigOption("SHAPE_ENCODING", "GBK")
-    # 注册所有ogr驱动
-    ogr.RegisterAll()
-    # 注册所有gdal驱动
-    gdal.AllRegister()
+if __name__ == "__main__":
+    if gdal is not None:
+        gdal.SetConfigOption("GDAL_FILENAME_IS_UTF8", "YES")
+        gdal.SetConfigOption("SHAPE_ENCODING", "GBK")
+        if ogr is not None:
+            ogr.RegisterAll()
+        gdal.AllRegister()
+
     start_time = time.time()
-    samplefile = r"F:\test_data\dengfeng\newsample.csv"
-    model_dir = r"E:\MNIST_dataset"
-    model_name = 's2_0706_25_nea.pkl'
+    threshold = 0.98
+    limit_depth = 4
+    samplefile = r"F:\cotton\sample\L2A_T45TUK_A025799_20200531T051701_sample_new.csv"
+    model_dir = r"F:\cotton\sample\model_new"
+    model_name = (
+        "_".join(["S2", str(200531), str(limit_depth), str(threshold)]) + "_mdl.pkl"
+    )
+
     for tree_num in range(10, 31, 5):
         for iround in range(3):
-            print('Start the {} round of training for {} trees'.format(str(iround + 1), str(tree_num)))
-            main(samplefile, model_dir, model_name, tree_num)
+            print(
+                "Start the {} round of training for {} trees".format(
+                    str(iround + 1), str(tree_num)
+                )
+            )
+            main(
+                samplefile,
+                model_dir,
+                model_name,
+                tree_num,
+                threshold=threshold,  # 保留 max_lable_rate >= 0.95
+                limit_depth=limit_depth,  # 用于和threshold配合使用, 防止因样本不均衡过早结束
+                max_depth=None,  # 默认不限制深度，接近原程序
+                min_samples_split=2,
+                min_samples_leaf=1,
+                random_state=None,  # 如需复现实验，可设为固定整数，例如 2024
+            )
+
     end_time = time.time()
     print("time: %.4f secs." % (end_time - start_time))
