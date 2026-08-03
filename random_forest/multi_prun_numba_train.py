@@ -520,86 +520,167 @@ def random_forest_training(
 # ============================================================
 # predict
 # ============================================================
-
-
-def predict(sample, tree):
-    """单样本单树预测。"""
-    while True:
-        if tree["results"] is not None:
-            return int(tree["results"][0][0])
-        if sample[tree["fea"]] >= tree["value"]:
-            tree = tree["right"]
-        else:
-            tree = tree["left"]
-
-
-def init_pool_predict(in_shared, in_shape, in_dt):
-    """初始化共享内存供多进程读取"""
-    global global_predict_share, predict_SHAPE, predict_DTYPE
-    global_predict_share = in_shared
-    predict_SHAPE = in_shape
-    predict_DTYPE = in_dt
-
-
-def multi_predict_tree_chunk(trees_result, tree_indices, n_samples):
+def flatten_forest(trees_result):
     """
-    进程预测指定树集合 tree_indices
-    返回 shape: n_samples x len(tree_indices)
+    将字典格式的随机森林模型拍平为 Numba 易于读取的扁平化 NumPy 数组。
     """
-    data_train = np.frombuffer(global_predict_share, predict_DTYPE).reshape(
-        predict_SHAPE
+    all_features = []
+    all_thresholds = []
+    all_lefts = []
+    all_rights = []
+    all_is_leaf = []
+    all_labels = []
+
+    tree_offsets = np.empty(len(trees_result), dtype=np.int32)
+    current_global_offset = 0
+
+    for i, tree in enumerate(trees_result):
+        tree_offsets[i] = current_global_offset
+        nodes = []
+
+        def parse_node(node):
+            nonlocal current_global_offset
+            node_idx = len(nodes)
+
+            # 初始化当前节点项
+            entry = {
+                "fea": node["fea"],
+                "value": node["value"] if node["value"] is not None else 0.0,
+                "left": -1,
+                "right": -1,
+                "is_leaf": 0,
+                "label": -1,
+            }
+            nodes.append(entry)
+
+            if node["results"] is not None:
+                entry["is_leaf"] = 1
+                entry["label"] = int(node["results"][0][0])
+            else:
+                # 递归解析子节点
+                left_child_rel_idx = parse_node(node["left"])
+                entry["left"] = left_child_rel_idx
+
+                right_child_rel_idx = parse_node(node["right"])
+                entry["right"] = right_child_rel_idx
+
+            return node_idx
+
+        parse_node(tree)
+        tree_size = len(nodes)
+
+        # 将局部相对索引转换为全局绝对索引
+        for node_idx, entry in enumerate(nodes):
+            all_features.append(entry["fea"])
+            all_thresholds.append(entry["value"])
+            all_is_leaf.append(entry["is_leaf"])
+            all_labels.append(entry["label"])
+
+            if entry["is_leaf"] == 0:
+                all_lefts.append(current_global_offset + entry["left"])
+                all_rights.append(current_global_offset + entry["right"])
+            else:
+                all_lefts.append(-1)
+                all_rights.append(-1)
+
+        current_global_offset += tree_size
+
+    # 转换为连续数组返回
+    features = np.ascontiguousarray(
+        np.array(all_features, dtype=np.int32), dtype=np.int32
     )
-    chunk_res = np.empty((n_samples, len(tree_indices)), dtype=np.int32)
-    for idx, itree in enumerate(tree_indices):
-        clf = trees_result[itree]
-        # 每个样本预测
-        for isample in range(n_samples):
-            sample = data_train[isample]
-            chunk_res[isample, idx] = predict(sample, clf)
-    return chunk_res
+    thresholds = np.ascontiguousarray(
+        np.array(all_thresholds, dtype=np.float64), dtype=np.float64
+    )
+    lefts = np.ascontiguousarray(np.array(all_lefts, dtype=np.int32), dtype=np.int32)
+    rights = np.ascontiguousarray(np.array(all_rights, dtype=np.int32), dtype=np.int32)
+    is_leaf = np.ascontiguousarray(np.array(all_is_leaf, dtype=np.int8), dtype=np.int8)
+    labels = np.ascontiguousarray(np.array(all_labels, dtype=np.int32), dtype=np.int32)
+    tree_offsets = np.ascontiguousarray(tree_offsets, dtype=np.int32)
+    return (features, thresholds, lefts, rights, is_leaf, labels, tree_offsets)
+
+
+@nb.njit(parallel=True)
+def nb_predict_forest_pixels(
+    data,
+    features,
+    thresholds,
+    left_children,
+    right_children,
+    is_leaf,
+    labels,
+    tree_offsets,
+    background=50,
+    class_num=10,
+):
+    """
+    利用 Numba 的 parallel=True 自动进行多线程并行化像元预测。
+    非常适合遥感大图预测。
+    """
+    n_samples = data.shape[0]
+    n_trees = tree_offsets.shape[0]
+    final_outputs = np.full(n_samples, background, dtype=np.uint8)
+
+    # 对所有样本（像素点）进行并行循环
+    for i in nb.prange(n_samples):
+        if np.sum(data[i]) == 0:
+            continue
+        # 收集该像素在每棵树上的投票结果, numba官方建议局部数组用empty，手动初始化
+        votes = np.empty(class_num, np.int32)
+        for k in range(class_num):
+            votes[k] = 0
+        # 初始化有效投票次数
+        valid_votes = 0
+        for t in range(n_trees):
+            node_idx = tree_offsets[t]  # 找到这棵树的根节点绝对索引
+            while True:
+                if is_leaf[node_idx] == 1:
+                    lbl = labels[node_idx]
+                    if 0 <= lbl < class_num:
+                        votes[lbl] += 1
+                        valid_votes += 1
+                    break
+                # 决策树分支判定
+                idx = features[node_idx]
+                if data[i, idx] >= thresholds[node_idx]:
+                    node_idx = right_children[node_idx]
+                else:
+                    node_idx = left_children[node_idx]
+
+        # 多数投票
+        # 假设标签不包含负数。如果有负数标签，可以使用更通用的求众数方法
+        # max_val = np.max(votes)
+        # counts = np.zeros(max_val + 1, dtype=np.int32)
+        # for v in votes:
+        #     counts[v] += 1
+
+        # final_outputs[i] = np.argmax(counts)
+        if valid_votes > 0:
+            final_outputs[i] = np.argmax(votes)
+        else:
+            final_outputs[i] = background
+    return final_outputs
 
 
 def get_predict(trees_result, sample_verify):
-    """
-    多进程预测版本，适配优化版RF
-    """
-    sample_verify = np.ascontiguousarray(sample_verify)
-    n_samples = sample_verify.shape[0]
-    n_trees = len(trees_result)
-
-    shared_arr = mp.RawArray(_typecode(sample_verify.dtype), sample_verify.ravel())
-
-    # 将树分块到进程，每个进程处理部分树
-    n_proc = min(os.cpu_count(), n_trees)
-    trees_per_proc = [list(range(i, n_trees, n_proc)) for i in range(n_proc)]
-
-    pool = mp.Pool(
-        processes=n_proc,
-        initializer=init_pool_predict,
-        initargs=(shared_arr, sample_verify.shape, sample_verify.dtype),
+    # 将模型展平为数组，便于加速
+    features, thresholds, lefts, rights, is_leaf, labels, tree_offsets = flatten_forest(
+        trees_result
     )
-
-    async_results = [
-        pool.apply_async(
-            multi_predict_tree_chunk, args=(trees_result, chunk, n_samples)
-        )
-        for chunk in trees_per_proc
-    ]
-
-    pool.close()
-    pool.join()
-
-    # 合并所有树预测结果
-    votes_matrix = np.hstack(
-        [r.get() for r in async_results]
-    )  # shape: n_samples x n_trees
-
-    # 多数投票
-
-    final_predict = np.apply_along_axis(
-        lambda row: np.argmax(np.bincount(row)), 1, votes_matrix
-    ).astype(np.int32)
-
+    # 推理
+    sample_verify_trans = np.ascontiguousarray(sample_verify, dtype=np.float64)
+    sample_verify = None
+    final_predict = nb_predict_forest_pixels(
+        sample_verify_trans,
+        features,
+        thresholds,
+        lefts,
+        rights,
+        is_leaf,
+        labels,
+        tree_offsets,
+    )
+    sample_verify_trans = None
     return final_predict
 
 
