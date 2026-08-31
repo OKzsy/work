@@ -31,8 +31,9 @@ except:
     progress = gdal.TermProgress
 
 
-class Bar():
+class Bar:
     """用于多线程显示进度条"""
+
     members = 0
 
     def __init__(self, total):
@@ -53,21 +54,16 @@ def predict(sample, tree):
     :param tree: 构建好的决策树
     :return: 所属类别
     """
-    # 只有树根
-    if tree['results'] != None:
-        return tree['results'][0][0]
-    else:
-        # 有左右子树
-        val_sample = sample[tree['fea']]
-        branch = None
-        if val_sample >= tree['value']:
-            branch = tree['right']
+    while True:
+        if tree["results"] is not None:
+            return int(tree["results"][0][0])
+        if sample[tree["fea"]] >= tree["value"]:
+            tree = tree["right"]
         else:
-            branch = tree['left']
-        return predict(sample, branch)
+            tree = tree["left"]
 
 
-def get_predict(trees_result, trees_feature, img_block, IDblock):
+def get_predict(trees_result, img_block, IDblock):
     """
     利用训练好的随机森林模型对样本进行预测
     :param trees_result: 训练好的随机森林模型
@@ -77,13 +73,16 @@ def get_predict(trees_result, trees_feature, img_block, IDblock):
     """
     # 从共享内存中提取数据
     share_in_data = np.frombuffer(global_in_share, in_dtype).reshape(IN_SHAPE)
-    share_out_data = np.frombuffer(global_out_share, out_dtype).reshape(
-        OUT_SHAPE)
+    share_out_data = np.frombuffer(global_out_share, out_dtype).reshape(OUT_SHAPE)
     dims_get, dims_put = img_block.block(IDblock)
-    in_data = share_in_data[:, dims_get[1]: dims_get[1] + dims_get[3],
-              dims_get[0]: dims_get[0] + dims_get[2]]
-    out_data = share_out_data[dims_get[1]: dims_get[1] + dims_get[3],
-               dims_get[0]: dims_get[0] + dims_get[2]]
+    in_data = share_in_data[
+        :,
+        dims_get[1] : dims_get[1] + dims_get[3],
+        dims_get[0] : dims_get[0] + dims_get[2],
+    ]
+    out_data = share_out_data[
+        dims_get[1] : dims_get[1] + dims_get[3], dims_get[0] : dims_get[0] + dims_get[2]
+    ]
     # 分类
     m_tree = len(trees_result)
     rows = in_data.shape[1]
@@ -93,17 +92,15 @@ def get_predict(trees_result, trees_feature, img_block, IDblock):
             data_point = in_data[:, irow, icol]
             if np.sum(data_point) == 0:
                 continue
-            result_i = []
+            result_i = np.empty(m_tree, dtype=out_dtype)
             for itree in range(m_tree):
                 clf = trees_result[itree]
-                feature = trees_feature[itree]
-                data = data_point[feature]
-                result_i.append(predict(data, clf))
-            u, c = np.unique(np.array(result_i), return_counts=True)
-            out_data[irow, icol] = u[np.argmax(c)]
+                result_i[itree] = predict(data_point, clf)
+            out_data[irow, icol] = np.argmax(np.bincount(result_i))
     # 将分类的数据放回共享内存中
-    share_out_data[dims_put[3]:dims_put[3] + dims_put[1],
-    dims_put[2]: dims_put[2] + dims_get[2]] = out_data
+    share_out_data[
+        dims_put[3] : dims_put[3] + dims_put[1], dims_put[2] : dims_put[2] + dims_get[2]
+    ] = out_data
     in_data = out_data = None
     return 1
 
@@ -133,15 +130,19 @@ def init_pool(in_shared, out_share, in_shape, out_shape, in_dt, out_dt):
     out_dtype = out_dt
 
 
-def main(model, feature, image, out):
-    imgtype2ctype = {1: ['B', 'uint8'], 2: ['H', 'uint16'], 3: ['h', 'int16'],
-                     4: ['I', 'uint32'], 5: ['i', 'int32'],
-                     6: ['f', 'float32'], 7: ['d', 'float64']}
+def main(model, image, out):
+    imgtype2ctype = {
+        1: ["B", "uint8"],
+        2: ["H", "uint16"],
+        3: ["h", "int16"],
+        4: ["I", "uint32"],
+        5: ["i", "int32"],
+        6: ["f", "float32"],
+        7: ["d", "float64"],
+    }
     #  加载模型
-    with open(model, 'rb') as f:
+    with open(model, "rb") as f:
         trees_result = pickle.load(f)
-    with open(feature, 'rb') as f:
-        trees_feature = pickle.load(f)
     # 打开待分类影像
     in_ds = gdal.Open(image)
     rpj = in_ds.GetProjection()
@@ -150,7 +151,7 @@ def main(model, feature, image, out):
     ysize = in_ds.RasterYSize
     bandnum = in_ds.RasterCount
     # 创建分类结果
-    tif_driver = gdal.GetDriverByName('GTiff')
+    tif_driver = gdal.GetDriverByName("GTiff")
     # 判断输出路径是否存在，不存在创建
     outdir = os.path.dirname(out)
     if not os.path.exists(outdir):
@@ -166,8 +167,7 @@ def main(model, feature, image, out):
     ori_share = mp.RawArray(imgtype2ctype[typecode][0], pixel_len)
     ori_share_arr = np.frombuffer(ori_share, in_dt).reshape(in_shape)
     for iband in range(bandnum):
-        ori_share_arr[iband, :, :] = in_ds.GetRasterBand(
-            iband + 1).ReadAsArray()
+        ori_share_arr[iband, :, :] = in_ds.GetRasterBand(iband + 1).ReadAsArray()
     # 为结果创建共享内存
     typecode = out_ds.GetRasterBand(1).DataType
     out_dt = np.dtype(imgtype2ctype[typecode][1])
@@ -187,17 +187,19 @@ def main(model, feature, image, out):
     cpu_count = os.cpu_count()
     tasks = cpu_count if cpu_count <= numsblocks else numsblocks
     # 创建线程池
-    pool = mp.Pool(processes=tasks, initializer=init_pool,
-                   initargs=(
-                   ori_share, out_share, in_shape, out_shape, in_dt, out_dt))
+    pool = mp.Pool(
+        processes=tasks,
+        initializer=init_pool,
+        initargs=(ori_share, out_share, in_shape, out_shape, in_dt, out_dt),
+    )
     # 定义进度条
     bar = Bar(numsblocks)
     update = lambda args: bar.update()
     # 进行分类
     for itask in range(numsblocks):
-        pool.apply_async(get_predict,
-                         args=(trees_result, trees_feature, img_block, itask),
-                         callback=update)
+        pool.apply_async(
+            get_predict, args=(trees_result, img_block, itask), callback=update
+        )
     pool.close()
     pool.join()
     bar.shutdown()
@@ -209,7 +211,7 @@ def main(model, feature, image, out):
     return None
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     # 支持中文路径
     gdal.SetConfigOption("GDAL_FILENAME_IS_UTF8", "YES")
     # 支持中文属性字段
@@ -220,9 +222,8 @@ if __name__ == '__main__':
     gdal.AllRegister()
     start_time = time.time()
     model_file = r"F:\test_data\dengfeng\model.pkl"
-    feature_file = r"F:\test_data\dengfeng\feature.pkl"
     img_file = r"F:\test_data\dengfeng\S2\L2A_20200318_dengfeng_with_veg_index.tif"
     out_file = r"F:\test_data\dengfeng\class\L2A_20200318_dengfeng_class5.tif"
-    main(model_file, feature_file, img_file, out_file)
+    main(model_file, img_file, out_file)
     end_time = time.time()
     print("time: %.4f secs." % (end_time - start_time))
