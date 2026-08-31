@@ -50,7 +50,11 @@ def searchfiles(dirpath, partfileinfo="*", recursive=False):
 def rpj_vec(lyr, srs):
     """对矢量进行投影变换"""
     # 创建临时矢量文件
-    mem_dri = ogr.GetDriverByName("Memory")
+    # 'Memory' driver is deprecated since GDAL 3.11. Use 'MEM' onwards.
+    if float(gdal.__version__[0:4]) < 3.11:
+        mem_dri = ogr.GetDriverByName("Memory")
+    else:
+        mem_dri = ogr.GetDriverByName("MEM")
     mem_ds = mem_dri.CreateDataSource(" ")
     outLayer = mem_ds.CreateLayer(" ", geom_type=lyr.GetGeomType(), srs=srs)
     # 附加字段
@@ -209,7 +213,11 @@ def main(file, shp, out_dir, nodata=None):
         # 对原始图层进行空间过滤
         re_shp_l.SetSpatialFilterRect(corner[0], corner[3], corner[2], corner[1])
         # 复制经过属性过滤的图层
-        mem_dri = ogr.GetDriverByName("Memory")
+        # 'Memory' driver is deprecated since GDAL 3.11. Use 'MEM' onwards.
+        if float(gdal.__version__[0:4]) < 3.11:
+            mem_dri = ogr.GetDriverByName("Memory")
+        else:
+            mem_dri = ogr.GetDriverByName("MEM")
         temp_shp_ds = mem_dri.CreateDataSource(" ")
         new_shp_l = temp_shp_ds.CopyLayer(re_shp_l, "new_shp_l")
         # 计算矢量和栅格的最小重叠矩形
@@ -264,9 +272,11 @@ if __name__ == "__main__":
     # 注册所有gdal驱动
     gdal.AllRegister()
     start_time = time.time()
-    in_file = r"F:\test\chanliang\clip\ttvi"
-    shpfile = r"F:\test\chanliang\2022小麦实际播种_公司种_终.shp"
-    outfile = r"F:\test\chanliang\clip\clip\ttvi"
+    in_file = r"F:\cotton\finalMap\2025\south\S2_Merge\yulixian-1_merge.tif"
+    shpfile = (
+        r"\\192.168.62.7\zhaoss\棉花\矢量范围\single_pol\pol4class\south\yulixian.shp"
+    )
+    outfile = r"F:\cotton\finalMap\2025\south"
     nodata = 0
 
     print("The program starts running!")
