@@ -28,7 +28,7 @@ except:
     progress = gdal.TermProgress
 
 
-def searchfiles(dirpath, partfileinfo='*', recursive=False):
+def searchfiles(dirpath, partfileinfo="*", recursive=False):
     """列出符合条件的文件（包含路径），默认不进行递归查询，当recursive为True时同时查询子文件夹"""
     # 定义结果输出列表
     filelist = []
@@ -58,7 +58,12 @@ def Extend(xs, ys, matrix, default_value):
     xs_fill = int((xs - 1) / 2)
     ys_fill = int((ys - 1) / 2)
     # 使用镜像填充
-    extended_val = np.pad(matrix, ((ys_fill, ys_fill), (xs_fill, xs_fill)), 'constant', constant_values=default_value)
+    extended_val = np.pad(
+        matrix,
+        ((ys_fill, ys_fill), (xs_fill, xs_fill)),
+        "constant",
+        constant_values=default_value,
+    )
     matrix = None
     return extended_val
 
@@ -80,7 +85,9 @@ def gray_filtering(xs, ys, ori_xsize, ori_ysize, kernel, ext_img):
     ichannel = 0
     for irow in range(ys):
         for icol in range(xs):
-            filtered_img[ichannel, :, :] = ext_img[irow: irow + ori_ysize, icol: icol + ori_xsize]
+            filtered_img[ichannel, :, :] = ext_img[
+                irow : irow + ori_ysize, icol : icol + ori_xsize
+            ]
             ichannel += 1
     return filtered_img[index[0], :, :]
 
@@ -88,7 +95,9 @@ def gray_filtering(xs, ys, ori_xsize, ori_ysize, kernel, ext_img):
 def gray_erode(win_size, kernel, src_data):
     ysize, xsize = src_data.shape
     extend_src_data = Extend(win_size, win_size, src_data, default_value=255)
-    filter_img = gray_filtering(int(win_size), int(win_size), xsize, ysize, kernel, extend_src_data)
+    filter_img = gray_filtering(
+        int(win_size), int(win_size), xsize, ysize, kernel, extend_src_data
+    )
     dst_img = np.min(filter_img, axis=0)
     filter_img = None
     return dst_img
@@ -97,7 +106,9 @@ def gray_erode(win_size, kernel, src_data):
 def gray_dilate(win_size, kernel, src_data):
     ysize, xsize = src_data.shape
     extend_src_data = Extend(win_size, win_size, src_data, default_value=0)
-    filter_img = gray_filtering(int(win_size), int(win_size), xsize, ysize, kernel, extend_src_data)
+    filter_img = gray_filtering(
+        int(win_size), int(win_size), xsize, ysize, kernel, extend_src_data
+    )
     dst_img = np.max(filter_img, axis=0)
     filter_img = None
     return dst_img
@@ -139,10 +150,12 @@ def closing(win_size, kernel, thr, src_data):
 
 def sieve(in_file, dst_dir, operate, th, op, co):
     # 定义结构元
-    SE = {4: np.array([0, 1, 0, 1, 1, 1, 0, 1, 0]),
-          8: np.array([1, 1, 1, 1, 1, 1, 1, 1, 1])}
+    SE = {
+        4: np.array([0, 1, 0, 1, 1, 1, 0, 1, 0]),
+        8: np.array([1, 1, 1, 1, 1, 1, 1, 1, 1]),
+    }
     basename = os.path.splitext(os.path.basename(in_file))[0]
-    dst_file = os.path.join(dst_dir, basename) + '_sieve1.tif'
+    dst_file = os.path.join(dst_dir, basename) + "_sieve3.tif"
     if os.path.exists(dst_file):
         return None
     in_ds = gdal.Open(in_file)
@@ -152,21 +165,20 @@ def sieve(in_file, dst_dir, operate, th, op, co):
     geo = in_ds.GetGeoTransform()
     srcband = in_ds.GetRasterBand(1)
     # 创建输出文件，存放经开运算和填孔洞后的结果
-    drv = gdal.GetDriverByName('GTiff')
+    drv = gdal.GetDriverByName("GTiff")
     dst_ds = drv.Create(dst_file, xsize, ysize, 1, gdal.GDT_Byte)
     dst_ds.SetProjection(prj)
     dst_ds.SetGeoTransform(geo)
     dstband = dst_ds.GetRasterBand(1)
     maskband = None
-    result = gdal.SieveFilter(srcband, maskband, dstband,
-                              th, co[0], callback=None)
+    result = gdal.SieveFilter(srcband, maskband, dstband, th, co[0], callback=None)
     dstband.FlushCache()
     # 进行开操作，平滑边缘
     kernel = SE[co[1]]
     win_size = np.sqrt(kernel.size)
     src_data = dstband.ReadAsArray()
     if not win_size % 1 == 0:
-        raise ('The size of SE is wrong!')
+        raise ("The size of SE is wrong!")
     # 根据输入判断是进行开运算还是进行闭运算
     if operate:
         filter_img = closing(win_size, kernel, op, src_data)
@@ -181,7 +193,7 @@ def sieve(in_file, dst_dir, operate, th, op, co):
 
 def main(in_dir, out_dir, operate, threshold, open_num, connect):
     if os.path.isdir(in_dir):
-        files = searchfiles(in_dir, partfileinfo='*.tif')
+        files = searchfiles(in_dir, partfileinfo="*.tif")
     else:
         files = [in_dir]
     if not os.path.exists(out_dir):
@@ -189,13 +201,15 @@ def main(in_dir, out_dir, operate, threshold, open_num, connect):
     jobs = os.cpu_count() - 1 if os.cpu_count() < len(files) else len(files)
     pool = mp.Pool(processes=jobs)
     for ifile in files:
-        pool.apply_async(sieve, args=(ifile, out_dir, operate, threshold, open_num, connect))
+        pool.apply_async(
+            sieve, args=(ifile, out_dir, operate, threshold, open_num, connect)
+        )
     pool.close()
     pool.join()
     return None
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     # 支持中文路径
     gdal.SetConfigOption("GDAL_FILENAME_IS_UTF8", "YES")
     # 支持中文属性字段
@@ -205,12 +219,12 @@ if __name__ == '__main__':
     # 注册所有gdal驱动
     gdal.AllRegister()
     start_time = time.time()
-    in_dir = r"\\192.168.0.234\nydsj\user\ZSS\garlic\GF6\class1\GF6_20190407_L1A1119901363_class_0.97.tif"
-    out_dir = r"\\192.168.0.234\nydsj\user\ZSS\garlic\GF6\class1"
+    in_dir = r"F:\cotton\test_data\new\new2"
+    out_dir = r"F:\cotton\test_data\new\class_sieve2"
     # 填充孔洞大小阈值
-    threshold = 3
+    threshold = 5
     # 开闭运算操作次数
-    open_num = 2
+    open_num = 3
     # 选择进行的形态学运算opening=0, closing=1
     operate = 1
     # connectedness = [SieveFilter, opening/closing]
