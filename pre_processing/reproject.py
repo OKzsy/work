@@ -29,7 +29,7 @@ except:
     progress = gdal.TermProgress
 
 
-def searchfiles(dirpath, partfileinfo='*', recursive=False):
+def searchfiles(dirpath, partfileinfo="*", recursive=False):
     """列出符合条件的文件（包含路径），默认不进行递归查询，当recursive为True时同时查询子文件夹"""
     # 定义结果输出列表
     filelist = []
@@ -70,16 +70,25 @@ def reproject_dataset(src_ds):
     """
     # 定义目标投影
     oSRS = osr.SpatialReference()
-    # oSRS.SetWellKnownGeogCS("WGS84")
-    # oSRS.ImportFromEPSG(3857)
-    oSRS.ImportFromEPSG(4526)
+    # wkt = """
+    # PROJCS["Asia_North_Albers_Equal_Area_Conic",GEOGCS["WGS 84",DATUM["WGS_1984",SPHEROID["WGS 84",6378137,298.257223563,
+    # AUTHORITY["EPSG","7030"]],AUTHORITY["EPSG","6326"]],PRIMEM["Greenwich",0,AUTHORITY["EPSG","8901"]],
+    # UNIT["degree",0.0174532925199433,AUTHORITY["EPSG","9122"]],AUTHORITY["EPSG","4326"]],
+    # PROJECTION["Albers_Conic_Equal_Area"],PARAMETER["latitude_of_center",30],PARAMETER["longitude_of_center",95],
+    # PARAMETER["standard_parallel_1",15],PARAMETER["standard_parallel_2",65],PARAMETER["false_easting",0],PARAMETER["false_northing",0],
+    # UNIT["metre",1,AUTHORITY["EPSG","9001"]],AXIS["Easting",EAST],AXIS["Northing",NORTH],AUTHORITY["ESRI","102025"]]
+    # """
+    oSRS.SetWellKnownGeogCS("WGS84")
+    # oSRS.ImportFromEPSG(9001)
+    # oSRS.ImportFromEPSG(4526)
+    # oSRS.ImportFromWkt(wkt)
+    # oSRS.SetFromUserInput("ESRI:102025")
     # 获取原始投影
     src_prj = src_ds.GetProjection()
     oSRC = osr.SpatialReference()
     oSRC.ImportFromWkt(src_prj)
     # 测试投影转换
     oSRC.SetTOWGS84(0, 0, 0)
-    tx = osr.CoordinateTransformation(oSRC, oSRS)
 
     # 获取原始影像的放射变换参数
     geo_t = src_ds.GetGeoTransform()
@@ -93,6 +102,8 @@ def reproject_dataset(src_ds):
     else:
         new_x_size = geo_t[1]
         new_y_size = geo_t[5]
+    # new_x_size = geo_t[1]
+    # new_y_size = geo_t[5]
     # 获取影像的四个角点地理坐标
     # 左上
     old_ulx, old_uly = corner_to_geo(0, 0, src_ds)
@@ -102,7 +113,11 @@ def reproject_dataset(src_ds):
     old_dlx, old_dly = corner_to_geo(0, y_size, src_ds)
     # 右下
     old_drx, old_dry = corner_to_geo(x_size, y_size, src_ds)
-
+    # 强制两者的轴顺为传统的 (X,Y) 即 (Easting, Northing)
+    if int(gdal.__version__[0]) >= 3:
+        oSRS.SetAxisMappingStrategy(osr.OAMS_TRADITIONAL_GIS_ORDER)
+        oSRC.SetAxisMappingStrategy(osr.OAMS_TRADITIONAL_GIS_ORDER)
+    tx = osr.CoordinateTransformation(oSRC, oSRS)
     # 计算出新影像的边界
     # 左上
     (new_ulx, new_uly, new_ulz) = tx.TransformPoint(old_ulx, old_uly, 0)
@@ -122,20 +137,30 @@ def reproject_dataset(src_ds):
     # 右下纬度
     lry = min(new_dly, new_dry)
     # 创建重投影后新影像的存储位置
-    mem_drv = gdal.GetDriverByName('MEM')
+    mem_drv = gdal.GetDriverByName("MEM")
     # 根据计算的参数创建存储空间
-    dest = mem_drv.Create('', int((lrx - ulx) / new_x_size), \
-                          int((uly - lry) / -new_y_size), bandCount, dataType)
+    dest = mem_drv.Create(
+        "",
+        int((lrx - ulx) / new_x_size),
+        int((uly - lry) / -new_y_size),
+        bandCount,
+        dataType,
+    )
     # 计算新的放射变换参数
     new_geo = (ulx, new_x_size, geo_t[2], uly, geo_t[4], new_y_size)
     # 为重投影结果设置空间参考
     dest.SetGeoTransform(new_geo)
     dest.SetProjection(oSRS.ExportToWkt())
     # 执行重投影和重采样
-    print('Begin to reprojection and resample!')
-    res = gdal.ReprojectImage(src_ds, dest, \
-                              src_prj, oSRS.ExportToWkt(), \
-                              gdal.GRA_NearestNeighbour, callback=progress)
+    print("Begin to reprojection and resample!")
+    res = gdal.ReprojectImage(
+        src_ds,
+        dest,
+        src_prj,
+        oSRS.ExportToWkt(),
+        gdal.GRA_NearestNeighbour,
+        callback=progress,
+    )
     return dest
 
 
@@ -145,7 +170,11 @@ def main(in_dir, out_dir, partfileinfo):
     # 开始重采样
     count = 1
     for ifile in Pending_images:
-        print("A total of {} scene images, this is the {}".format(len(Pending_images), count))
+        print(
+            "A total of {} scene images, this is the {}".format(
+                len(Pending_images), count
+            )
+        )
         count += 1
         # 获取影像的名称
         basename = os.path.splitext(os.path.basename(ifile))[0]
@@ -156,7 +185,7 @@ def main(in_dir, out_dir, partfileinfo):
         # 拼接输出影像绝对路径
         out_img_path = os.path.join(out_dir, basename) + "-prj.tif"
         # 存储经重采样的结果
-        print('Store the reprojected image!')
+        print("Store the reprojected image!")
         driver = gdal.GetDriverByName("GTiff")
         dst_ds = driver.CreateCopy(out_img_path, dest, callback=progress)
         # 释放资源
@@ -167,16 +196,16 @@ def main(in_dir, out_dir, partfileinfo):
     return None
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     # 支持中文路径
     gdal.SetConfigOption("GDAL_FILENAME_IS_UTF8", "YES")
     # 注册所有gdal驱动
     gdal.AllRegister()
-    start_time = time.clock()
-    in_dir = r"F:\test\20190816_out"
-    out_dir = r"F:\test\20190816_out"
-    partfileinfo = "S2_20180816.tif"
+    start_time = time.time()
+    in_dir = r"F:\cotton\test_data\2026\class_sieve"
+    out_dir = r"F:\cotton\test_data\2026\prj"
+    partfileinfo = "*.tif"
     main(in_dir, out_dir, partfileinfo)
-    end_time = time.clock()
+    end_time = time.time()
 
     print("time: %.4f secs." % (end_time - start_time))
